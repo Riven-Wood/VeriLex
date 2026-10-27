@@ -1,0 +1,10 @@
+# Preserve exact bytes across Windows/macOS: several source and renderer files
+# are covered by SHA-256 locks. Do not apply checkout line-ending conversion.
+* -text
+
+# Patches require context-line spaces; upstream code/licenses retain original bytes.
+desktop/patches/*.patch -whitespace
+third_party/** -whitespace
+runtime/verilex_runtime/ppt_plugin/vendor/** -whitespace
+runtime/verilex_runtime/litigation/fonts/*.txt -whitespace
+runtime/verilex_runtime/pdf_plugin/core.ts -whitespace

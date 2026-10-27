@@ -1,0 +1,22 @@
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, expect, test, vi } from 'vitest';
+import { ExcelPluginSetup } from '../src/components/ExcelPluginSetup';
+import { PLUGIN_CATALOG } from '../src/mcp/catalog';
+import { pickWorkspaceDirectory } from '../src/platform/directoryPicker';
+import * as api from '../src/runtime/api';
+vi.mock('../src/platform/directoryPicker', () => ({pickWorkspaceDirectory: vi.fn()}));
+afterEach(() => {cleanup(); vi.restoreAllMocks();});
+test('folder selection produces the bundled draft and does not start a connection before test', async () => {
+  vi.mocked(pickWorkspaceDirectory).mockResolvedValue('/tmp/excel-synthetic');
+  const testDraft = vi.spyOn(api, 'testMcpServerDraft').mockResolvedValue({testReceipt: 'receipt', tools: [], riskCodes: []});
+  const draft = PLUGIN_CATALOG.find(e => e.id === 'excel-local')!.options![0].draft;
+  vi.spyOn(api, 'parseMcpImport').mockResolvedValue({drafts: [{...draft, cwd: '/tmp/excel-synthetic', risks: []}]});
+  render(<ExcelPluginSetup draft={draft} onSaved={vi.fn()} onComplete={vi.fn()} onCancel={vi.fn()} onBusyChange={vi.fn()}/>);
+  expect(screen.getByText(/原件保留/)).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', {name: '选择表格文件夹'}));
+  await screen.findByRole('button', {name: '测试并查看工具'});
+  expect(testDraft).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', {name: '测试并查看工具'}));
+  await waitFor(() => expect(testDraft).toHaveBeenCalled());
+  expect(testDraft.mock.calls[0][0]).toMatchObject({draft: {command: 'verilex-excel-plugin', cwd: '/tmp/excel-synthetic', args: [], connectTimeoutMs: 60000}});
+});

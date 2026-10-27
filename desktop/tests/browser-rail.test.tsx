@@ -1,0 +1,25 @@
+import {afterEach,expect,test,vi} from 'vitest';
+import {act,cleanup,fireEvent,render,waitFor} from '@testing-library/react';
+import {PreviewRail} from '../src/components/PreviewRail';
+import {openBrowserPanel} from '../src/platform/browserPanel';
+vi.mock('../src/components/BrowserPanel',()=>({default:({request}:{request?:{url:string}})=><div>网页：{request?.url}</div>}));
+vi.mock('../src/components/TerminalPanel',()=>({default:()=> <div>终端内容</div>}));
+vi.mock('../src/components/WorkspaceFilesPanel',()=>({WorkspaceFilesPanel:()=> <div>文件目录</div>}));
+vi.mock('../src/runtime/api',async original=>({...await original<typeof import('../src/runtime/api')>(),listThreadArtifacts:vi.fn().mockResolvedValue([])}));
+afterEach(cleanup);
+test('browser requests preserve the file target and file/terminal tabs', async()=>{
+ const props={terminalEnabled:true,open:true,target:{source:'artifacts-list'} as const,threadId:null,workspaceId:null,onClose:vi.fn(),onOpenList:vi.fn(),onOpenWorkspaceFile:vi.fn()};
+ const view=render(<PreviewRail {...props}/>);
+ act(()=>openBrowserPanel('https://example.com/article'));
+ expect(await view.findByText('网页：https://example.com/article')).toBeTruthy();
+ fireEvent.click(view.getByRole('button',{name:'终端',exact:true}));
+ expect(await view.findByText('终端内容')).toBeTruthy();
+ fireEvent.click(view.getByRole('button',{name:'文件',exact:true}));
+ await view.findByText('文件目录');
+ fireEvent.click(view.getByRole('button',{name:'浏览器',exact:true}));
+ await view.findByText('网页：https://example.com/article');
+ view.rerender(<PreviewRail {...props} open={false}/>);
+ expect(view.queryByText('网页：https://example.com/article')).toBeNull();
+ view.rerender(<PreviewRail {...props}/>);
+ await waitFor(()=>expect(view.getByText('网页：https://example.com/article')).toBeTruthy());
+});

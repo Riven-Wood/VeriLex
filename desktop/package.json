@@ -1,0 +1,49 @@
+{
+  "name": "verilex-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/prepare-document-frontend.mjs && node scripts/prepare-pdf-assets.mjs && vite --port 1420",
+    "build": "node scripts/prepare-document-frontend.mjs && node scripts/prepare-pdf-assets.mjs && tsc && vite build",
+    "build:documents": "node scripts/build-document-bundle.mjs",
+    "build:sidecar": "node scripts/build-runtime-sidecar.mjs",
+    "test": "vitest run",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/plugin-dialog": "^2.7.2",
+    "@tauri-apps/plugin-process": "^2.3.1",
+    "@tauri-apps/plugin-updater": "^2.10.1",
+    "@tiptap/core": "3.31.3",
+    "@tiptap/extension-table": "3.31.3",
+    "@tiptap/extension-text-align": "3.31.3",
+    "@tiptap/extension-text-style": "3.31.3",
+    "@tiptap/pm": "3.31.3",
+    "@tiptap/react": "3.31.3",
+    "@tiptap/starter-kit": "3.31.3",
+    "@xterm/addon-fit": "0.11.0",
+    "@xterm/xterm": "6.0.0",
+    "docx-preview": "0.4.0",
+    "lucide-react": "^0.468.0",
+    "pdfjs-dist": "^6.2.108",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-markdown": "^9.1.0",
+    "remark-gfm": "^4.0.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.2",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "jsdom": "^25.0.1",
+    "typescript": "^5.5.3",
+    "vite": "^5.4.0",
+    "vitest": "^2.1.9"
+  },
+  "license": "PolyForm-Noncommercial-1.0.0"
+}

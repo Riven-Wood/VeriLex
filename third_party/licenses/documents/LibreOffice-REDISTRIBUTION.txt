@@ -1,0 +1,11 @@
+LibreOffice 26.2.4 for macOS arm64 is redistributed unmodified as an isolated
+document-to-PDF process. The upstream disk image is fixed by SHA-256 in
+third_party/documents/sources.lock.json.
+
+LibreOffice is made available under MPL-2.0 and LGPLv3+ terms, with bundled
+third-party components under their respective notices. The component build
+copies the complete upstream Resources/LICENSE, Resources/LICENSE.html, and
+Resources/NOTICE files from the fixed disk image into the generated bundle.
+
+Upstream project: https://www.libreoffice.org/
+Source and license information: https://www.libreoffice.org/about-us/licenses/

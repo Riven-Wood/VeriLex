@@ -1,0 +1,9 @@
+(version 1)
+(allow default)
+(deny network*)
+{{PRIVATE_READ_DENY_RULES}}
+(deny file-write*)
+(allow file-read* (subpath "{{TASK_DIR}}"))
+(allow file-read* (subpath "{{RESOURCE_DIR}}"))
+(allow file-write* (subpath "{{TASK_DIR}}"))
+{{SYSTEM_READ_RULES}}

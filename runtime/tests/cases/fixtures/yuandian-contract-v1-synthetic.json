@@ -1,0 +1,102 @@
+{
+  "provenance": {
+    "kind": "synthetic-from-provider-documentation",
+    "retrievedAt": "2026-09-07",
+    "sourceTool": "mcp__yuandian_case__yuandian_get_api_doc",
+    "contractVersion": 1,
+    "liveBusinessRequest": false,
+    "note": "仅字段形态来自接口文档；全部案例值为虚构，不能作为业务检索成功证据。"
+  },
+  "tools": [
+    {
+      "name": "yuandian_rh_ptal_search",
+      "output": {
+        "code": 200,
+        "data": {
+          "total": 1,
+          "lst": [
+            {
+              "id": "synthetic-case-1",
+              "title": "虚构甲乙合同纠纷",
+              "ah": "虚构案号",
+              "ay": "示例案由",
+              "jbdw": "示例法院",
+              "cprq": "2026-09-07",
+              "content": "仅为测试编写的渠道片段",
+              "type": "普通案例"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "yuandian_rh_qwal_search",
+      "output": {
+        "code": 200,
+        "data": {
+          "total": 1,
+          "lst": [
+            {
+              "id": "synthetic-case-1",
+              "title": "虚构甲乙合同纠纷",
+              "ah": "虚构案号",
+              "ay": "示例案由",
+              "jbdw": "示例法院",
+              "cprq": "2026-09-07",
+              "content": "仅为测试编写的渠道片段",
+              "type": "权威案例"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "yuandian_rh_case_details",
+      "output": {
+        "code": 200,
+        "data": [
+          {
+            "id": "synthetic-case-1",
+            "title": "虚构甲乙合同纠纷",
+            "ah": "虚构案号",
+            "ay": "示例案由",
+            "jbdw": "示例法院",
+            "cprq": "2026-09-07",
+            "content": "仅为测试编写的渠道片段",
+            "type": "普通案例",
+            "section": [
+              {
+                "name": "裁判要旨",
+                "value": "仅为测试编写的要旨"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "yuandian_case_vector_search",
+      "output": {
+        "code": 201,
+        "extra": {
+          "wenshu": [
+            {
+              "scid": "synthetic-vector-1",
+              "title": "虚构案例",
+              "ah": "虚构案号",
+              "ay": [
+                "201"
+              ],
+              "anyou": [
+                "示例案由"
+              ],
+              "jaDate": 20260907,
+              "content": "仅为测试编写的整理内容",
+              "authority": ""
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

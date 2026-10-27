@@ -1,0 +1,25 @@
+import {expect,it,vi} from 'vitest';
+import {fireEvent,render,screen,waitFor,cleanup} from '@testing-library/react';
+const native=vi.hoisted(()=>({invoke:vi.fn(),isTauri:()=>true}));
+vi.mock('@tauri-apps/api/core',()=>native);
+import {GlobalShortcutEffect,ShortcutSettings} from '../src/commands/GlobalShortcut';
+it('is off by default, explicitly registers/unregisters and reports conflicts without enabling',async()=>{
+  Object.defineProperty(navigator,'platform',{configurable:true,value:'MacIntel'});
+  localStorage.clear();
+  render(<><GlobalShortcutEffect/><ShortcutSettings/></>);
+  expect(native.invoke).not.toHaveBeenCalled();
+  const toggle=screen.getByRole('switch',{name:'从其他应用唤起 VeriLex'}) as HTMLInputElement;
+  expect(toggle.checked).toBe(false);
+  native.invoke.mockResolvedValueOnce(true);fireEvent.click(toggle);
+  await waitFor(()=>expect(toggle.checked).toBe(true));
+  expect(native.invoke).toHaveBeenLastCalledWith('set_global_wake_shortcut',{enabled:true});
+  expect(localStorage.getItem('verilex:global-wake-shortcut:v1')).toBe('true');
+  native.invoke.mockResolvedValueOnce(false);fireEvent.click(toggle);
+  await waitFor(()=>expect(toggle.checked).toBe(false));
+  expect(native.invoke).toHaveBeenLastCalledWith('set_global_wake_shortcut',{enabled:false});
+  native.invoke.mockRejectedValueOnce(new Error('conflict'));fireEvent.click(toggle);
+  await waitFor(()=>expect(screen.getByRole('alert').textContent).toContain('占用'));
+  expect(toggle.checked).toBe(false);
+  expect(localStorage.getItem('verilex:global-wake-shortcut:v1')).toBe('false');
+  cleanup();
+});

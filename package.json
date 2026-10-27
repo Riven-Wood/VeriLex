@@ -1,0 +1,31 @@
+{
+  "name": "verilex",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "desktop"
+  ],
+  "overrides": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "scripts": {
+    "check:release-version": "node scripts/release-version.mjs",
+    "create:updater-manifest": "node scripts/create-updater-manifest.mjs",
+    "validate:release-assets": "node scripts/validate-release-assets.mjs",
+    "dev": "npm --workspace desktop run dev",
+    "build": "npm --workspace desktop run build",
+    "build:documents": "npm --workspace desktop run build:documents",
+    "test": "npm --workspace desktop test",
+    "tauri": "npm --workspace desktop run tauri --",
+    "test:runtime": "runtime/.venv/bin/python -m pytest runtime/tests -q"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.27.1",
+    "pdf-lib": "1.17.1"
+  },
+  "license": "PolyForm-Noncommercial-1.0.0"
+}

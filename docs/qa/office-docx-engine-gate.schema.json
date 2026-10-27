@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "status": {"enum": ["passed", "failed"]},
+    "errorCode": {"type": "string", "pattern": "^[a-z0-9_]{1,64}$"},
+    "primaryAttempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["engine", "commit", "status", "capabilities", "error_codes", "duration_ms"],
+      "allOf": [
+        {
+          "if": {"properties": {"engine": {"const": "docxodus"}}},
+          "then": {"properties": {"commit": {"const": "b1457bbd78b14177e3e71c739911f1772a6b1b22"}}},
+          "else": {"properties": {"commit": {"const": "8a8b103849a3173c07638040c33282731d1af92e"}}}
+        },
+        {
+          "if": {"properties": {"status": {"const": "passed"}}},
+          "then": {
+            "properties": {
+              "capabilities": {"const": ["stable_anchors", "atomic_batch", "comments", "tracked_changes", "structured_compare", "ordered_merge", "safe_preview"]},
+              "error_codes": {"maxItems": 0}
+            }
+          },
+          "else": {
+            "properties": {
+              "capabilities": {"maxItems": 0},
+              "error_codes": {"minItems": 1}
+            }
+          }
+        }
+      ],
+      "properties": {
+        "engine": {"enum": ["docxodus", "adeu_stack"]},
+        "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "status": {"$ref": "#/$defs/status"},
+        "capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "stable_anchors",
+              "atomic_batch",
+              "comments",
+              "tracked_changes",
+              "structured_compare",
+              "ordered_merge",
+              "safe_preview"
+            ]
+          }
+        },
+        "error_codes": {"type": "array", "maxItems": 8, "uniqueItems": true, "items": {"$ref": "#/$defs/errorCode"}},
+        "duration_ms": {"type": "integer", "minimum": 0, "maximum": 1800000}
+      }
+    },
+    "auxiliaryAttempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["engine", "commit", "status", "capabilities", "error_codes", "duration_ms"],
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "passed"}}},
+          "then": {
+            "properties": {
+              "capabilities": {"const": ["safe_revision", "author_company_cleanup", "rsid_cleanup", "custom_xml_cleanup", "transactional_report"]},
+              "error_codes": {"maxItems": 0}
+            }
+          },
+          "else": {
+            "properties": {
+              "capabilities": {"maxItems": 0},
+              "error_codes": {"minItems": 1}
+            }
+          }
+        }
+      ],
+      "properties": {
+        "engine": {"const": "adeu_auxiliary"},
+        "commit": {"const": "8a8b103849a3173c07638040c33282731d1af92e"},
+        "status": {"$ref": "#/$defs/status"},
+        "capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "safe_revision",
+              "author_company_cleanup",
+              "rsid_cleanup",
+              "custom_xml_cleanup",
+              "transactional_report"
+            ]
+          }
+        },
+        "error_codes": {"type": "array", "maxItems": 8, "uniqueItems": true, "items": {"$ref": "#/$defs/errorCode"}},
+        "duration_ms": {"type": "integer", "minimum": 0, "maximum": 1800000}
+      }
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "properties": {
+        "attempts": {
+          "minItems": 2,
+          "maxItems": 2,
+          "prefixItems": [
+            {
+              "allOf": [
+                {"$ref": "#/$defs/primaryAttempt"},
+                {"properties": {"engine": {"const": "docxodus"}}}
+              ]
+            },
+            {
+              "allOf": [
+                {"$ref": "#/$defs/primaryAttempt"},
+                {"properties": {"engine": {"const": "adeu_stack"}}}
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {"properties": {"final_status": {"const": "passed"}}},
+      "then": {
+        "properties": {
+          "environment": {"properties": {"offline": {"const": true}}},
+          "attempts": {"contains": {"properties": {"status": {"const": "passed"}}}},
+          "adeu_auxiliary": {"properties": {"status": {"const": "passed"}}}
+        }
+      },
+      "else": {
+        "anyOf": [
+          {"properties": {"adeu_auxiliary": {"properties": {"status": {"const": "failed"}}}}},
+          {"properties": {"attempts": {"not": {"contains": {"properties": {"status": {"const": "passed"}}}}}}}
+        ]
+      }
+    }
+  ],
+  "required": [
+    "schema_version",
+    "candidate_commit",
+    "candidate_tree",
+    "fixture_manifest_sha256",
+    "source_lock_sha256",
+    "environment",
+    "attempts",
+    "adeu_auxiliary",
+    "final_status"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "candidate_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "candidate_tree": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "fixture_manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "source_lock_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["os", "arch", "offline"],
+      "properties": {
+        "os": {"enum": ["darwin", "linux", "windows"]},
+        "arch": {"enum": ["arm64", "x86_64", "aarch64", "amd64"]},
+        "offline": {"type": "boolean"}
+      }
+    },
+    "attempts": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [{"$ref": "#/$defs/primaryAttempt"}],
+      "items": {"$ref": "#/$defs/primaryAttempt"}
+    },
+    "adeu_auxiliary": {"$ref": "#/$defs/auxiliaryAttempt"},
+    "final_status": {"enum": ["passed", "blocked"]}
+  }
+}

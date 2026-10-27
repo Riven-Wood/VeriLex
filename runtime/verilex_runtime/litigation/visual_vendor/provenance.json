@@ -1,0 +1,77 @@
+{
+  "repository": "https://github.com/MiaoQichuan/new-litigation-visualization",
+  "commit": "ba32e9e054c2cd5181cc78bd6abe09cf3d4c6352",
+  "files": [
+    {
+      "source": "plugins/mqc-nlv/skills/mqc-litigation-visual-redraw/scripts/common.py",
+      "sha256": "69ee09c9011c964c7f12bfd2e71f99764dbd1b67b2ce6c9e21d81f9e84a3f80e"
+    },
+    {
+      "source": "plugins/mqc-nlv/skills/mqc-litigation-visual-redraw/scripts/render_points.py",
+      "sha256": "2a5937d66118d20ec41cf5af11c9200dd928d96ea00cdd1e3adfc4b87a0d315c"
+    },
+    {
+      "source": "plugins/mqc-nlv/skills/mqc-litigation-visual-redraw/scripts/render_compare.py",
+      "sha256": "ad8fb396d6e756e5f4b0b2f56e3cea83fd533212f65449b76bf8e6d0bc817dbd"
+    },
+    {
+      "source": "plugins/mqc-nlv/skills/mqc-litigation-visual-redraw/scripts/render_relation.py",
+      "sha256": "91d7693dce5dbaf05bef27e47c0739baee7b83501c3b55526aabdd96e5c8439b"
+    },
+    {
+      "source": "plugins/mqc-nlv/skills/mqc-litigation-visual-redraw/scripts/render_vcolumns.py",
+      "sha256": "5c02277038028f57f171be4213c1fd113d675939a164151a0ae939be3aedf165"
+    },
+    {
+      "source": "plugins/mqc-nlv/skills/mqc-litigation-visual-redraw/scripts/paper.py",
+      "sha256": "b443c4dfa8620774a7c4a3f3165fcf32617283fce161da720cd52e908d163830"
+    },
+    {
+      "source": "plugins/mqc-nlv/skills/mqc-litigation-visual-redraw/scripts/geom.py",
+      "sha256": "14626dcad9e788f9378b1b50e4df92dd7a290bb0e1435948aa1af23c533a1988"
+    },
+    {
+      "source": "plugins/mqc-nlv/skills/mqc-litigation-visual-redraw/scripts/layout_fallback.py",
+      "sha256": "4c31a877d49c73806a9900dfac0f18cdec0a28c841e605ca9749cb53edd6abd1"
+    },
+    {
+      "source": "plugins/mqc-nlv/skills/mqc-chronicle-master/scripts/build_brief.py",
+      "destination": "chronicle_brief.py",
+      "sha256": "66a28c83f2914cddac69f3426ebb3d0973461cc969aa78c8974c2b56cb78e0bf"
+    },
+    {
+      "source": "plugins/mqc-nlv/skills/mqc-trial-confrontation-master/scripts/layout.py",
+      "destination": "confrontation_layout.py",
+      "sha256": "bf7bdaf6d6e7b0d606eb43ad0133e95fe4b7f241681aaaedbfa3efa9c0b4a662"
+    },
+    {
+      "source": "plugins/mqc-nlv/skills/mqc-trial-confrontation-master/scripts/geom.py",
+      "destination": "confrontation_geom.py",
+      "sha256": "395aac657b207d6aee0bb2c60ef3ab95ccb2ce3654999a764fd2c4e295472cd9"
+    },
+    {
+      "source": "plugins/mqc-nlv/skills/mqc-trial-confrontation-master/scripts/render_main.py",
+      "destination": "confrontation.py",
+      "sha256": "b2f16d268a578d2d38634443a7b0559f8754c422cce73603cbae46bb50835845"
+    },
+    {
+      "source": "plugins/mqc-nlv/skills/mqc-legal-relation-master/scripts/relation_core.py",
+      "destination": "relation_core.py",
+      "sha256": "a50309ddd132da9d3aa986842eddb90f3b3c5ed23b6637e7e2eab73e381b6c1c"
+    },
+    {
+      "source": "plugins/mqc-nlv/skills/mqc-timeline-master/scripts/render_vcolumns.py",
+      "destination": "render_vcolumns.py",
+      "sha256": "c68e18bbd9d0a541ab28b5eff02f649daab3e6024ba8ee6d8eb7ad3ca771df14"
+    }
+  ],
+  "adaptations": [
+    "Package-relative imports; shared assets beside package; no CLI or subprocess invocation from adapter.",
+    "Chronicle: preserve full text, wrap subtitle, keep upstream pagination and geometry checks.",
+    "Confrontation: full-text cards, neutral issue centre; remove automatic burden/prospect verdicts and references to ungenerated Excel. XML-escape strings at adapter boundary.",
+    "Relation: original relation-master rounded routing with common deterministic graph layout.",
+    "Timeline: one original vertical renderer, package-relative shared core.",
+    "VeriLex: relation node labels wrap within 320px; long titles fit the canvas; all chronicle pages retain provenance and navigation.",
+    "VeriLex: point timeline displays one-based ordinal numbers while retaining original internal event IDs."
+  ]
+}

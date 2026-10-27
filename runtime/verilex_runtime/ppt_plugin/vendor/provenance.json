@@ -1,0 +1,14 @@
+{
+  "repository": "https://github.com/GongRzhe/Office-PowerPoint-MCP-Server",
+  "revision": "3631ba2ec0c24504476f78bf74d329c9be11caaa",
+  "license": "MIT",
+  "files": {
+    "presentation_utils.py": "f58e05d2dc0fbebd2cae3ab9dff4b3930c5c9fb761d3a216cb7b2744b68cb8cf",
+    "content_utils.py": "d27b8e494a71e83f38cf06e440891b020d1eb2062d31d8a4abf5a0c6eaa1a09a"
+  },
+  "changes": [
+    "Extract only named in-memory primitives",
+    "Fix initial empty bullet paragraph",
+    "Use is_placeholder/has_table guards"
+  ]
+}

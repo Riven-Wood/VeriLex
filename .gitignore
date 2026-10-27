@@ -1,0 +1,92 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+node_modules/
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/.vinext/
+/out/
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+/.npm-cache/
+/.verilex-data/
+/.verilex-secrets/
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+next-env.d.ts
+/dist/
+/.wrangler/
+/outputs/
+/work/
+
+# Python runtime
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+runtime/.pytest_cache/
+
+# Desktop build output
+/build/
+desktop/dist/
+desktop/src-tauri/target/
+desktop/src-tauri/gen/schemas/
+desktop/src-tauri/sidecar/verilex-runtime
+desktop/src-tauri/sidecar/verilex-runtime.exe
+desktop/src-tauri/generated/documents-macos-arm64/
+desktop/public/documents-renderer/
+.playwright-cli/
+output/playwright/
+
+# Mimosa plugin local scan state
+.mimosa/
+
+# Local brainstorming visual companion state
+.superpowers/
+
+# Bundled ima MCP generated from pinned sources
+runtime/verilex_runtime/knowledge/ima_mcp/server.cjs
+runtime/verilex_runtime/knowledge/ima_mcp/*-LICENSE.txt
+runtime/verilex_runtime/knowledge/ima_mcp/node
+runtime/verilex_runtime/knowledge/ima_mcp/node.exe
+
+# Recreated from the locked pdfjs-dist package.
+desktop/public/pdfjs/
+
+# Bundled QuillPDF generated assets (rebuilt from locked dependencies)
+runtime/verilex_runtime/pdf_plugin/server.cjs
+runtime/verilex_runtime/pdf_plugin/DEPENDENCY-LICENSE.txt
+
+# Local verification artifacts and generated desktop helpers
+/output/
+desktop/src-tauri/sidecar/*
+!desktop/src-tauri/sidecar/README.md
+runtime/verilex_runtime/pdf_plugin/evidence.cjs

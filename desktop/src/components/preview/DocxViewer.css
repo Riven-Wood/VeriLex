@@ -1,0 +1,3 @@
+.preview-docx { display:flex; flex-direction:column; flex:1; min-height:0; gap:8px; }
+.preview-docx-note { color:var(--vl-muted); font-size:12px; margin:0; line-height:1.6; }
+.preview-docx-frame { width:100%; flex:1; min-height:240px; border:1px solid var(--vl-border); border-radius:6px; background:#edf0f4; }

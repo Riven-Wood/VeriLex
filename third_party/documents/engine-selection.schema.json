@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "candidate_commit",
+    "candidate_tree",
+    "selected_engine",
+    "docxodus_commit",
+    "adeu_commit",
+    "gate_report_sha256",
+    "required_capabilities",
+    "required_adeu_capabilities"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "candidate_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "candidate_tree": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "selected_engine": {"enum": ["docxodus", "adeu_stack"]},
+    "docxodus_commit": {"const": "b1457bbd78b14177e3e71c739911f1772a6b1b22"},
+    "adeu_commit": {"const": "8a8b103849a3173c07638040c33282731d1af92e"},
+    "gate_report_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "required_capabilities": {
+      "const": [
+        "stable_anchors",
+        "atomic_batch",
+        "comments",
+        "tracked_changes",
+        "structured_compare",
+        "ordered_merge",
+        "safe_preview"
+      ]
+    },
+    "required_adeu_capabilities": {
+      "const": [
+        "safe_revision",
+        "author_company_cleanup",
+        "rsid_cleanup",
+        "custom_xml_cleanup",
+        "transactional_report"
+      ]
+    }
+  }
+}

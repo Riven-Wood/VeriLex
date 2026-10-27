@@ -1,0 +1,11 @@
+{
+  "source_url": "https://www.ftcourt.gov.cn/attachment/0/92/92645/1577086.docx",
+  "publication_url": "https://www.ftcourt.gov.cn/ssfw/sszn/content/post_1577086.html",
+  "publication_date": "2025-07-14",
+  "retrieved_at": "2026-09-09",
+  "download_sha256": "431af12dbada0e774754f5731f5b863812af62919282a9e18c5d21451b12648c",
+  "extracted_sha256": "afd6215e33294bb33428a026a03a4f39edeef5e4661a8cc506a12e215dcf42dc",
+  "extraction": "同一哈希固定的官方OLE DOC经LibreOffice转换，提取body 716/717/719/725/731/737/743/749/750，空白买卖合同起诉状标题、六表及签署段，不含答辩状或实例；索引只适用于此固定转换件。",
+  "rights": "官方司法文书示范文本正文；不含出版社说明、案例实例或第三方模板代码",
+  "converted_sha256": "40b79ca2fad303c0dd73cf0229da5e0c148b6279c312dea33681f8af637359cb"
+}

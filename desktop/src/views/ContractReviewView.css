@@ -1,0 +1,175 @@
+.contract-review-left, .contract-review-right { position: relative; }
+.contract-review-right[hidden] { display: none; }
+.contract-review-view .contract-review-center { align-items: stretch; justify-content: stretch; overflow: hidden; }
+.contract-review-view .contract-review-doc { width: 100%; max-width: none; min-width: 0; display: flex; flex-direction: column; box-sizing: border-box; }
+.contract-review-resizer { position: absolute; top: 0; bottom: 0; width: 8px; cursor: col-resize; touch-action: none; z-index: 12; }
+.contract-review-resizer-left { right: -4px; }
+.contract-review-resizer-right { left: -4px; }
+.contract-review-resizer:hover, .contract-review-resizer:focus-visible { background: var(--vl-selected); outline: 2px solid var(--vl-blue); }
+.contract-opinion-card.is-selected { outline: 2px solid var(--vl-blue); outline-offset: -2px; }
+.contract-opinion-clause { text-align: left; white-space: normal; }
+.contract-opinion-edit textarea { width: 100%; min-height: 100px; resize: vertical; font: inherit; box-sizing: border-box; }
+.contract-review-quote { display: flex; gap: 8px; padding: 8px 12px; background: var(--vl-selected); border-radius: 6px; font-size: 12px; }
+.contract-review-quote span { flex: 1; max-height: 100px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.contract-review-quote button { align-self: flex-start; }
+.contract-review-view .contract-review-bar { gap: 8px 10px; align-items: center; }
+.contract-review-view .contract-review-bar-group { flex: 0 1 180px; width: 180px; min-width: 140px; }
+.contract-review-bar-group label, .contract-review-bar-group select { min-width: 0; max-width: 100%; }
+.contract-review-bar-group > .contract-review-hint { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.contract-review-view .contract-review-bar input:not([type=checkbox]) { width: 100px; }
+.contract-review-view .contract-review-bar > button,
+.contract-review-panel > button,
+.contract-review-doc > button,
+.contract-opinion-card > button,
+.contract-opinion-edit > button,
+.contract-review-quote > button {
+  appearance: none; border: 1px solid transparent; border-radius: 6px;
+  background: transparent; color: var(--vl-muted); padding: 6px 9px;
+  font: inherit; font-size: 12px; line-height: 1.4; cursor: pointer;
+}
+.contract-opinion-card > .contract-opinion-clause { border-left: 2px solid var(--vl-border); border-radius: 0; padding-left: 8px; text-align: left; }
+.contract-review-view .contract-review-bar > button:not(:disabled):hover,
+.contract-review-panel > button:not(:disabled):hover,
+.contract-review-doc > button:not(:disabled):hover,
+.contract-opinion-card > button:not(:disabled):hover,
+.contract-opinion-edit > button:not(:disabled):hover,
+.contract-review-quote > button:hover { color: var(--vl-blue); background: var(--vl-selected); }
+.contract-review-view .contract-review-bar > button.primary-button,
+.contract-review-panel > button.primary-button { background: var(--vl-blue); color: white; }
+.contract-review-view button:disabled { cursor: default; opacity: .5; }
+.contract-review-view button:focus-visible { outline: 2px solid var(--vl-blue); outline-offset: 2px; }
+/* Document first: one upload action and a single switchable side panel. */
+.contract-review-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 12px;border-bottom:1px solid var(--vl-border);flex-shrink:0}
+.contract-review-heading h1{margin:0;font-size:16px;font-weight:650;letter-spacing:-.3px;white-space:nowrap}
+.contract-review-heading span{font-size:12px;color:var(--vl-muted)}
+.contract-review-actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;min-width:0;gap:6px}
+.contract-review-actions button,.contract-review-history summary,.contract-review-export summary,.contract-review-empty button{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:6px 9px;border:1px solid var(--vl-border);border-radius:6px;background:var(--vl-canvas,#fff);color:var(--vl-ink);font:inherit;font-size:12px;line-height:1.5;white-space:nowrap;cursor:pointer}
+.contract-review-actions button.primary-button,.contract-review-empty button.primary-button{background:var(--vl-blue);color:white;border-color:transparent}
+.contract-review-history,.contract-review-export,.contract-review-version-info{position:relative}
+.contract-review-history summary,.contract-review-export summary,.contract-review-version-info summary{list-style:none}
+.contract-review-history summary::-webkit-details-marker,.contract-review-export summary::-webkit-details-marker,.contract-review-version-info summary::-webkit-details-marker{display:none}
+.contract-review-history summary:focus-visible,.contract-review-export summary:focus-visible,.contract-review-version-info summary:focus-visible{outline:2px solid var(--vl-blue);outline-offset:2px}
+.contract-review-history>.contract-review-panel{position:absolute;right:0;top:calc(100% + 8px);z-index:30;width:320px;max-width:75vw;max-height:55vh;overflow:auto;padding:12px;border:1px solid var(--vl-border);border-radius:12px;background:white;box-shadow:0 12px 40px #1c30451a}
+.contract-review-panel strong{overflow-wrap:anywhere}
+.contract-review-export>div,.contract-review-version-info>div{position:absolute;right:0;top:calc(100% + 6px);z-index:30;padding:8px;border:1px solid var(--vl-border);border-radius:8px;background:var(--vl-canvas,#fff);box-shadow:0 8px 28px #1c30451a}
+.contract-review-export>div{display:flex;flex-direction:column;gap:4px;min-width:180px}
+.contract-review-export>div>button{justify-content:flex-start;border-color:transparent}
+.contract-review-export>div>button:hover:not(:disabled){background:var(--vl-selected)}
+.contract-review-view .contract-review-bar{padding:8px 12px;align-items:end;gap:10px;background:var(--vl-sidebar,#fafbfd);flex-shrink:0}
+.contract-review-view .contract-review-bar[hidden]{display:none}
+.contract-review-view .contract-review-bar label{gap:6px;font-size:11px;color:var(--vl-muted)}
+.contract-review-view .contract-review-bar select,.contract-review-view .contract-review-bar input:not([type=checkbox]){height:34px;box-sizing:border-box;font-size:13px;color:var(--vl-ink)}
+.contract-review-view .contract-review-bar-group{flex:0 1 210px;width:210px}
+.contract-review-bar-group>.contract-review-hint{display:none}
+.contract-review-view .contract-review-toggle{height:34px}
+.contract-review-view .contract-review-columns{overflow:hidden}
+.contract-review-view .contract-review-center{padding:0;min-height:0;background:#f0f3f7}
+.contract-review-columns[data-empty=true] .contract-review-center{align-items:center;justify-content:center;padding:24px;overflow:auto}
+.contract-review-view .contract-review-empty{width:min(100%,660px);box-sizing:border-box;padding:56px 28px;border:1px dashed #c6d2e1;border-radius:16px;background:#ffffffba}
+.contract-review-file-icon{display:grid;place-items:center;width:72px;height:80px;margin:0 auto 24px;border:1px solid #dce5f2;border-radius:10px;color:var(--vl-blue);background:white;box-shadow:4px 5px 0 #e6edf7}
+.contract-review-empty h2{margin:0 0 10px;font-size:21px;font-weight:600;color:var(--vl-ink)}
+.contract-review-empty .contract-review-hint{margin:0 0 28px;font-size:13px}
+.contract-review-empty .primary-button{padding:11px 24px}
+.contract-review-upload-note{font-size:12px;line-height:1.9;color:var(--vl-muted);margin:24px 0 0}
+.contract-review-view .contract-review-doc{border:0;border-radius:0;padding:0;background:transparent;gap:0;min-height:0;height:100%}
+.contract-review-doc>p{margin:0 0 6px;font-size:12px;color:var(--vl-muted)}
+.contract-review-tabs{display:flex;gap:20px;padding:0 14px;height:42px;flex-shrink:0;border-bottom:1px solid var(--vl-border)}
+.contract-review-tabs button{border:0;border-bottom:2px solid transparent;padding:0 2px;background:transparent;font:inherit;font-size:13px;color:var(--vl-muted);cursor:pointer}
+.contract-review-tabs button[aria-selected=true]{border-bottom-color:var(--vl-blue);color:var(--vl-blue);font-weight:600}
+.contract-review-tabs span{font-size:11px;padding:2px 6px;background:var(--vl-selected);border-radius:4px}
+.contract-review-view .contract-review-opinions{padding:18px;flex:1}
+.contract-review-view .contract-review-chat{flex:1;border-top:0;overflow:hidden}
+.contract-review-view .contract-review-opinions[hidden],.contract-review-view .contract-review-chat[hidden]{display:none}
+.contract-review-chat .conversation-meta,.contract-review-chat .agent-empty-logo,.contract-review-chat .agent-workspace-center h1{display:none}
+.contract-review-chat .agent-workspace,.contract-review-chat .agent-workspace-frame{min-width:0;width:100%;flex:1;min-height:0}
+.contract-review-view .contract-opinion-card{padding:16px;gap:10px}
+.contract-opinion-card p{margin:0;line-height:1.7}
+@media(max-width:900px){.contract-review-view .contract-review-bar-group{width:170px;flex-basis:170px}}
+@media(max-width:640px){.contract-review-heading{flex-wrap:wrap;gap:8px}.contract-review-actions{justify-content:flex-start}.contract-review-view .contract-review-columns:not([data-empty=true]){display:flex;flex-direction:column;overflow:auto}.contract-review-columns:not([data-empty=true]) .contract-review-center{min-height:480px;flex-shrink:0}.contract-review-right:not([hidden]){min-height:440px;flex-shrink:0;border-left:0;border-top:1px solid var(--vl-border)}.contract-review-resizer{display:none}.contract-review-view .contract-review-empty{padding:32px 16px}}
+
+.contract-review-chat .agent-composer { border-radius:14px; box-shadow:none; }
+.contract-review-chat .agent-composer textarea { min-height:60px; padding:12px 14px 6px; font-size:13px; }
+.contract-review-chat .composer-topbar { padding:8px 14px 0; }
+.contract-review-chat .conversation-export { padding:8px 16px; }
+.contract-review-chat .composer-context-layer { max-width:100%; }
+/* The editing surface fills the work area; opinions stay in the side panel. */
+.contract-review-doc>.word-document-editor{min-height:0}
+.contract-review-document-bar{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;padding:5px 12px;border-bottom:1px solid var(--vl-border);background:var(--vl-canvas,#fff);flex-shrink:0}
+.contract-review-document-bar .contract-document-mode{display:flex;align-items:center;gap:4px;margin:0;padding:0}
+.contract-review-document-bar button,.contract-review-version-info summary{border:1px solid transparent;border-radius:5px;padding:4px 7px;background:transparent;color:var(--vl-muted);font:inherit;font-size:12px;line-height:1.5;cursor:pointer;white-space:nowrap}
+.contract-review-document-bar button[aria-pressed=true]{background:var(--vl-selected);color:var(--vl-blue);border-color:var(--vl-border)}
+.contract-review-document-bar button:hover,.contract-review-version-info summary:hover{background:var(--vl-selected);color:var(--vl-blue)}
+.contract-review-progress{font-size:11px;color:var(--vl-muted);white-space:nowrap}
+.contract-review-version-info{margin-left:auto}
+.contract-review-version-info>div{width:340px;max-width:65vw;padding:10px 12px;font-size:12px;line-height:1.7;color:var(--vl-muted)}
+.contract-review-version-info p{margin:0}
+.contract-review-version-info p+p{margin-top:8px}
+.contract-review-doc>.contract-review-snapshot-name{margin:0;padding:6px 12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
+/* Use the actual workspace width when navigation leaves less room than the window. */
+.contract-review-view{container-type:inline-size;container-name:contract-workspace}
+@container contract-workspace (max-width:720px){
+  .contract-review-view .contract-review-columns:not([data-empty=true]){display:grid;grid-template-columns:minmax(0,1fr)!important;position:relative;overflow:hidden}
+  .contract-review-columns:not([data-empty=true]) .contract-review-center{min-height:0}
+  .contract-review-right:not([hidden]){position:absolute;right:0;top:0;bottom:0;width:min(340px,90%);min-height:0;z-index:15;border-left:1px solid var(--vl-border);box-shadow:-6px 0 20px #25385718}
+  .contract-review-resizer{display:none}
+}
+
+/* History names wrap within a bounded popover; each delete action has its own hit area. */
+.contract-review-history>.contract-review-panel{width:400px;max-width:calc(100vw - 32px);box-sizing:border-box;overflow-x:hidden;padding:8px;max-height:min(65vh,560px)}
+.contract-review-history .contract-review-hint{margin:8px 8px;font-size:11px}
+.contract-review-history .contract-history-row{display:flex;align-items:center;min-width:0;gap:4px;border-bottom:1px solid var(--vl-border);padding:4px 0}
+.contract-review-history .contract-history-open{flex:1;min-width:0;width:auto;display:flex;align-items:flex-start;gap:5px;border:0;border-radius:6px;white-space:normal;padding:9px 8px;text-align:left}
+.contract-history-open strong{font-size:13px;font-weight:500;line-height:1.55;overflow-wrap:anywhere;max-width:100%}
+.contract-history-open span{font-size:11px;color:var(--vl-muted);line-height:1.4}
+.contract-review-history .contract-history-delete{flex:none;width:30px;height:32px;padding:7px;display:grid;place-items:center;border:0;background:transparent;color:var(--vl-muted)}
+.contract-review-history .contract-history-delete:hover:not(:disabled){color:#c33;background:#fff0f0}
+.contract-review-history button:disabled{opacity:.45;cursor:default}
+.contract-delete-backdrop{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:#17243844;padding:24px}
+.contract-delete-dialog{width:min(420px,100%);box-sizing:border-box;padding:24px;border:1px solid var(--vl-border);border-radius:12px;background:var(--vl-canvas,#fff);box-shadow:0 16px 60px #17243833}
+.contract-delete-dialog h2{margin:0 0 14px;font-size:17px}.contract-delete-dialog p{font-size:13px;line-height:1.7;white-space:normal;overflow-wrap:anywhere;color:var(--vl-muted)}
+.contract-delete-dialog .contract-delete-name{color:var(--vl-ink);font-weight:500}.contract-delete-dialog>div{display:flex;justify-content:flex-end;gap:8px}.contract-delete-dialog>div button:last-child{color:#bd3434;border-color:#e6b8b8}
+
+
+.contract-review-actions .contract-icon-action{min-width:32px;height:32px;box-sizing:border-box;padding:6px 8px}
+
+.contract-review-requirements { display: flex; flex-direction: column; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--vl-border); flex-shrink: 0; min-width: 0; }
+.contract-review-requirements > label { font-size: 12px; color: var(--vl-muted); }
+.contract-review-requirements textarea { box-sizing: border-box; width: 100%; min-height: 60px; max-height: 160px; resize: vertical; border: 1px solid var(--vl-border); border-radius: 6px; padding: 8px 10px; background: var(--vl-canvas, #fff); color: var(--vl-ink); font: inherit; font-size: 13px; line-height: 1.5; }
+.contract-review-requirements textarea:focus-visible { outline: 2px solid var(--vl-blue); outline-offset: 1px; }
+.contract-review-requirements textarea:disabled { color: var(--vl-muted); }
+.contract-requirements-change { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--vl-muted); }
+.contract-requirements-change summary { cursor: pointer; }
+.contract-requirements-change p { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 120px; overflow: auto; margin: 6px 0 0; }
+
+/* Compact review controls share the top row; writing stays in the editor. */
+.contract-review-heading { position: relative; flex-wrap: wrap; gap: 8px 12px; }
+.contract-review-heading > .contract-review-bar { flex: 1 1 620px; padding: 0; border: 0; background: transparent; gap: 8px; min-width: 0; }
+.contract-review-heading .contract-review-bar-group { flex: 1 1 145px; width: 145px; min-width: 125px; max-width: 190px; }
+.contract-review-heading .contract-review-bar > label { min-width: 0; }
+.contract-review-heading .contract-review-bar select { width: 128px; }
+.contract-review-heading .contract-review-bar input:not([type=checkbox]) { width: 78px; }
+.contract-requirements-menu { position: relative; align-self: end; }
+.contract-requirements-menu > summary { display: flex; align-items: center; gap: 5px; height: 34px; box-sizing: border-box; padding: 6px 9px; border: 1px solid var(--vl-border); border-radius: 6px; font-size: 12px; cursor: pointer; list-style: none; white-space: nowrap; }
+.contract-requirements-menu > summary::-webkit-details-marker { display: none; }
+.contract-requirements-menu > summary:focus-visible { outline: 2px solid var(--vl-blue); outline-offset: 2px; }
+.contract-requirements-menu .contract-requirements-filled { color: var(--vl-blue); }
+.contract-requirements-menu > .contract-review-requirements { position: absolute; left: var(--requirements-shift, 0px); top: calc(100% + 6px); z-index: 35; width: var(--requirements-width, 460px); max-width: calc(100vw - 24px); box-sizing: border-box; padding: 12px; background: var(--vl-canvas, #fff); border: 1px solid var(--vl-border); border-radius: 10px; box-shadow: 0 8px 28px #1c30451a; }
+.contract-review-requirements textarea { min-height: 100px; }
+.contract-editor-history { display: flex; gap: 4px; flex-shrink: 0; }
+.contract-editor-history button { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 5px; }
+
+.contract-task-workspace{display:flex;flex-direction:column;flex:1;min-height:0;min-width:0;height:100%}
+.contract-task-workspace>.contract-review-view{flex:1;min-height:0}
+.contract-task-bar{display:flex;align-items:center;gap:8px;min-width:0;flex-shrink:0;border-bottom:1px solid var(--vl-border);padding:0 10px;background:var(--vl-canvas,#fff)}
+.contract-task-tabs{display:flex;align-items:stretch;gap:4px;min-width:0;flex:1;overflow-x:auto;padding:5px 0 0}
+.contract-task-tab{display:flex;align-items:center;min-width:100px;max-width:260px;border:1px solid transparent;border-bottom:2px solid transparent;border-radius:6px 6px 0 0;flex-shrink:0}
+.contract-task-tab.is-active{border-color:var(--vl-border);border-bottom-color:var(--vl-blue);background:var(--vl-selected)}
+.contract-task-tab button,.contract-task-add,.contract-task-save{border:0;background:transparent;color:var(--vl-ink);font:inherit;font-size:12px;cursor:pointer;padding:7px;display:flex;align-items:center;justify-content:center}
+.contract-task-tab button[role=tab]{display:block;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+.contract-task-tab button:last-child{flex-shrink:0;color:var(--vl-muted)}
+.contract-task-add{flex-shrink:0;align-self:center;border-radius:5px}
+.contract-task-save{margin-left:auto;flex-shrink:0}
+.contract-task-tab button:hover,.contract-task-add:hover,.contract-task-save:hover{color:var(--vl-blue);background:var(--vl-selected)}
+.contract-task-tabs button:disabled{opacity:.5;cursor:default}
+.contract-task-filename{font-size:13px;padding:7px 0}
+.contract-task-loading{padding:12px}

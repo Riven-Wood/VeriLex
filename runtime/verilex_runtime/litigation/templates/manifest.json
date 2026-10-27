@@ -1,0 +1,6505 @@
+{
+  "schema_version": 1,
+  "templates": [
+    {
+      "id": "civil-person",
+      "name": "普通民事起诉状（自然人）",
+      "version": "2016-09-28/verilex-1",
+      "source_url": "https://www.court.gov.cn/susongyangshi/xiangqing/181.html",
+      "retrieved_at": "2026-09-09",
+      "rights": "最高人民法院官方司法文书样式正文；著作权法第五条",
+      "layout": "官方栏目及顺序；VeriLex独立印刷版式，非官方DOCX原件",
+      "sha256": "84fea05d294627130c1dddd7474ffb29b5bdfed914fe64249e3cea3eac3e4d47",
+      "fields": [
+        {
+          "key": "plaintiff_name",
+          "label": "原告姓名",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "sex",
+          "label": "性别",
+          "hint": "",
+          "required": true,
+          "kind": "sex"
+        },
+        {
+          "key": "birth_date",
+          "label": "出生日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        },
+        {
+          "key": "ethnicity",
+          "label": "民族",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "occupation",
+          "label": "工作单位和职务或职业",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "address",
+          "label": "原告住所",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "contact",
+          "label": "原告联系方式",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "legal_agent",
+          "label": "法定或指定代理人",
+          "hint": "不适用时填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "agent",
+          "label": "委托诉讼代理人",
+          "hint": "姓名及基本信息；未委托填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant",
+          "label": "被告基本信息",
+          "hint": "自然人姓名、性别、工作单位、住所等；法人名称、住所等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "claims",
+          "label": "诉讼请求",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "reasons",
+          "label": "事实和理由",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "evidence",
+          "label": "证据和证据来源，证人姓名和住所",
+          "hint": "无证人时如实说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "court",
+          "label": "受诉法院",
+          "hint": "法院完整名称",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "copies",
+          "label": "起诉状副本份数",
+          "hint": "",
+          "required": true,
+          "kind": "count"
+        },
+        {
+          "key": "date",
+          "label": "落款日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        }
+      ]
+    },
+    {
+      "id": "civil-organization",
+      "name": "普通民事起诉状（法人或其他组织）",
+      "version": "2016-09-28/verilex-1",
+      "source_url": "https://www.court.gov.cn/susongyangshi/xiangqing/187.html",
+      "retrieved_at": "2026-09-09",
+      "rights": "最高人民法院官方司法文书样式正文；著作权法第五条",
+      "layout": "官方栏目及顺序；VeriLex独立印刷版式，非官方DOCX原件",
+      "sha256": "f5aa23e57cdedb482b941b7d1dda9ee8281b1d44a944249a0c9d773e2dd9af6f",
+      "fields": [
+        {
+          "key": "plaintiff_name",
+          "label": "原告名称",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "address",
+          "label": "原告住所",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "representative",
+          "label": "法定代表人或主要负责人",
+          "hint": "姓名、职务、联系方式",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "agent",
+          "label": "委托诉讼代理人",
+          "hint": "姓名及基本信息；未委托填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant",
+          "label": "被告基本信息",
+          "hint": "自然人姓名、性别、工作单位、住所等；法人名称、住所等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "claims",
+          "label": "诉讼请求",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "reasons",
+          "label": "事实和理由",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "evidence",
+          "label": "证据和证据来源，证人姓名和住所",
+          "hint": "无证人时如实说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "court",
+          "label": "受诉法院",
+          "hint": "法院完整名称",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "copies",
+          "label": "起诉状副本份数",
+          "hint": "",
+          "required": true,
+          "kind": "count"
+        },
+        {
+          "key": "date",
+          "label": "落款日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        }
+      ]
+    },
+    {
+      "id": "property-preservation",
+      "name": "诉讼财产保全申请书",
+      "version": "2016-09-28/verilex-1",
+      "source_url": "https://www.court.gov.cn/susongyangshi/xiangqing/126.html",
+      "retrieved_at": "2026-09-09",
+      "rights": "最高人民法院官方司法文书样式正文；著作权法第五条",
+      "layout": "官方栏目及顺序；VeriLex独立印刷版式，非官方DOCX原件",
+      "sha256": "be03acaa64b6eb2de6dc94a9b5b8fba2f02240e081473854497eb301847785bd",
+      "fields": [
+        {
+          "key": "plaintiff_name",
+          "label": "申请人姓名或名称",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "applicant",
+          "label": "申请人其他基本信息",
+          "hint": "自然人性别、出生日期、民族、工作单位/职业、住所、联系方式；法人住所及法定代表人姓名、职务、联系方式",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "legal_agent",
+          "label": "法定或指定代理人",
+          "hint": "不适用填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "agent",
+          "label": "委托诉讼代理人",
+          "hint": "未委托填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant",
+          "label": "被申请人基本信息",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "measure",
+          "label": "保全措施",
+          "hint": "",
+          "required": true,
+          "kind": "measure"
+        },
+        {
+          "key": "property",
+          "label": "保全财产",
+          "hint": "名称、性质、数量、数额、所在地等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "term",
+          "label": "保全期限",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "case_number",
+          "label": "案号及当事人、案由",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "reasons",
+          "label": "申请保全的事实和理由",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "guarantee",
+          "label": "担保情况",
+          "hint": "担保财产名称、性质、数量、数额、所在地等；未提供担保如实写明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "court",
+          "label": "受诉法院",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "date",
+          "label": "落款日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        }
+      ]
+    },
+    {
+      "id": "private-lending-person-2025",
+      "name": "民间借贷起诉状（2025要素式·自然人）",
+      "version": "2025-07-14/verilex-1",
+      "source_url": "https://www.ftcourt.gov.cn/ssfw/sszn/content/post_1577086.html",
+      "retrieved_at": "2026-09-09",
+      "rights": "官方司法文书示范文本正文；不含出版社说明、案例实例或第三方模板代码",
+      "layout": "2025官方空白表格独立适配；保留栏目、表格网格及边框，填充区扩容；自然人单原告单被告、无第三人，非原件像素复刻",
+      "party_types": [
+        "natural"
+      ],
+      "third_parties": false,
+      "sha256": "702e3fd205b6bc017d15975688d19247bf7f3dcdd7b8b2867b62d35c4b1edb17",
+      "fields": [
+        {
+          "key": "plaintiff_name",
+          "label": "原告姓名",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_sex",
+          "label": "原告性别",
+          "hint": "",
+          "required": true,
+          "kind": "sex"
+        },
+        {
+          "key": "plaintiff_birth",
+          "label": "原告出生日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        },
+        {
+          "key": "plaintiff_ethnicity",
+          "label": "原告民族",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_work",
+          "label": "原告工作单位",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_job",
+          "label": "原告职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_phone",
+          "label": "原告联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_address",
+          "label": "原告住所地（户籍所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_residence",
+          "label": "原告经常居住地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_id_type",
+          "label": "原告证件类型",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_id_number",
+          "label": "原告证件号码",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_name",
+          "label": "被告姓名",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_sex",
+          "label": "被告性别",
+          "hint": "",
+          "required": true,
+          "kind": "sex"
+        },
+        {
+          "key": "defendant_birth",
+          "label": "被告出生日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        },
+        {
+          "key": "defendant_ethnicity",
+          "label": "被告民族",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_work",
+          "label": "被告工作单位",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_job",
+          "label": "被告职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_phone",
+          "label": "被告联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_address",
+          "label": "被告住所地（户籍所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_residence",
+          "label": "被告经常居住地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_id_type",
+          "label": "被告证件类型",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_id_number",
+          "label": "被告证件号码",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "agent",
+          "label": "委托诉讼代理人",
+          "hint": "未委托填“无”；有代理人时填写姓名、单位、职务、电话及一般/特别授权权限",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "claims",
+          "label": "诉讼请求完整表述",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "principal",
+          "label": "本金请求",
+          "hint": "截至日期、尚欠本金金额及币种",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "interest",
+          "label": "利息请求",
+          "hint": "截至日期、尚欠利息金额、计算方式",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "acceleration",
+          "label": "提前还款或解除合同",
+          "hint": "是/否；如是，明确提前还款或解除合同及内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "security_claim",
+          "label": "担保权利请求",
+          "hint": "是/否；如是，填写具体内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "recovery_cost",
+          "label": "实现债权的费用",
+          "hint": "是/否；如是，填写费用明细",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "litigation_cost",
+          "label": "诉讼费用请求",
+          "hint": "明确是或否",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_claims",
+          "label": "其他请求",
+          "hint": "无其他请求填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "total",
+          "label": "标的总额",
+          "hint": "金额及币种",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "jurisdiction",
+          "label": "仲裁或法院管辖约定",
+          "hint": "有/无；如有，填写合同条款及内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "preservation",
+          "label": "诉前保全情况",
+          "hint": "是/否；如是，填写法院、时间、案号；诉讼保全须另交申请材料",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "interest_until_paid",
+          "label": "利息是否请求至实际清偿日",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "key": "reasons",
+          "label": "事实与理由完整表述",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "contract",
+          "label": "合同签订情况",
+          "hint": "名称、编号、签订时间、地点等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "signatories",
+          "label": "签订主体",
+          "hint": "出借人、借款人",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_amount",
+          "label": "借款金额与提供方式",
+          "hint": "约定金额、实际提供金额；现金/转账/其他及说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_term",
+          "label": "借款期限",
+          "hint": "是否到期；约定起止日期",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_rate",
+          "label": "借款利率",
+          "hint": "利率、年/季/月及合同条款；无约定如实写明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "delivery",
+          "label": "借款提供时间",
+          "hint": "逐笔日期和金额",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "repayment_method",
+          "label": "还款方式",
+          "hint": "一次还本付息/按月、季或年计息到期还本/其他及说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "repayment",
+          "label": "还款情况",
+          "hint": "已还本金、已还利息、还息截至日期",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "overdue",
+          "label": "逾期还款",
+          "hint": "是/否；如是，填写逾期起始时间及期间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "collateral_contract",
+          "label": "抵押或质押合同",
+          "hint": "是/否；如是，填写签订时间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "collateral",
+          "label": "担保人和担保物",
+          "hint": "无则填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "maximum_security",
+          "label": "最高额担保",
+          "hint": "是/否；如是，填写债权确定时间、担保额度",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "registration",
+          "label": "抵押或质押登记",
+          "hint": "是/否；正式登记/预告登记及情况",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "guarantee",
+          "label": "保证合同",
+          "hint": "是/否；签订时间、保证人、主要内容、一般保证/连带责任保证",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_security",
+          "label": "其他担保方式",
+          "hint": "是/否；形式、签订时间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_facts",
+          "label": "其他需要说明的内容",
+          "hint": "无则填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "basis",
+          "label": "请求依据",
+          "hint": "合同约定、法律规定；编号法条须先在本案讨论核验",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "evidence",
+          "label": "证据清单",
+          "hint": "借款合同、借据、交付和还款凭证、担保资料等；按实际材料列明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "mediation_understood",
+          "label": "是否了解调解的作用",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_a",
+          "label": "是否了解先行调解程序与排期",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_b",
+          "label": "是否了解调解诉讼费用",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_c",
+          "label": "是否了解更换调解组织和调解员",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_d",
+          "label": "是否了解调解保密性",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_e",
+          "label": "是否了解调解协议法律效力",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_choice",
+          "label": "是否考虑先行调解",
+          "hint": "由当事人选择；模型不得代选",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "是",
+            "否",
+            "暂不确定，想要了解更多内容"
+          ]
+        },
+        {
+          "key": "date",
+          "label": "落款日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        }
+      ]
+    },
+    {
+      "id": "private-lending-person-organization-2025",
+      "name": "民间借贷起诉状（2025要素式·个人起诉组织）",
+      "version": "2025-07-14/verilex-1",
+      "source_url": "https://www.ftcourt.gov.cn/ssfw/sszn/content/post_1577086.html",
+      "retrieved_at": "2026-09-09",
+      "rights": "官方司法文书示范文本正文；不含出版社说明、案例实例或第三方模板代码",
+      "layout": "2025官方空白表格独立适配；保留栏目、表格网格及边框，填充区扩容；个人起诉组织单原告单被告、无第三人，非原件像素复刻",
+      "party_types": [
+        "natural",
+        "organization"
+      ],
+      "third_parties": false,
+      "sha256": "bb96c72ed5d0cbc2c8f7c1ddc8299ae090cc541b258013f9b078975033788ff2",
+      "fields": [
+        {
+          "key": "plaintiff_name",
+          "label": "原告姓名",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_sex",
+          "label": "原告性别",
+          "hint": "",
+          "required": true,
+          "kind": "sex"
+        },
+        {
+          "key": "plaintiff_birth",
+          "label": "原告出生日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        },
+        {
+          "key": "plaintiff_ethnicity",
+          "label": "原告民族",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_work",
+          "label": "原告工作单位",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_job",
+          "label": "原告职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_phone",
+          "label": "原告联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_address",
+          "label": "原告住所地（户籍所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_residence",
+          "label": "原告经常居住地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_id_type",
+          "label": "原告证件类型",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_id_number",
+          "label": "原告证件号码",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_name",
+          "label": "被告名称",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_address",
+          "label": "被告住所地（主要办事机构所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_registration",
+          "label": "被告注册地 / 登记地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_representative",
+          "label": "被告法定代表人 / 负责人",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_organization_type",
+          "label": "被告类型",
+          "hint": "按实际填写：有限责任公司、股份有限公司（是否上市）、其他企业法人、事业单位、社会团体、基金会、社会服务机构、机关法人、农村集体经济组织法人、城镇农村的合作经济组织法人、基层群众性自治组织法人、个人独资企业、合伙企业、不具有法人资格的专业服务机构等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_job",
+          "label": "被告职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_phone",
+          "label": "被告联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_ownership",
+          "label": "被告所有制性质",
+          "hint": "国有（注明控股或参股）、民营；其他请如实说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "agent",
+          "label": "委托诉讼代理人",
+          "hint": "未委托填“无”；有代理人时填写姓名、单位、职务、电话及一般/特别授权权限",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "claims",
+          "label": "诉讼请求完整表述",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "principal",
+          "label": "本金请求",
+          "hint": "截至日期、尚欠本金金额及币种",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "interest",
+          "label": "利息请求",
+          "hint": "截至日期、尚欠利息金额、计算方式",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "acceleration",
+          "label": "提前还款或解除合同",
+          "hint": "是/否；如是，明确提前还款或解除合同及内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "security_claim",
+          "label": "担保权利请求",
+          "hint": "是/否；如是，填写具体内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "recovery_cost",
+          "label": "实现债权的费用",
+          "hint": "是/否；如是，填写费用明细",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "litigation_cost",
+          "label": "诉讼费用请求",
+          "hint": "明确是或否",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_claims",
+          "label": "其他请求",
+          "hint": "无其他请求填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "total",
+          "label": "标的总额",
+          "hint": "金额及币种",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "jurisdiction",
+          "label": "仲裁或法院管辖约定",
+          "hint": "有/无；如有，填写合同条款及内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "preservation",
+          "label": "诉前保全情况",
+          "hint": "是/否；如是，填写法院、时间、案号；诉讼保全须另交申请材料",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "interest_until_paid",
+          "label": "利息是否请求至实际清偿日",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "key": "reasons",
+          "label": "事实与理由完整表述",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "contract",
+          "label": "合同签订情况",
+          "hint": "名称、编号、签订时间、地点等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "signatories",
+          "label": "签订主体",
+          "hint": "出借人、借款人",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_amount",
+          "label": "借款金额与提供方式",
+          "hint": "约定金额、实际提供金额；现金/转账/其他及说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_term",
+          "label": "借款期限",
+          "hint": "是否到期；约定起止日期",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_rate",
+          "label": "借款利率",
+          "hint": "利率、年/季/月及合同条款；无约定如实写明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "delivery",
+          "label": "借款提供时间",
+          "hint": "逐笔日期和金额",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "repayment_method",
+          "label": "还款方式",
+          "hint": "一次还本付息/按月、季或年计息到期还本/其他及说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "repayment",
+          "label": "还款情况",
+          "hint": "已还本金、已还利息、还息截至日期",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "overdue",
+          "label": "逾期还款",
+          "hint": "是/否；如是，填写逾期起始时间及期间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "collateral_contract",
+          "label": "抵押或质押合同",
+          "hint": "是/否；如是，填写签订时间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "collateral",
+          "label": "担保人和担保物",
+          "hint": "无则填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "maximum_security",
+          "label": "最高额担保",
+          "hint": "是/否；如是，填写债权确定时间、担保额度",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "registration",
+          "label": "抵押或质押登记",
+          "hint": "是/否；正式登记/预告登记及情况",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "guarantee",
+          "label": "保证合同",
+          "hint": "是/否；签订时间、保证人、主要内容、一般保证/连带责任保证",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_security",
+          "label": "其他担保方式",
+          "hint": "是/否；形式、签订时间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_facts",
+          "label": "其他需要说明的内容",
+          "hint": "无则填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "basis",
+          "label": "请求依据",
+          "hint": "合同约定、法律规定；编号法条须先在本案讨论核验",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "evidence",
+          "label": "证据清单",
+          "hint": "借款合同、借据、交付和还款凭证、担保资料等；按实际材料列明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "mediation_understood",
+          "label": "是否了解调解的作用",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_a",
+          "label": "是否了解先行调解程序与排期",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_b",
+          "label": "是否了解调解诉讼费用",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_c",
+          "label": "是否了解更换调解组织和调解员",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_d",
+          "label": "是否了解调解保密性",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_e",
+          "label": "是否了解调解协议法律效力",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_choice",
+          "label": "是否考虑先行调解",
+          "hint": "由当事人选择；模型不得代选",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "是",
+            "否",
+            "暂不确定，想要了解更多内容"
+          ]
+        },
+        {
+          "key": "date",
+          "label": "落款日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        }
+      ],
+      "party_scope": {
+        "plaintiff_type": "natural",
+        "defendant_type": "organization"
+      }
+    },
+    {
+      "id": "private-lending-organization-person-2025",
+      "name": "民间借贷起诉状（2025要素式·组织起诉个人）",
+      "version": "2025-07-14/verilex-1",
+      "source_url": "https://www.ftcourt.gov.cn/ssfw/sszn/content/post_1577086.html",
+      "retrieved_at": "2026-09-09",
+      "rights": "官方司法文书示范文本正文；不含出版社说明、案例实例或第三方模板代码",
+      "layout": "2025官方空白表格独立适配；保留栏目、表格网格及边框，填充区扩容；组织起诉个人单原告单被告、无第三人，非原件像素复刻",
+      "party_types": [
+        "organization",
+        "natural"
+      ],
+      "third_parties": false,
+      "sha256": "57138ee7c9b5c66d2d6cab7b15af1622afa70d08a6d0d2d639942e6e71899cf3",
+      "fields": [
+        {
+          "key": "plaintiff_name",
+          "label": "原告名称",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_address",
+          "label": "原告住所地（主要办事机构所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_registration",
+          "label": "原告注册地 / 登记地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_representative",
+          "label": "原告法定代表人 / 负责人",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_credit_code",
+          "label": "原告统一社会信用代码",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_organization_type",
+          "label": "原告类型",
+          "hint": "按实际填写：有限责任公司、股份有限公司（是否上市）、其他企业法人、事业单位、社会团体、基金会、社会服务机构、机关法人、农村集体经济组织法人、城镇农村的合作经济组织法人、基层群众性自治组织法人、个人独资企业、合伙企业、不具有法人资格的专业服务机构等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_job",
+          "label": "原告职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_phone",
+          "label": "原告联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_ownership",
+          "label": "原告所有制性质",
+          "hint": "国有（注明控股或参股）、民营；其他请如实说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_name",
+          "label": "被告姓名",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_sex",
+          "label": "被告性别",
+          "hint": "",
+          "required": true,
+          "kind": "sex"
+        },
+        {
+          "key": "defendant_birth",
+          "label": "被告出生日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        },
+        {
+          "key": "defendant_ethnicity",
+          "label": "被告民族",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_work",
+          "label": "被告工作单位",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_job",
+          "label": "被告职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_phone",
+          "label": "被告联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_address",
+          "label": "被告住所地（户籍所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_residence",
+          "label": "被告经常居住地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_id_type",
+          "label": "被告证件类型",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_id_number",
+          "label": "被告证件号码",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "agent",
+          "label": "委托诉讼代理人",
+          "hint": "未委托填“无”；有代理人时填写姓名、单位、职务、电话及一般/特别授权权限",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "claims",
+          "label": "诉讼请求完整表述",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "principal",
+          "label": "本金请求",
+          "hint": "截至日期、尚欠本金金额及币种",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "interest",
+          "label": "利息请求",
+          "hint": "截至日期、尚欠利息金额、计算方式",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "acceleration",
+          "label": "提前还款或解除合同",
+          "hint": "是/否；如是，明确提前还款或解除合同及内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "security_claim",
+          "label": "担保权利请求",
+          "hint": "是/否；如是，填写具体内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "recovery_cost",
+          "label": "实现债权的费用",
+          "hint": "是/否；如是，填写费用明细",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "litigation_cost",
+          "label": "诉讼费用请求",
+          "hint": "明确是或否",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_claims",
+          "label": "其他请求",
+          "hint": "无其他请求填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "total",
+          "label": "标的总额",
+          "hint": "金额及币种",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "jurisdiction",
+          "label": "仲裁或法院管辖约定",
+          "hint": "有/无；如有，填写合同条款及内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "preservation",
+          "label": "诉前保全情况",
+          "hint": "是/否；如是，填写法院、时间、案号；诉讼保全须另交申请材料",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "interest_until_paid",
+          "label": "利息是否请求至实际清偿日",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "key": "reasons",
+          "label": "事实与理由完整表述",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "contract",
+          "label": "合同签订情况",
+          "hint": "名称、编号、签订时间、地点等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "signatories",
+          "label": "签订主体",
+          "hint": "出借人、借款人",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_amount",
+          "label": "借款金额与提供方式",
+          "hint": "约定金额、实际提供金额；现金/转账/其他及说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_term",
+          "label": "借款期限",
+          "hint": "是否到期；约定起止日期",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_rate",
+          "label": "借款利率",
+          "hint": "利率、年/季/月及合同条款；无约定如实写明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "delivery",
+          "label": "借款提供时间",
+          "hint": "逐笔日期和金额",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "repayment_method",
+          "label": "还款方式",
+          "hint": "一次还本付息/按月、季或年计息到期还本/其他及说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "repayment",
+          "label": "还款情况",
+          "hint": "已还本金、已还利息、还息截至日期",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "overdue",
+          "label": "逾期还款",
+          "hint": "是/否；如是，填写逾期起始时间及期间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "collateral_contract",
+          "label": "抵押或质押合同",
+          "hint": "是/否；如是，填写签订时间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "collateral",
+          "label": "担保人和担保物",
+          "hint": "无则填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "maximum_security",
+          "label": "最高额担保",
+          "hint": "是/否；如是，填写债权确定时间、担保额度",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "registration",
+          "label": "抵押或质押登记",
+          "hint": "是/否；正式登记/预告登记及情况",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "guarantee",
+          "label": "保证合同",
+          "hint": "是/否；签订时间、保证人、主要内容、一般保证/连带责任保证",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_security",
+          "label": "其他担保方式",
+          "hint": "是/否；形式、签订时间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_facts",
+          "label": "其他需要说明的内容",
+          "hint": "无则填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "basis",
+          "label": "请求依据",
+          "hint": "合同约定、法律规定；编号法条须先在本案讨论核验",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "evidence",
+          "label": "证据清单",
+          "hint": "借款合同、借据、交付和还款凭证、担保资料等；按实际材料列明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "mediation_understood",
+          "label": "是否了解调解的作用",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_a",
+          "label": "是否了解先行调解程序与排期",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_b",
+          "label": "是否了解调解诉讼费用",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_c",
+          "label": "是否了解更换调解组织和调解员",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_d",
+          "label": "是否了解调解保密性",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_e",
+          "label": "是否了解调解协议法律效力",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_choice",
+          "label": "是否考虑先行调解",
+          "hint": "由当事人选择；模型不得代选",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "是",
+            "否",
+            "暂不确定，想要了解更多内容"
+          ]
+        },
+        {
+          "key": "date",
+          "label": "落款日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        }
+      ],
+      "party_scope": {
+        "plaintiff_type": "organization",
+        "defendant_type": "natural"
+      }
+    },
+    {
+      "id": "private-lending-organization-2025",
+      "name": "民间借贷起诉状（2025要素式·组织起诉组织）",
+      "version": "2025-07-14/verilex-1",
+      "source_url": "https://www.ftcourt.gov.cn/ssfw/sszn/content/post_1577086.html",
+      "retrieved_at": "2026-09-09",
+      "rights": "官方司法文书示范文本正文；不含出版社说明、案例实例或第三方模板代码",
+      "layout": "2025官方空白表格独立适配；保留栏目、表格网格及边框，填充区扩容；组织起诉组织单原告单被告、无第三人，非原件像素复刻",
+      "party_types": [
+        "organization"
+      ],
+      "third_parties": false,
+      "sha256": "78d5cc23635cbc4ae7ed28d970096a05cc33299cae52f68bbd5bf48105205fba",
+      "fields": [
+        {
+          "key": "plaintiff_name",
+          "label": "原告名称",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_address",
+          "label": "原告住所地（主要办事机构所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_registration",
+          "label": "原告注册地 / 登记地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_representative",
+          "label": "原告法定代表人 / 负责人",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_credit_code",
+          "label": "原告统一社会信用代码",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_organization_type",
+          "label": "原告类型",
+          "hint": "按实际填写：有限责任公司、股份有限公司（是否上市）、其他企业法人、事业单位、社会团体、基金会、社会服务机构、机关法人、农村集体经济组织法人、城镇农村的合作经济组织法人、基层群众性自治组织法人、个人独资企业、合伙企业、不具有法人资格的专业服务机构等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_job",
+          "label": "原告职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_phone",
+          "label": "原告联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_ownership",
+          "label": "原告所有制性质",
+          "hint": "国有（注明控股或参股）、民营；其他请如实说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_name",
+          "label": "被告名称",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_address",
+          "label": "被告住所地（主要办事机构所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_registration",
+          "label": "被告注册地 / 登记地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_representative",
+          "label": "被告法定代表人 / 负责人",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_organization_type",
+          "label": "被告类型",
+          "hint": "按实际填写：有限责任公司、股份有限公司（是否上市）、其他企业法人、事业单位、社会团体、基金会、社会服务机构、机关法人、农村集体经济组织法人、城镇农村的合作经济组织法人、基层群众性自治组织法人、个人独资企业、合伙企业、不具有法人资格的专业服务机构等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_job",
+          "label": "被告职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_phone",
+          "label": "被告联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_ownership",
+          "label": "被告所有制性质",
+          "hint": "国有（注明控股或参股）、民营；其他请如实说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "agent",
+          "label": "委托诉讼代理人",
+          "hint": "未委托填“无”；有代理人时填写姓名、单位、职务、电话及一般/特别授权权限",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "claims",
+          "label": "诉讼请求完整表述",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "principal",
+          "label": "本金请求",
+          "hint": "截至日期、尚欠本金金额及币种",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "interest",
+          "label": "利息请求",
+          "hint": "截至日期、尚欠利息金额、计算方式",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "acceleration",
+          "label": "提前还款或解除合同",
+          "hint": "是/否；如是，明确提前还款或解除合同及内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "security_claim",
+          "label": "担保权利请求",
+          "hint": "是/否；如是，填写具体内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "recovery_cost",
+          "label": "实现债权的费用",
+          "hint": "是/否；如是，填写费用明细",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "litigation_cost",
+          "label": "诉讼费用请求",
+          "hint": "明确是或否",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_claims",
+          "label": "其他请求",
+          "hint": "无其他请求填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "total",
+          "label": "标的总额",
+          "hint": "金额及币种",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "jurisdiction",
+          "label": "仲裁或法院管辖约定",
+          "hint": "有/无；如有，填写合同条款及内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "preservation",
+          "label": "诉前保全情况",
+          "hint": "是/否；如是，填写法院、时间、案号；诉讼保全须另交申请材料",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "interest_until_paid",
+          "label": "利息是否请求至实际清偿日",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "key": "reasons",
+          "label": "事实与理由完整表述",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "contract",
+          "label": "合同签订情况",
+          "hint": "名称、编号、签订时间、地点等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "signatories",
+          "label": "签订主体",
+          "hint": "出借人、借款人",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_amount",
+          "label": "借款金额与提供方式",
+          "hint": "约定金额、实际提供金额；现金/转账/其他及说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_term",
+          "label": "借款期限",
+          "hint": "是否到期；约定起止日期",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_rate",
+          "label": "借款利率",
+          "hint": "利率、年/季/月及合同条款；无约定如实写明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "delivery",
+          "label": "借款提供时间",
+          "hint": "逐笔日期和金额",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "repayment_method",
+          "label": "还款方式",
+          "hint": "一次还本付息/按月、季或年计息到期还本/其他及说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "repayment",
+          "label": "还款情况",
+          "hint": "已还本金、已还利息、还息截至日期",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "overdue",
+          "label": "逾期还款",
+          "hint": "是/否；如是，填写逾期起始时间及期间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "collateral_contract",
+          "label": "抵押或质押合同",
+          "hint": "是/否；如是，填写签订时间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "collateral",
+          "label": "担保人和担保物",
+          "hint": "无则填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "maximum_security",
+          "label": "最高额担保",
+          "hint": "是/否；如是，填写债权确定时间、担保额度",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "registration",
+          "label": "抵押或质押登记",
+          "hint": "是/否；正式登记/预告登记及情况",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "guarantee",
+          "label": "保证合同",
+          "hint": "是/否；签订时间、保证人、主要内容、一般保证/连带责任保证",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_security",
+          "label": "其他担保方式",
+          "hint": "是/否；形式、签订时间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_facts",
+          "label": "其他需要说明的内容",
+          "hint": "无则填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "basis",
+          "label": "请求依据",
+          "hint": "合同约定、法律规定；编号法条须先在本案讨论核验",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "evidence",
+          "label": "证据清单",
+          "hint": "借款合同、借据、交付和还款凭证、担保资料等；按实际材料列明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "mediation_understood",
+          "label": "是否了解调解的作用",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_a",
+          "label": "是否了解先行调解程序与排期",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_b",
+          "label": "是否了解调解诉讼费用",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_c",
+          "label": "是否了解更换调解组织和调解员",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_d",
+          "label": "是否了解调解保密性",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_e",
+          "label": "是否了解调解协议法律效力",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_choice",
+          "label": "是否考虑先行调解",
+          "hint": "由当事人选择；模型不得代选",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "是",
+            "否",
+            "暂不确定，想要了解更多内容"
+          ]
+        },
+        {
+          "key": "date",
+          "label": "落款日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        }
+      ],
+      "party_scope": {
+        "plaintiff_type": "organization",
+        "defendant_type": "organization"
+      }
+    },
+    {
+      "id": "private-lending-person-third-natural-2025",
+      "name": "民间借贷起诉状（2025要素式·个人双方·个人第三人）",
+      "version": "2025-07-14/verilex-1",
+      "source_url": "https://www.ftcourt.gov.cn/ssfw/sszn/content/post_1577086.html",
+      "retrieved_at": "2026-09-09",
+      "rights": "官方司法文书示范文本正文；不含出版社说明、案例实例或第三方模板代码",
+      "layout": "2025官方空白表格独立适配；保留栏目、表格网格及边框，填充区扩容；个人双方·个人第三人单原告单被告、单第三人，非原件像素复刻",
+      "party_types": [
+        "natural"
+      ],
+      "third_parties": true,
+      "sha256": "e3ddd2737ee93caa2ea7a0ed23c650d4d56c22dff39fd9c03404b75f4bda808b",
+      "fields": [
+        {
+          "key": "plaintiff_name",
+          "label": "原告姓名",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_sex",
+          "label": "原告性别",
+          "hint": "",
+          "required": true,
+          "kind": "sex"
+        },
+        {
+          "key": "plaintiff_birth",
+          "label": "原告出生日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        },
+        {
+          "key": "plaintiff_ethnicity",
+          "label": "原告民族",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_work",
+          "label": "原告工作单位",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_job",
+          "label": "原告职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_phone",
+          "label": "原告联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_address",
+          "label": "原告住所地（户籍所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_residence",
+          "label": "原告经常居住地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_id_type",
+          "label": "原告证件类型",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_id_number",
+          "label": "原告证件号码",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_name",
+          "label": "被告姓名",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_sex",
+          "label": "被告性别",
+          "hint": "",
+          "required": true,
+          "kind": "sex"
+        },
+        {
+          "key": "defendant_birth",
+          "label": "被告出生日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        },
+        {
+          "key": "defendant_ethnicity",
+          "label": "被告民族",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_work",
+          "label": "被告工作单位",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_job",
+          "label": "被告职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_phone",
+          "label": "被告联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_address",
+          "label": "被告住所地（户籍所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_residence",
+          "label": "被告经常居住地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_id_type",
+          "label": "被告证件类型",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_id_number",
+          "label": "被告证件号码",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_name",
+          "label": "第三人姓名",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_sex",
+          "label": "第三人性别",
+          "hint": "",
+          "required": true,
+          "kind": "sex"
+        },
+        {
+          "key": "third_party_birth",
+          "label": "第三人出生日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        },
+        {
+          "key": "third_party_ethnicity",
+          "label": "第三人民族",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_work",
+          "label": "第三人工作单位",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_job",
+          "label": "第三人职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_phone",
+          "label": "第三人联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_address",
+          "label": "第三人住所地（户籍所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_residence",
+          "label": "第三人经常居住地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_id_type",
+          "label": "第三人证件类型",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_id_number",
+          "label": "第三人证件号码",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "agent",
+          "label": "委托诉讼代理人",
+          "hint": "未委托填“无”；有代理人时填写姓名、单位、职务、电话及一般/特别授权权限",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "claims",
+          "label": "诉讼请求完整表述",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "principal",
+          "label": "本金请求",
+          "hint": "截至日期、尚欠本金金额及币种",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "interest",
+          "label": "利息请求",
+          "hint": "截至日期、尚欠利息金额、计算方式",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "acceleration",
+          "label": "提前还款或解除合同",
+          "hint": "是/否；如是，明确提前还款或解除合同及内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "security_claim",
+          "label": "担保权利请求",
+          "hint": "是/否；如是，填写具体内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "recovery_cost",
+          "label": "实现债权的费用",
+          "hint": "是/否；如是，填写费用明细",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "litigation_cost",
+          "label": "诉讼费用请求",
+          "hint": "明确是或否",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_claims",
+          "label": "其他请求",
+          "hint": "无其他请求填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "total",
+          "label": "标的总额",
+          "hint": "金额及币种",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "jurisdiction",
+          "label": "仲裁或法院管辖约定",
+          "hint": "有/无；如有，填写合同条款及内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "preservation",
+          "label": "诉前保全情况",
+          "hint": "是/否；如是，填写法院、时间、案号；诉讼保全须另交申请材料",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "interest_until_paid",
+          "label": "利息是否请求至实际清偿日",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "key": "reasons",
+          "label": "事实与理由完整表述",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "contract",
+          "label": "合同签订情况",
+          "hint": "名称、编号、签订时间、地点等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "signatories",
+          "label": "签订主体",
+          "hint": "出借人、借款人",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_amount",
+          "label": "借款金额与提供方式",
+          "hint": "约定金额、实际提供金额；现金/转账/其他及说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_term",
+          "label": "借款期限",
+          "hint": "是否到期；约定起止日期",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_rate",
+          "label": "借款利率",
+          "hint": "利率、年/季/月及合同条款；无约定如实写明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "delivery",
+          "label": "借款提供时间",
+          "hint": "逐笔日期和金额",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "repayment_method",
+          "label": "还款方式",
+          "hint": "一次还本付息/按月、季或年计息到期还本/其他及说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "repayment",
+          "label": "还款情况",
+          "hint": "已还本金、已还利息、还息截至日期",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "overdue",
+          "label": "逾期还款",
+          "hint": "是/否；如是，填写逾期起始时间及期间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "collateral_contract",
+          "label": "抵押或质押合同",
+          "hint": "是/否；如是，填写签订时间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "collateral",
+          "label": "担保人和担保物",
+          "hint": "无则填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "maximum_security",
+          "label": "最高额担保",
+          "hint": "是/否；如是，填写债权确定时间、担保额度",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "registration",
+          "label": "抵押或质押登记",
+          "hint": "是/否；正式登记/预告登记及情况",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "guarantee",
+          "label": "保证合同",
+          "hint": "是/否；签订时间、保证人、主要内容、一般保证/连带责任保证",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_security",
+          "label": "其他担保方式",
+          "hint": "是/否；形式、签订时间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_facts",
+          "label": "其他需要说明的内容",
+          "hint": "无则填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "basis",
+          "label": "请求依据",
+          "hint": "合同约定、法律规定；编号法条须先在本案讨论核验",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "evidence",
+          "label": "证据清单",
+          "hint": "借款合同、借据、交付和还款凭证、担保资料等；按实际材料列明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "mediation_understood",
+          "label": "是否了解调解的作用",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_a",
+          "label": "是否了解先行调解程序与排期",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_b",
+          "label": "是否了解调解诉讼费用",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_c",
+          "label": "是否了解更换调解组织和调解员",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_d",
+          "label": "是否了解调解保密性",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_e",
+          "label": "是否了解调解协议法律效力",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_choice",
+          "label": "是否考虑先行调解",
+          "hint": "由当事人选择；模型不得代选",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "是",
+            "否",
+            "暂不确定，想要了解更多内容"
+          ]
+        },
+        {
+          "key": "date",
+          "label": "落款日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        }
+      ],
+      "party_scope": {
+        "plaintiff_type": "natural",
+        "defendant_type": "natural",
+        "third_party_type": "natural",
+        "third_party_count": 1
+      }
+    },
+    {
+      "id": "private-lending-person-third-organization-2025",
+      "name": "民间借贷起诉状（2025要素式·个人双方·组织第三人）",
+      "version": "2025-07-14/verilex-1",
+      "source_url": "https://www.ftcourt.gov.cn/ssfw/sszn/content/post_1577086.html",
+      "retrieved_at": "2026-09-09",
+      "rights": "官方司法文书示范文本正文；不含出版社说明、案例实例或第三方模板代码",
+      "layout": "2025官方空白表格独立适配；保留栏目、表格网格及边框，填充区扩容；个人双方·组织第三人单原告单被告、单第三人，非原件像素复刻",
+      "party_types": [
+        "natural"
+      ],
+      "third_parties": true,
+      "sha256": "e414ac5196498916131b683b9e96702af533ea17a5b15e9526e9c963a0f923ad",
+      "fields": [
+        {
+          "key": "plaintiff_name",
+          "label": "原告姓名",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_sex",
+          "label": "原告性别",
+          "hint": "",
+          "required": true,
+          "kind": "sex"
+        },
+        {
+          "key": "plaintiff_birth",
+          "label": "原告出生日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        },
+        {
+          "key": "plaintiff_ethnicity",
+          "label": "原告民族",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_work",
+          "label": "原告工作单位",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_job",
+          "label": "原告职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_phone",
+          "label": "原告联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_address",
+          "label": "原告住所地（户籍所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_residence",
+          "label": "原告经常居住地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_id_type",
+          "label": "原告证件类型",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_id_number",
+          "label": "原告证件号码",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_name",
+          "label": "被告姓名",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_sex",
+          "label": "被告性别",
+          "hint": "",
+          "required": true,
+          "kind": "sex"
+        },
+        {
+          "key": "defendant_birth",
+          "label": "被告出生日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        },
+        {
+          "key": "defendant_ethnicity",
+          "label": "被告民族",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_work",
+          "label": "被告工作单位",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_job",
+          "label": "被告职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_phone",
+          "label": "被告联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_address",
+          "label": "被告住所地（户籍所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_residence",
+          "label": "被告经常居住地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_id_type",
+          "label": "被告证件类型",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_id_number",
+          "label": "被告证件号码",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_name",
+          "label": "第三人名称",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_address",
+          "label": "第三人住所地（主要办事机构所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_registration",
+          "label": "第三人注册地 / 登记地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_representative",
+          "label": "第三人法定代表人 / 负责人",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_organization_type",
+          "label": "第三人类型",
+          "hint": "按实际填写：有限责任公司、股份有限公司（是否上市）、其他企业法人、事业单位、社会团体、基金会、社会服务机构、机关法人、农村集体经济组织法人、城镇农村的合作经济组织法人、基层群众性自治组织法人、个人独资企业、合伙企业、不具有法人资格的专业服务机构等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_job",
+          "label": "第三人职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_phone",
+          "label": "第三人联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_ownership",
+          "label": "第三人所有制性质",
+          "hint": "国有（注明控股或参股）、民营；其他请如实说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "agent",
+          "label": "委托诉讼代理人",
+          "hint": "未委托填“无”；有代理人时填写姓名、单位、职务、电话及一般/特别授权权限",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "claims",
+          "label": "诉讼请求完整表述",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "principal",
+          "label": "本金请求",
+          "hint": "截至日期、尚欠本金金额及币种",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "interest",
+          "label": "利息请求",
+          "hint": "截至日期、尚欠利息金额、计算方式",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "acceleration",
+          "label": "提前还款或解除合同",
+          "hint": "是/否；如是，明确提前还款或解除合同及内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "security_claim",
+          "label": "担保权利请求",
+          "hint": "是/否；如是，填写具体内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "recovery_cost",
+          "label": "实现债权的费用",
+          "hint": "是/否；如是，填写费用明细",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "litigation_cost",
+          "label": "诉讼费用请求",
+          "hint": "明确是或否",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_claims",
+          "label": "其他请求",
+          "hint": "无其他请求填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "total",
+          "label": "标的总额",
+          "hint": "金额及币种",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "jurisdiction",
+          "label": "仲裁或法院管辖约定",
+          "hint": "有/无；如有，填写合同条款及内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "preservation",
+          "label": "诉前保全情况",
+          "hint": "是/否；如是，填写法院、时间、案号；诉讼保全须另交申请材料",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "interest_until_paid",
+          "label": "利息是否请求至实际清偿日",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "key": "reasons",
+          "label": "事实与理由完整表述",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "contract",
+          "label": "合同签订情况",
+          "hint": "名称、编号、签订时间、地点等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "signatories",
+          "label": "签订主体",
+          "hint": "出借人、借款人",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_amount",
+          "label": "借款金额与提供方式",
+          "hint": "约定金额、实际提供金额；现金/转账/其他及说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_term",
+          "label": "借款期限",
+          "hint": "是否到期；约定起止日期",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_rate",
+          "label": "借款利率",
+          "hint": "利率、年/季/月及合同条款；无约定如实写明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "delivery",
+          "label": "借款提供时间",
+          "hint": "逐笔日期和金额",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "repayment_method",
+          "label": "还款方式",
+          "hint": "一次还本付息/按月、季或年计息到期还本/其他及说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "repayment",
+          "label": "还款情况",
+          "hint": "已还本金、已还利息、还息截至日期",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "overdue",
+          "label": "逾期还款",
+          "hint": "是/否；如是，填写逾期起始时间及期间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "collateral_contract",
+          "label": "抵押或质押合同",
+          "hint": "是/否；如是，填写签订时间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "collateral",
+          "label": "担保人和担保物",
+          "hint": "无则填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "maximum_security",
+          "label": "最高额担保",
+          "hint": "是/否；如是，填写债权确定时间、担保额度",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "registration",
+          "label": "抵押或质押登记",
+          "hint": "是/否；正式登记/预告登记及情况",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "guarantee",
+          "label": "保证合同",
+          "hint": "是/否；签订时间、保证人、主要内容、一般保证/连带责任保证",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_security",
+          "label": "其他担保方式",
+          "hint": "是/否；形式、签订时间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_facts",
+          "label": "其他需要说明的内容",
+          "hint": "无则填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "basis",
+          "label": "请求依据",
+          "hint": "合同约定、法律规定；编号法条须先在本案讨论核验",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "evidence",
+          "label": "证据清单",
+          "hint": "借款合同、借据、交付和还款凭证、担保资料等；按实际材料列明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "mediation_understood",
+          "label": "是否了解调解的作用",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_a",
+          "label": "是否了解先行调解程序与排期",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_b",
+          "label": "是否了解调解诉讼费用",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_c",
+          "label": "是否了解更换调解组织和调解员",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_d",
+          "label": "是否了解调解保密性",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_e",
+          "label": "是否了解调解协议法律效力",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_choice",
+          "label": "是否考虑先行调解",
+          "hint": "由当事人选择；模型不得代选",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "是",
+            "否",
+            "暂不确定，想要了解更多内容"
+          ]
+        },
+        {
+          "key": "date",
+          "label": "落款日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        }
+      ],
+      "party_scope": {
+        "plaintiff_type": "natural",
+        "defendant_type": "natural",
+        "third_party_type": "organization",
+        "third_party_count": 1
+      }
+    },
+    {
+      "id": "private-lending-person-organization-third-natural-2025",
+      "name": "民间借贷起诉状（2025要素式·个人起诉组织·个人第三人）",
+      "version": "2025-07-14/verilex-1",
+      "source_url": "https://www.ftcourt.gov.cn/ssfw/sszn/content/post_1577086.html",
+      "retrieved_at": "2026-09-09",
+      "rights": "官方司法文书示范文本正文；不含出版社说明、案例实例或第三方模板代码",
+      "layout": "2025官方空白表格独立适配；保留栏目、表格网格及边框，填充区扩容；个人起诉组织·个人第三人单原告单被告、单第三人，非原件像素复刻",
+      "party_types": [
+        "natural",
+        "organization"
+      ],
+      "third_parties": true,
+      "sha256": "f08242dbf14bc418d89936e1f8e80584d8d968e4fd2adeb2419a98d8f7edf0f3",
+      "fields": [
+        {
+          "key": "plaintiff_name",
+          "label": "原告姓名",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_sex",
+          "label": "原告性别",
+          "hint": "",
+          "required": true,
+          "kind": "sex"
+        },
+        {
+          "key": "plaintiff_birth",
+          "label": "原告出生日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        },
+        {
+          "key": "plaintiff_ethnicity",
+          "label": "原告民族",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_work",
+          "label": "原告工作单位",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_job",
+          "label": "原告职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_phone",
+          "label": "原告联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_address",
+          "label": "原告住所地（户籍所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_residence",
+          "label": "原告经常居住地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_id_type",
+          "label": "原告证件类型",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_id_number",
+          "label": "原告证件号码",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_name",
+          "label": "被告名称",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_address",
+          "label": "被告住所地（主要办事机构所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_registration",
+          "label": "被告注册地 / 登记地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_representative",
+          "label": "被告法定代表人 / 负责人",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_organization_type",
+          "label": "被告类型",
+          "hint": "按实际填写：有限责任公司、股份有限公司（是否上市）、其他企业法人、事业单位、社会团体、基金会、社会服务机构、机关法人、农村集体经济组织法人、城镇农村的合作经济组织法人、基层群众性自治组织法人、个人独资企业、合伙企业、不具有法人资格的专业服务机构等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_job",
+          "label": "被告职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_phone",
+          "label": "被告联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_ownership",
+          "label": "被告所有制性质",
+          "hint": "国有（注明控股或参股）、民营；其他请如实说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_name",
+          "label": "第三人姓名",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_sex",
+          "label": "第三人性别",
+          "hint": "",
+          "required": true,
+          "kind": "sex"
+        },
+        {
+          "key": "third_party_birth",
+          "label": "第三人出生日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        },
+        {
+          "key": "third_party_ethnicity",
+          "label": "第三人民族",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_work",
+          "label": "第三人工作单位",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_job",
+          "label": "第三人职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_phone",
+          "label": "第三人联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_address",
+          "label": "第三人住所地（户籍所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_residence",
+          "label": "第三人经常居住地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_id_type",
+          "label": "第三人证件类型",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_id_number",
+          "label": "第三人证件号码",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "agent",
+          "label": "委托诉讼代理人",
+          "hint": "未委托填“无”；有代理人时填写姓名、单位、职务、电话及一般/特别授权权限",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "claims",
+          "label": "诉讼请求完整表述",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "principal",
+          "label": "本金请求",
+          "hint": "截至日期、尚欠本金金额及币种",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "interest",
+          "label": "利息请求",
+          "hint": "截至日期、尚欠利息金额、计算方式",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "acceleration",
+          "label": "提前还款或解除合同",
+          "hint": "是/否；如是，明确提前还款或解除合同及内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "security_claim",
+          "label": "担保权利请求",
+          "hint": "是/否；如是，填写具体内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "recovery_cost",
+          "label": "实现债权的费用",
+          "hint": "是/否；如是，填写费用明细",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "litigation_cost",
+          "label": "诉讼费用请求",
+          "hint": "明确是或否",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_claims",
+          "label": "其他请求",
+          "hint": "无其他请求填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "total",
+          "label": "标的总额",
+          "hint": "金额及币种",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "jurisdiction",
+          "label": "仲裁或法院管辖约定",
+          "hint": "有/无；如有，填写合同条款及内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "preservation",
+          "label": "诉前保全情况",
+          "hint": "是/否；如是，填写法院、时间、案号；诉讼保全须另交申请材料",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "interest_until_paid",
+          "label": "利息是否请求至实际清偿日",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "key": "reasons",
+          "label": "事实与理由完整表述",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "contract",
+          "label": "合同签订情况",
+          "hint": "名称、编号、签订时间、地点等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "signatories",
+          "label": "签订主体",
+          "hint": "出借人、借款人",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_amount",
+          "label": "借款金额与提供方式",
+          "hint": "约定金额、实际提供金额；现金/转账/其他及说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_term",
+          "label": "借款期限",
+          "hint": "是否到期；约定起止日期",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_rate",
+          "label": "借款利率",
+          "hint": "利率、年/季/月及合同条款；无约定如实写明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "delivery",
+          "label": "借款提供时间",
+          "hint": "逐笔日期和金额",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "repayment_method",
+          "label": "还款方式",
+          "hint": "一次还本付息/按月、季或年计息到期还本/其他及说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "repayment",
+          "label": "还款情况",
+          "hint": "已还本金、已还利息、还息截至日期",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "overdue",
+          "label": "逾期还款",
+          "hint": "是/否；如是，填写逾期起始时间及期间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "collateral_contract",
+          "label": "抵押或质押合同",
+          "hint": "是/否；如是，填写签订时间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "collateral",
+          "label": "担保人和担保物",
+          "hint": "无则填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "maximum_security",
+          "label": "最高额担保",
+          "hint": "是/否；如是，填写债权确定时间、担保额度",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "registration",
+          "label": "抵押或质押登记",
+          "hint": "是/否；正式登记/预告登记及情况",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "guarantee",
+          "label": "保证合同",
+          "hint": "是/否；签订时间、保证人、主要内容、一般保证/连带责任保证",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_security",
+          "label": "其他担保方式",
+          "hint": "是/否；形式、签订时间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_facts",
+          "label": "其他需要说明的内容",
+          "hint": "无则填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "basis",
+          "label": "请求依据",
+          "hint": "合同约定、法律规定；编号法条须先在本案讨论核验",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "evidence",
+          "label": "证据清单",
+          "hint": "借款合同、借据、交付和还款凭证、担保资料等；按实际材料列明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "mediation_understood",
+          "label": "是否了解调解的作用",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_a",
+          "label": "是否了解先行调解程序与排期",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_b",
+          "label": "是否了解调解诉讼费用",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_c",
+          "label": "是否了解更换调解组织和调解员",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_d",
+          "label": "是否了解调解保密性",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_e",
+          "label": "是否了解调解协议法律效力",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_choice",
+          "label": "是否考虑先行调解",
+          "hint": "由当事人选择；模型不得代选",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "是",
+            "否",
+            "暂不确定，想要了解更多内容"
+          ]
+        },
+        {
+          "key": "date",
+          "label": "落款日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        }
+      ],
+      "party_scope": {
+        "plaintiff_type": "natural",
+        "defendant_type": "organization",
+        "third_party_type": "natural",
+        "third_party_count": 1
+      }
+    },
+    {
+      "id": "private-lending-person-organization-third-organization-2025",
+      "name": "民间借贷起诉状（2025要素式·个人起诉组织·组织第三人）",
+      "version": "2025-07-14/verilex-1",
+      "source_url": "https://www.ftcourt.gov.cn/ssfw/sszn/content/post_1577086.html",
+      "retrieved_at": "2026-09-09",
+      "rights": "官方司法文书示范文本正文；不含出版社说明、案例实例或第三方模板代码",
+      "layout": "2025官方空白表格独立适配；保留栏目、表格网格及边框，填充区扩容；个人起诉组织·组织第三人单原告单被告、单第三人，非原件像素复刻",
+      "party_types": [
+        "natural",
+        "organization"
+      ],
+      "third_parties": true,
+      "sha256": "70580ef9722de8a5bc25f8b5abfd94bced3f010677856ecbdcbb207e52c65c43",
+      "fields": [
+        {
+          "key": "plaintiff_name",
+          "label": "原告姓名",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_sex",
+          "label": "原告性别",
+          "hint": "",
+          "required": true,
+          "kind": "sex"
+        },
+        {
+          "key": "plaintiff_birth",
+          "label": "原告出生日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        },
+        {
+          "key": "plaintiff_ethnicity",
+          "label": "原告民族",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_work",
+          "label": "原告工作单位",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_job",
+          "label": "原告职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_phone",
+          "label": "原告联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_address",
+          "label": "原告住所地（户籍所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_residence",
+          "label": "原告经常居住地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_id_type",
+          "label": "原告证件类型",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_id_number",
+          "label": "原告证件号码",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_name",
+          "label": "被告名称",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_address",
+          "label": "被告住所地（主要办事机构所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_registration",
+          "label": "被告注册地 / 登记地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_representative",
+          "label": "被告法定代表人 / 负责人",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_organization_type",
+          "label": "被告类型",
+          "hint": "按实际填写：有限责任公司、股份有限公司（是否上市）、其他企业法人、事业单位、社会团体、基金会、社会服务机构、机关法人、农村集体经济组织法人、城镇农村的合作经济组织法人、基层群众性自治组织法人、个人独资企业、合伙企业、不具有法人资格的专业服务机构等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_job",
+          "label": "被告职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_phone",
+          "label": "被告联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_ownership",
+          "label": "被告所有制性质",
+          "hint": "国有（注明控股或参股）、民营；其他请如实说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_name",
+          "label": "第三人名称",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_address",
+          "label": "第三人住所地（主要办事机构所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_registration",
+          "label": "第三人注册地 / 登记地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_representative",
+          "label": "第三人法定代表人 / 负责人",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_organization_type",
+          "label": "第三人类型",
+          "hint": "按实际填写：有限责任公司、股份有限公司（是否上市）、其他企业法人、事业单位、社会团体、基金会、社会服务机构、机关法人、农村集体经济组织法人、城镇农村的合作经济组织法人、基层群众性自治组织法人、个人独资企业、合伙企业、不具有法人资格的专业服务机构等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_job",
+          "label": "第三人职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_phone",
+          "label": "第三人联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_ownership",
+          "label": "第三人所有制性质",
+          "hint": "国有（注明控股或参股）、民营；其他请如实说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "agent",
+          "label": "委托诉讼代理人",
+          "hint": "未委托填“无”；有代理人时填写姓名、单位、职务、电话及一般/特别授权权限",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "claims",
+          "label": "诉讼请求完整表述",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "principal",
+          "label": "本金请求",
+          "hint": "截至日期、尚欠本金金额及币种",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "interest",
+          "label": "利息请求",
+          "hint": "截至日期、尚欠利息金额、计算方式",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "acceleration",
+          "label": "提前还款或解除合同",
+          "hint": "是/否；如是，明确提前还款或解除合同及内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "security_claim",
+          "label": "担保权利请求",
+          "hint": "是/否；如是，填写具体内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "recovery_cost",
+          "label": "实现债权的费用",
+          "hint": "是/否；如是，填写费用明细",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "litigation_cost",
+          "label": "诉讼费用请求",
+          "hint": "明确是或否",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_claims",
+          "label": "其他请求",
+          "hint": "无其他请求填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "total",
+          "label": "标的总额",
+          "hint": "金额及币种",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "jurisdiction",
+          "label": "仲裁或法院管辖约定",
+          "hint": "有/无；如有，填写合同条款及内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "preservation",
+          "label": "诉前保全情况",
+          "hint": "是/否；如是，填写法院、时间、案号；诉讼保全须另交申请材料",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "interest_until_paid",
+          "label": "利息是否请求至实际清偿日",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "key": "reasons",
+          "label": "事实与理由完整表述",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "contract",
+          "label": "合同签订情况",
+          "hint": "名称、编号、签订时间、地点等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "signatories",
+          "label": "签订主体",
+          "hint": "出借人、借款人",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_amount",
+          "label": "借款金额与提供方式",
+          "hint": "约定金额、实际提供金额；现金/转账/其他及说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_term",
+          "label": "借款期限",
+          "hint": "是否到期；约定起止日期",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_rate",
+          "label": "借款利率",
+          "hint": "利率、年/季/月及合同条款；无约定如实写明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "delivery",
+          "label": "借款提供时间",
+          "hint": "逐笔日期和金额",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "repayment_method",
+          "label": "还款方式",
+          "hint": "一次还本付息/按月、季或年计息到期还本/其他及说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "repayment",
+          "label": "还款情况",
+          "hint": "已还本金、已还利息、还息截至日期",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "overdue",
+          "label": "逾期还款",
+          "hint": "是/否；如是，填写逾期起始时间及期间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "collateral_contract",
+          "label": "抵押或质押合同",
+          "hint": "是/否；如是，填写签订时间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "collateral",
+          "label": "担保人和担保物",
+          "hint": "无则填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "maximum_security",
+          "label": "最高额担保",
+          "hint": "是/否；如是，填写债权确定时间、担保额度",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "registration",
+          "label": "抵押或质押登记",
+          "hint": "是/否；正式登记/预告登记及情况",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "guarantee",
+          "label": "保证合同",
+          "hint": "是/否；签订时间、保证人、主要内容、一般保证/连带责任保证",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_security",
+          "label": "其他担保方式",
+          "hint": "是/否；形式、签订时间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_facts",
+          "label": "其他需要说明的内容",
+          "hint": "无则填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "basis",
+          "label": "请求依据",
+          "hint": "合同约定、法律规定；编号法条须先在本案讨论核验",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "evidence",
+          "label": "证据清单",
+          "hint": "借款合同、借据、交付和还款凭证、担保资料等；按实际材料列明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "mediation_understood",
+          "label": "是否了解调解的作用",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_a",
+          "label": "是否了解先行调解程序与排期",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_b",
+          "label": "是否了解调解诉讼费用",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_c",
+          "label": "是否了解更换调解组织和调解员",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_d",
+          "label": "是否了解调解保密性",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_e",
+          "label": "是否了解调解协议法律效力",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_choice",
+          "label": "是否考虑先行调解",
+          "hint": "由当事人选择；模型不得代选",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "是",
+            "否",
+            "暂不确定，想要了解更多内容"
+          ]
+        },
+        {
+          "key": "date",
+          "label": "落款日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        }
+      ],
+      "party_scope": {
+        "plaintiff_type": "natural",
+        "defendant_type": "organization",
+        "third_party_type": "organization",
+        "third_party_count": 1
+      }
+    },
+    {
+      "id": "private-lending-organization-person-third-natural-2025",
+      "name": "民间借贷起诉状（2025要素式·组织起诉个人·个人第三人）",
+      "version": "2025-07-14/verilex-1",
+      "source_url": "https://www.ftcourt.gov.cn/ssfw/sszn/content/post_1577086.html",
+      "retrieved_at": "2026-09-09",
+      "rights": "官方司法文书示范文本正文；不含出版社说明、案例实例或第三方模板代码",
+      "layout": "2025官方空白表格独立适配；保留栏目、表格网格及边框，填充区扩容；组织起诉个人·个人第三人单原告单被告、单第三人，非原件像素复刻",
+      "party_types": [
+        "organization",
+        "natural"
+      ],
+      "third_parties": true,
+      "sha256": "a0c28335871190b92e4ec733d27082d53be77cd8690e7a05f106844e1f4ec8a7",
+      "fields": [
+        {
+          "key": "plaintiff_name",
+          "label": "原告名称",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_address",
+          "label": "原告住所地（主要办事机构所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_registration",
+          "label": "原告注册地 / 登记地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_representative",
+          "label": "原告法定代表人 / 负责人",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_credit_code",
+          "label": "原告统一社会信用代码",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_organization_type",
+          "label": "原告类型",
+          "hint": "按实际填写：有限责任公司、股份有限公司（是否上市）、其他企业法人、事业单位、社会团体、基金会、社会服务机构、机关法人、农村集体经济组织法人、城镇农村的合作经济组织法人、基层群众性自治组织法人、个人独资企业、合伙企业、不具有法人资格的专业服务机构等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_job",
+          "label": "原告职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_phone",
+          "label": "原告联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_ownership",
+          "label": "原告所有制性质",
+          "hint": "国有（注明控股或参股）、民营；其他请如实说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_name",
+          "label": "被告姓名",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_sex",
+          "label": "被告性别",
+          "hint": "",
+          "required": true,
+          "kind": "sex"
+        },
+        {
+          "key": "defendant_birth",
+          "label": "被告出生日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        },
+        {
+          "key": "defendant_ethnicity",
+          "label": "被告民族",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_work",
+          "label": "被告工作单位",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_job",
+          "label": "被告职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_phone",
+          "label": "被告联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_address",
+          "label": "被告住所地（户籍所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_residence",
+          "label": "被告经常居住地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_id_type",
+          "label": "被告证件类型",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_id_number",
+          "label": "被告证件号码",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_name",
+          "label": "第三人姓名",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_sex",
+          "label": "第三人性别",
+          "hint": "",
+          "required": true,
+          "kind": "sex"
+        },
+        {
+          "key": "third_party_birth",
+          "label": "第三人出生日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        },
+        {
+          "key": "third_party_ethnicity",
+          "label": "第三人民族",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_work",
+          "label": "第三人工作单位",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_job",
+          "label": "第三人职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_phone",
+          "label": "第三人联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_address",
+          "label": "第三人住所地（户籍所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_residence",
+          "label": "第三人经常居住地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_id_type",
+          "label": "第三人证件类型",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_id_number",
+          "label": "第三人证件号码",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "agent",
+          "label": "委托诉讼代理人",
+          "hint": "未委托填“无”；有代理人时填写姓名、单位、职务、电话及一般/特别授权权限",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "claims",
+          "label": "诉讼请求完整表述",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "principal",
+          "label": "本金请求",
+          "hint": "截至日期、尚欠本金金额及币种",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "interest",
+          "label": "利息请求",
+          "hint": "截至日期、尚欠利息金额、计算方式",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "acceleration",
+          "label": "提前还款或解除合同",
+          "hint": "是/否；如是，明确提前还款或解除合同及内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "security_claim",
+          "label": "担保权利请求",
+          "hint": "是/否；如是，填写具体内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "recovery_cost",
+          "label": "实现债权的费用",
+          "hint": "是/否；如是，填写费用明细",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "litigation_cost",
+          "label": "诉讼费用请求",
+          "hint": "明确是或否",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_claims",
+          "label": "其他请求",
+          "hint": "无其他请求填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "total",
+          "label": "标的总额",
+          "hint": "金额及币种",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "jurisdiction",
+          "label": "仲裁或法院管辖约定",
+          "hint": "有/无；如有，填写合同条款及内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "preservation",
+          "label": "诉前保全情况",
+          "hint": "是/否；如是，填写法院、时间、案号；诉讼保全须另交申请材料",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "interest_until_paid",
+          "label": "利息是否请求至实际清偿日",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "key": "reasons",
+          "label": "事实与理由完整表述",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "contract",
+          "label": "合同签订情况",
+          "hint": "名称、编号、签订时间、地点等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "signatories",
+          "label": "签订主体",
+          "hint": "出借人、借款人",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_amount",
+          "label": "借款金额与提供方式",
+          "hint": "约定金额、实际提供金额；现金/转账/其他及说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_term",
+          "label": "借款期限",
+          "hint": "是否到期；约定起止日期",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_rate",
+          "label": "借款利率",
+          "hint": "利率、年/季/月及合同条款；无约定如实写明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "delivery",
+          "label": "借款提供时间",
+          "hint": "逐笔日期和金额",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "repayment_method",
+          "label": "还款方式",
+          "hint": "一次还本付息/按月、季或年计息到期还本/其他及说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "repayment",
+          "label": "还款情况",
+          "hint": "已还本金、已还利息、还息截至日期",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "overdue",
+          "label": "逾期还款",
+          "hint": "是/否；如是，填写逾期起始时间及期间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "collateral_contract",
+          "label": "抵押或质押合同",
+          "hint": "是/否；如是，填写签订时间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "collateral",
+          "label": "担保人和担保物",
+          "hint": "无则填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "maximum_security",
+          "label": "最高额担保",
+          "hint": "是/否；如是，填写债权确定时间、担保额度",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "registration",
+          "label": "抵押或质押登记",
+          "hint": "是/否；正式登记/预告登记及情况",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "guarantee",
+          "label": "保证合同",
+          "hint": "是/否；签订时间、保证人、主要内容、一般保证/连带责任保证",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_security",
+          "label": "其他担保方式",
+          "hint": "是/否；形式、签订时间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_facts",
+          "label": "其他需要说明的内容",
+          "hint": "无则填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "basis",
+          "label": "请求依据",
+          "hint": "合同约定、法律规定；编号法条须先在本案讨论核验",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "evidence",
+          "label": "证据清单",
+          "hint": "借款合同、借据、交付和还款凭证、担保资料等；按实际材料列明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "mediation_understood",
+          "label": "是否了解调解的作用",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_a",
+          "label": "是否了解先行调解程序与排期",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_b",
+          "label": "是否了解调解诉讼费用",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_c",
+          "label": "是否了解更换调解组织和调解员",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_d",
+          "label": "是否了解调解保密性",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_e",
+          "label": "是否了解调解协议法律效力",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_choice",
+          "label": "是否考虑先行调解",
+          "hint": "由当事人选择；模型不得代选",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "是",
+            "否",
+            "暂不确定，想要了解更多内容"
+          ]
+        },
+        {
+          "key": "date",
+          "label": "落款日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        }
+      ],
+      "party_scope": {
+        "plaintiff_type": "organization",
+        "defendant_type": "natural",
+        "third_party_type": "natural",
+        "third_party_count": 1
+      }
+    },
+    {
+      "id": "private-lending-organization-person-third-organization-2025",
+      "name": "民间借贷起诉状（2025要素式·组织起诉个人·组织第三人）",
+      "version": "2025-07-14/verilex-1",
+      "source_url": "https://www.ftcourt.gov.cn/ssfw/sszn/content/post_1577086.html",
+      "retrieved_at": "2026-09-09",
+      "rights": "官方司法文书示范文本正文；不含出版社说明、案例实例或第三方模板代码",
+      "layout": "2025官方空白表格独立适配；保留栏目、表格网格及边框，填充区扩容；组织起诉个人·组织第三人单原告单被告、单第三人，非原件像素复刻",
+      "party_types": [
+        "organization",
+        "natural"
+      ],
+      "third_parties": true,
+      "sha256": "a70e1d489a7743f04c21c9e153977e6e7eb3aa964ee543a644839078035f8444",
+      "fields": [
+        {
+          "key": "plaintiff_name",
+          "label": "原告名称",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_address",
+          "label": "原告住所地（主要办事机构所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_registration",
+          "label": "原告注册地 / 登记地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_representative",
+          "label": "原告法定代表人 / 负责人",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_credit_code",
+          "label": "原告统一社会信用代码",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_organization_type",
+          "label": "原告类型",
+          "hint": "按实际填写：有限责任公司、股份有限公司（是否上市）、其他企业法人、事业单位、社会团体、基金会、社会服务机构、机关法人、农村集体经济组织法人、城镇农村的合作经济组织法人、基层群众性自治组织法人、个人独资企业、合伙企业、不具有法人资格的专业服务机构等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_job",
+          "label": "原告职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_phone",
+          "label": "原告联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_ownership",
+          "label": "原告所有制性质",
+          "hint": "国有（注明控股或参股）、民营；其他请如实说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_name",
+          "label": "被告姓名",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_sex",
+          "label": "被告性别",
+          "hint": "",
+          "required": true,
+          "kind": "sex"
+        },
+        {
+          "key": "defendant_birth",
+          "label": "被告出生日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        },
+        {
+          "key": "defendant_ethnicity",
+          "label": "被告民族",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_work",
+          "label": "被告工作单位",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_job",
+          "label": "被告职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_phone",
+          "label": "被告联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_address",
+          "label": "被告住所地（户籍所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_residence",
+          "label": "被告经常居住地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_id_type",
+          "label": "被告证件类型",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_id_number",
+          "label": "被告证件号码",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_name",
+          "label": "第三人名称",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_address",
+          "label": "第三人住所地（主要办事机构所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_registration",
+          "label": "第三人注册地 / 登记地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_representative",
+          "label": "第三人法定代表人 / 负责人",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_organization_type",
+          "label": "第三人类型",
+          "hint": "按实际填写：有限责任公司、股份有限公司（是否上市）、其他企业法人、事业单位、社会团体、基金会、社会服务机构、机关法人、农村集体经济组织法人、城镇农村的合作经济组织法人、基层群众性自治组织法人、个人独资企业、合伙企业、不具有法人资格的专业服务机构等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_job",
+          "label": "第三人职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_phone",
+          "label": "第三人联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_ownership",
+          "label": "第三人所有制性质",
+          "hint": "国有（注明控股或参股）、民营；其他请如实说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "agent",
+          "label": "委托诉讼代理人",
+          "hint": "未委托填“无”；有代理人时填写姓名、单位、职务、电话及一般/特别授权权限",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "claims",
+          "label": "诉讼请求完整表述",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "principal",
+          "label": "本金请求",
+          "hint": "截至日期、尚欠本金金额及币种",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "interest",
+          "label": "利息请求",
+          "hint": "截至日期、尚欠利息金额、计算方式",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "acceleration",
+          "label": "提前还款或解除合同",
+          "hint": "是/否；如是，明确提前还款或解除合同及内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "security_claim",
+          "label": "担保权利请求",
+          "hint": "是/否；如是，填写具体内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "recovery_cost",
+          "label": "实现债权的费用",
+          "hint": "是/否；如是，填写费用明细",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "litigation_cost",
+          "label": "诉讼费用请求",
+          "hint": "明确是或否",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_claims",
+          "label": "其他请求",
+          "hint": "无其他请求填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "total",
+          "label": "标的总额",
+          "hint": "金额及币种",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "jurisdiction",
+          "label": "仲裁或法院管辖约定",
+          "hint": "有/无；如有，填写合同条款及内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "preservation",
+          "label": "诉前保全情况",
+          "hint": "是/否；如是，填写法院、时间、案号；诉讼保全须另交申请材料",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "interest_until_paid",
+          "label": "利息是否请求至实际清偿日",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "key": "reasons",
+          "label": "事实与理由完整表述",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "contract",
+          "label": "合同签订情况",
+          "hint": "名称、编号、签订时间、地点等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "signatories",
+          "label": "签订主体",
+          "hint": "出借人、借款人",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_amount",
+          "label": "借款金额与提供方式",
+          "hint": "约定金额、实际提供金额；现金/转账/其他及说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_term",
+          "label": "借款期限",
+          "hint": "是否到期；约定起止日期",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_rate",
+          "label": "借款利率",
+          "hint": "利率、年/季/月及合同条款；无约定如实写明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "delivery",
+          "label": "借款提供时间",
+          "hint": "逐笔日期和金额",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "repayment_method",
+          "label": "还款方式",
+          "hint": "一次还本付息/按月、季或年计息到期还本/其他及说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "repayment",
+          "label": "还款情况",
+          "hint": "已还本金、已还利息、还息截至日期",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "overdue",
+          "label": "逾期还款",
+          "hint": "是/否；如是，填写逾期起始时间及期间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "collateral_contract",
+          "label": "抵押或质押合同",
+          "hint": "是/否；如是，填写签订时间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "collateral",
+          "label": "担保人和担保物",
+          "hint": "无则填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "maximum_security",
+          "label": "最高额担保",
+          "hint": "是/否；如是，填写债权确定时间、担保额度",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "registration",
+          "label": "抵押或质押登记",
+          "hint": "是/否；正式登记/预告登记及情况",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "guarantee",
+          "label": "保证合同",
+          "hint": "是/否；签订时间、保证人、主要内容、一般保证/连带责任保证",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_security",
+          "label": "其他担保方式",
+          "hint": "是/否；形式、签订时间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_facts",
+          "label": "其他需要说明的内容",
+          "hint": "无则填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "basis",
+          "label": "请求依据",
+          "hint": "合同约定、法律规定；编号法条须先在本案讨论核验",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "evidence",
+          "label": "证据清单",
+          "hint": "借款合同、借据、交付和还款凭证、担保资料等；按实际材料列明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "mediation_understood",
+          "label": "是否了解调解的作用",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_a",
+          "label": "是否了解先行调解程序与排期",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_b",
+          "label": "是否了解调解诉讼费用",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_c",
+          "label": "是否了解更换调解组织和调解员",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_d",
+          "label": "是否了解调解保密性",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_e",
+          "label": "是否了解调解协议法律效力",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_choice",
+          "label": "是否考虑先行调解",
+          "hint": "由当事人选择；模型不得代选",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "是",
+            "否",
+            "暂不确定，想要了解更多内容"
+          ]
+        },
+        {
+          "key": "date",
+          "label": "落款日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        }
+      ],
+      "party_scope": {
+        "plaintiff_type": "organization",
+        "defendant_type": "natural",
+        "third_party_type": "organization",
+        "third_party_count": 1
+      }
+    },
+    {
+      "id": "private-lending-organization-third-natural-2025",
+      "name": "民间借贷起诉状（2025要素式·组织双方·个人第三人）",
+      "version": "2025-07-14/verilex-1",
+      "source_url": "https://www.ftcourt.gov.cn/ssfw/sszn/content/post_1577086.html",
+      "retrieved_at": "2026-09-09",
+      "rights": "官方司法文书示范文本正文；不含出版社说明、案例实例或第三方模板代码",
+      "layout": "2025官方空白表格独立适配；保留栏目、表格网格及边框，填充区扩容；组织双方·个人第三人单原告单被告、单第三人，非原件像素复刻",
+      "party_types": [
+        "organization"
+      ],
+      "third_parties": true,
+      "sha256": "4ab142fb4d7c049eea194b2a9c82fb97123d3e96112d3dab27371e94435a4b79",
+      "fields": [
+        {
+          "key": "plaintiff_name",
+          "label": "原告名称",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_address",
+          "label": "原告住所地（主要办事机构所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_registration",
+          "label": "原告注册地 / 登记地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_representative",
+          "label": "原告法定代表人 / 负责人",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_credit_code",
+          "label": "原告统一社会信用代码",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_organization_type",
+          "label": "原告类型",
+          "hint": "按实际填写：有限责任公司、股份有限公司（是否上市）、其他企业法人、事业单位、社会团体、基金会、社会服务机构、机关法人、农村集体经济组织法人、城镇农村的合作经济组织法人、基层群众性自治组织法人、个人独资企业、合伙企业、不具有法人资格的专业服务机构等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_job",
+          "label": "原告职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_phone",
+          "label": "原告联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_ownership",
+          "label": "原告所有制性质",
+          "hint": "国有（注明控股或参股）、民营；其他请如实说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_name",
+          "label": "被告名称",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_address",
+          "label": "被告住所地（主要办事机构所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_registration",
+          "label": "被告注册地 / 登记地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_representative",
+          "label": "被告法定代表人 / 负责人",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_organization_type",
+          "label": "被告类型",
+          "hint": "按实际填写：有限责任公司、股份有限公司（是否上市）、其他企业法人、事业单位、社会团体、基金会、社会服务机构、机关法人、农村集体经济组织法人、城镇农村的合作经济组织法人、基层群众性自治组织法人、个人独资企业、合伙企业、不具有法人资格的专业服务机构等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_job",
+          "label": "被告职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_phone",
+          "label": "被告联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_ownership",
+          "label": "被告所有制性质",
+          "hint": "国有（注明控股或参股）、民营；其他请如实说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_name",
+          "label": "第三人姓名",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_sex",
+          "label": "第三人性别",
+          "hint": "",
+          "required": true,
+          "kind": "sex"
+        },
+        {
+          "key": "third_party_birth",
+          "label": "第三人出生日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        },
+        {
+          "key": "third_party_ethnicity",
+          "label": "第三人民族",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_work",
+          "label": "第三人工作单位",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_job",
+          "label": "第三人职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_phone",
+          "label": "第三人联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_address",
+          "label": "第三人住所地（户籍所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_residence",
+          "label": "第三人经常居住地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_id_type",
+          "label": "第三人证件类型",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_id_number",
+          "label": "第三人证件号码",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "agent",
+          "label": "委托诉讼代理人",
+          "hint": "未委托填“无”；有代理人时填写姓名、单位、职务、电话及一般/特别授权权限",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "claims",
+          "label": "诉讼请求完整表述",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "principal",
+          "label": "本金请求",
+          "hint": "截至日期、尚欠本金金额及币种",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "interest",
+          "label": "利息请求",
+          "hint": "截至日期、尚欠利息金额、计算方式",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "acceleration",
+          "label": "提前还款或解除合同",
+          "hint": "是/否；如是，明确提前还款或解除合同及内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "security_claim",
+          "label": "担保权利请求",
+          "hint": "是/否；如是，填写具体内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "recovery_cost",
+          "label": "实现债权的费用",
+          "hint": "是/否；如是，填写费用明细",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "litigation_cost",
+          "label": "诉讼费用请求",
+          "hint": "明确是或否",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_claims",
+          "label": "其他请求",
+          "hint": "无其他请求填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "total",
+          "label": "标的总额",
+          "hint": "金额及币种",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "jurisdiction",
+          "label": "仲裁或法院管辖约定",
+          "hint": "有/无；如有，填写合同条款及内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "preservation",
+          "label": "诉前保全情况",
+          "hint": "是/否；如是，填写法院、时间、案号；诉讼保全须另交申请材料",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "interest_until_paid",
+          "label": "利息是否请求至实际清偿日",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "key": "reasons",
+          "label": "事实与理由完整表述",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "contract",
+          "label": "合同签订情况",
+          "hint": "名称、编号、签订时间、地点等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "signatories",
+          "label": "签订主体",
+          "hint": "出借人、借款人",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_amount",
+          "label": "借款金额与提供方式",
+          "hint": "约定金额、实际提供金额；现金/转账/其他及说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_term",
+          "label": "借款期限",
+          "hint": "是否到期；约定起止日期",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_rate",
+          "label": "借款利率",
+          "hint": "利率、年/季/月及合同条款；无约定如实写明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "delivery",
+          "label": "借款提供时间",
+          "hint": "逐笔日期和金额",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "repayment_method",
+          "label": "还款方式",
+          "hint": "一次还本付息/按月、季或年计息到期还本/其他及说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "repayment",
+          "label": "还款情况",
+          "hint": "已还本金、已还利息、还息截至日期",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "overdue",
+          "label": "逾期还款",
+          "hint": "是/否；如是，填写逾期起始时间及期间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "collateral_contract",
+          "label": "抵押或质押合同",
+          "hint": "是/否；如是，填写签订时间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "collateral",
+          "label": "担保人和担保物",
+          "hint": "无则填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "maximum_security",
+          "label": "最高额担保",
+          "hint": "是/否；如是，填写债权确定时间、担保额度",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "registration",
+          "label": "抵押或质押登记",
+          "hint": "是/否；正式登记/预告登记及情况",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "guarantee",
+          "label": "保证合同",
+          "hint": "是/否；签订时间、保证人、主要内容、一般保证/连带责任保证",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_security",
+          "label": "其他担保方式",
+          "hint": "是/否；形式、签订时间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_facts",
+          "label": "其他需要说明的内容",
+          "hint": "无则填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "basis",
+          "label": "请求依据",
+          "hint": "合同约定、法律规定；编号法条须先在本案讨论核验",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "evidence",
+          "label": "证据清单",
+          "hint": "借款合同、借据、交付和还款凭证、担保资料等；按实际材料列明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "mediation_understood",
+          "label": "是否了解调解的作用",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_a",
+          "label": "是否了解先行调解程序与排期",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_b",
+          "label": "是否了解调解诉讼费用",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_c",
+          "label": "是否了解更换调解组织和调解员",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_d",
+          "label": "是否了解调解保密性",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_e",
+          "label": "是否了解调解协议法律效力",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_choice",
+          "label": "是否考虑先行调解",
+          "hint": "由当事人选择；模型不得代选",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "是",
+            "否",
+            "暂不确定，想要了解更多内容"
+          ]
+        },
+        {
+          "key": "date",
+          "label": "落款日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        }
+      ],
+      "party_scope": {
+        "plaintiff_type": "organization",
+        "defendant_type": "organization",
+        "third_party_type": "natural",
+        "third_party_count": 1
+      }
+    },
+    {
+      "id": "private-lending-organization-third-organization-2025",
+      "name": "民间借贷起诉状（2025要素式·组织双方·组织第三人）",
+      "version": "2025-07-14/verilex-1",
+      "source_url": "https://www.ftcourt.gov.cn/ssfw/sszn/content/post_1577086.html",
+      "retrieved_at": "2026-09-09",
+      "rights": "官方司法文书示范文本正文；不含出版社说明、案例实例或第三方模板代码",
+      "layout": "2025官方空白表格独立适配；保留栏目、表格网格及边框，填充区扩容；组织双方·组织第三人单原告单被告、单第三人，非原件像素复刻",
+      "party_types": [
+        "organization"
+      ],
+      "third_parties": true,
+      "sha256": "00c0771245c7e06431eaa338dda9c275edb6dfda268ba309efa7403398008354",
+      "fields": [
+        {
+          "key": "plaintiff_name",
+          "label": "原告名称",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_address",
+          "label": "原告住所地（主要办事机构所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_registration",
+          "label": "原告注册地 / 登记地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_representative",
+          "label": "原告法定代表人 / 负责人",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_credit_code",
+          "label": "原告统一社会信用代码",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_organization_type",
+          "label": "原告类型",
+          "hint": "按实际填写：有限责任公司、股份有限公司（是否上市）、其他企业法人、事业单位、社会团体、基金会、社会服务机构、机关法人、农村集体经济组织法人、城镇农村的合作经济组织法人、基层群众性自治组织法人、个人独资企业、合伙企业、不具有法人资格的专业服务机构等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_job",
+          "label": "原告职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_phone",
+          "label": "原告联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "plaintiff_ownership",
+          "label": "原告所有制性质",
+          "hint": "国有（注明控股或参股）、民营；其他请如实说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_name",
+          "label": "被告名称",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_address",
+          "label": "被告住所地（主要办事机构所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_registration",
+          "label": "被告注册地 / 登记地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_representative",
+          "label": "被告法定代表人 / 负责人",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_organization_type",
+          "label": "被告类型",
+          "hint": "按实际填写：有限责任公司、股份有限公司（是否上市）、其他企业法人、事业单位、社会团体、基金会、社会服务机构、机关法人、农村集体经济组织法人、城镇农村的合作经济组织法人、基层群众性自治组织法人、个人独资企业、合伙企业、不具有法人资格的专业服务机构等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_job",
+          "label": "被告职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_phone",
+          "label": "被告联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "defendant_ownership",
+          "label": "被告所有制性质",
+          "hint": "国有（注明控股或参股）、民营；其他请如实说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_name",
+          "label": "第三人名称",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_address",
+          "label": "第三人住所地（主要办事机构所在地）",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_registration",
+          "label": "第三人注册地 / 登记地",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_representative",
+          "label": "第三人法定代表人 / 负责人",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_organization_type",
+          "label": "第三人类型",
+          "hint": "按实际填写：有限责任公司、股份有限公司（是否上市）、其他企业法人、事业单位、社会团体、基金会、社会服务机构、机关法人、农村集体经济组织法人、城镇农村的合作经济组织法人、基层群众性自治组织法人、个人独资企业、合伙企业、不具有法人资格的专业服务机构等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_job",
+          "label": "第三人职务",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_phone",
+          "label": "第三人联系电话",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "third_party_ownership",
+          "label": "第三人所有制性质",
+          "hint": "国有（注明控股或参股）、民营；其他请如实说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "agent",
+          "label": "委托诉讼代理人",
+          "hint": "未委托填“无”；有代理人时填写姓名、单位、职务、电话及一般/特别授权权限",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "claims",
+          "label": "诉讼请求完整表述",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "principal",
+          "label": "本金请求",
+          "hint": "截至日期、尚欠本金金额及币种",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "interest",
+          "label": "利息请求",
+          "hint": "截至日期、尚欠利息金额、计算方式",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "acceleration",
+          "label": "提前还款或解除合同",
+          "hint": "是/否；如是，明确提前还款或解除合同及内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "security_claim",
+          "label": "担保权利请求",
+          "hint": "是/否；如是，填写具体内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "recovery_cost",
+          "label": "实现债权的费用",
+          "hint": "是/否；如是，填写费用明细",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "litigation_cost",
+          "label": "诉讼费用请求",
+          "hint": "明确是或否",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_claims",
+          "label": "其他请求",
+          "hint": "无其他请求填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "total",
+          "label": "标的总额",
+          "hint": "金额及币种",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "jurisdiction",
+          "label": "仲裁或法院管辖约定",
+          "hint": "有/无；如有，填写合同条款及内容",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "preservation",
+          "label": "诉前保全情况",
+          "hint": "是/否；如是，填写法院、时间、案号；诉讼保全须另交申请材料",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "interest_until_paid",
+          "label": "利息是否请求至实际清偿日",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "key": "reasons",
+          "label": "事实与理由完整表述",
+          "hint": "",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "contract",
+          "label": "合同签订情况",
+          "hint": "名称、编号、签订时间、地点等",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "signatories",
+          "label": "签订主体",
+          "hint": "出借人、借款人",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_amount",
+          "label": "借款金额与提供方式",
+          "hint": "约定金额、实际提供金额；现金/转账/其他及说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_term",
+          "label": "借款期限",
+          "hint": "是否到期；约定起止日期",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "loan_rate",
+          "label": "借款利率",
+          "hint": "利率、年/季/月及合同条款；无约定如实写明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "delivery",
+          "label": "借款提供时间",
+          "hint": "逐笔日期和金额",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "repayment_method",
+          "label": "还款方式",
+          "hint": "一次还本付息/按月、季或年计息到期还本/其他及说明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "repayment",
+          "label": "还款情况",
+          "hint": "已还本金、已还利息、还息截至日期",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "overdue",
+          "label": "逾期还款",
+          "hint": "是/否；如是，填写逾期起始时间及期间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "collateral_contract",
+          "label": "抵押或质押合同",
+          "hint": "是/否；如是，填写签订时间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "collateral",
+          "label": "担保人和担保物",
+          "hint": "无则填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "maximum_security",
+          "label": "最高额担保",
+          "hint": "是/否；如是，填写债权确定时间、担保额度",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "registration",
+          "label": "抵押或质押登记",
+          "hint": "是/否；正式登记/预告登记及情况",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "guarantee",
+          "label": "保证合同",
+          "hint": "是/否；签订时间、保证人、主要内容、一般保证/连带责任保证",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_security",
+          "label": "其他担保方式",
+          "hint": "是/否；形式、签订时间",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "other_facts",
+          "label": "其他需要说明的内容",
+          "hint": "无则填“无”",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "basis",
+          "label": "请求依据",
+          "hint": "合同约定、法律规定；编号法条须先在本案讨论核验",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "evidence",
+          "label": "证据清单",
+          "hint": "借款合同、借据、交付和还款凭证、担保资料等；按实际材料列明",
+          "required": true,
+          "kind": "text"
+        },
+        {
+          "key": "mediation_understood",
+          "label": "是否了解调解的作用",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_a",
+          "label": "是否了解先行调解程序与排期",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_b",
+          "label": "是否了解调解诉讼费用",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_c",
+          "label": "是否了解更换调解组织和调解员",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_d",
+          "label": "是否了解调解保密性",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_e",
+          "label": "是否了解调解协议法律效力",
+          "hint": "",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "了解",
+            "不了解"
+          ]
+        },
+        {
+          "key": "mediation_choice",
+          "label": "是否考虑先行调解",
+          "hint": "由当事人选择；模型不得代选",
+          "required": true,
+          "kind": "choice",
+          "choices": [
+            "是",
+            "否",
+            "暂不确定，想要了解更多内容"
+          ]
+        },
+        {
+          "key": "date",
+          "label": "落款日期",
+          "hint": "",
+          "required": true,
+          "kind": "date"
+        }
+      ],
+      "party_scope": {
+        "plaintiff_type": "organization",
+        "defendant_type": "organization",
+        "third_party_type": "organization",
+        "third_party_count": 1
+      }
+    }
+  ]
+}

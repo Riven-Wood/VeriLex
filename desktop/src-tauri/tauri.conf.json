@@ -1,0 +1,63 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "VeriLex",
+  "mainBinaryName": "VeriLex",
+  "version": "1.0.0",
+  "identifier": "org.verilex.desktop",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build && npm run build:sidecar"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [],
+    "security": {
+      "csp": "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; img-src 'self' asset: data: blob:; style-src 'self' blob:; connect-src 'self' blob: http://127.0.0.1:* ws://127.0.0.1:* http://localhost:1420 ws://localhost:1420"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "createUpdaterArtifacts": true,
+    "targets": "all",
+    "publisher": "VeriLex contributors",
+    "resources": {
+      "sidecar": "sidecar",
+      "../../LICENSE": "licenses/VERILEX_LICENSE.txt",
+      "../../THIRD_PARTY_NOTICES.md": "licenses/THIRD_PARTY_NOTICES.md",
+      "../../third_party/licenses/word-editor": "licenses/word-editor",
+      "../../third_party/licenses/contract-preview": "licenses/contract-preview",
+      "../../third_party/licenses/case-calendar": "licenses/case-calendar",
+      "../../third_party/licenses/litigation-editor": "licenses/litigation-editor",
+      "../../third_party/licenses/terminal": "licenses/terminal",
+      "../../third_party/licenses/commands-shortcuts": "licenses/commands-shortcuts"
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "12.0"
+    },
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      },
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/Riven-Wood/VeriLex/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVENjhBRDAwQzdENjJFODMKUldTREx0YkhBSzFvN1NQZVRnNXRXL0djM1Jubm1yTDlvQmV3SnNWZGJnK2ZLNExwTEdpMDMvbDUK"
+    }
+  }
+}

@@ -1,0 +1,11 @@
+pypdfium2 5.11.0 and its fixed PDFium binary are redistributed only inside the
+isolated document-rasterizer. The fixed wheel SHA-256 is recorded in
+third_party/documents/sources.lock.json.
+
+pypdfium2 is licensed under Apache-2.0 or BSD-3-Clause. PDFium and every bundled
+binary dependency retain their own license. The component build copies the
+wheel's complete dist-info/licenses directory, including BUILD_LICENSES, into
+the generated bundle. This summary does not replace those license texts.
+
+Upstream project: https://github.com/pypdfium2-team/pypdfium2
+Binary source: https://github.com/pypdfium2-team/pypdfium2/releases

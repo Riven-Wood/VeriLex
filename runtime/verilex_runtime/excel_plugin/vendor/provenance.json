@@ -1,0 +1,32 @@
+{
+  "repository": "https://github.com/haris-musa/excel-mcp-server",
+  "commit": "3ced000247769d3d9ae8d17e99d45655766b488a",
+  "license": "MIT",
+  "files": [
+    {
+      "path": "errors.py",
+      "upstream_sha256": "f041c86b654a171e56ff63b3a8ecd32e8ca8bdd70776bbfe7e76bf8ecb4b45f7"
+    },
+    {
+      "path": "refs.py",
+      "upstream_sha256": "ea57b5ac7ecfaa9443f411de509ad04ed65587b04904e06052a46286f73a22ce"
+    },
+    {
+      "path": "values.py",
+      "upstream_sha256": "b5b1859c6685eadc09a1ec3f37338f7777d669189c8fae9c5aa8c6e05af6f5db"
+    },
+    {
+      "path": "formulas.py",
+      "upstream_sha256": "33016424ecb5f29e8e9128d030d2a13f7f4c2852a26efc59ed71916234084f3c"
+    },
+    {
+      "path": "operations/cells.py",
+      "upstream_sha256": "854c01ee42c8523f347d708f75fa8392eff98828b5c92bd866484f4210b86573"
+    }
+  ],
+  "adaptations": [
+    "Namespace integration with VeriLex.",
+    "Explicit cell types preserve literal strings; only explicit formulas and dates are interpreted.",
+    "Formula reference functions validate local targets; network/program effects remain restricted."
+  ]
+}

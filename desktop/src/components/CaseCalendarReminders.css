@@ -1,0 +1,45 @@
+.case-reminder-toast {
+  position: fixed; right: 24px; bottom: 20px; z-index: 50;
+  display: flex; align-items: center; gap: 10px;
+  max-width: calc(100vw - 48px); padding: 10px 14px;
+  background: var(--surface-primary); color: var(--text-primary);
+  border: 1px solid var(--border-subtle); border-radius: 12px;
+  box-shadow: var(--vl-shadow-sm); font-size: 13px;
+}
+.case-reminder-toast > svg { flex-shrink: 0; color: var(--text-secondary); }
+.case-reminder-toast button {
+  border: 0; border-radius: 6px; padding: 6px; background: transparent;
+  color: var(--accent-strong); font: inherit; cursor: pointer; white-space: nowrap;
+}
+.case-reminder-toast button:hover { background: var(--accent-soft); }
+.case-reminder-dialog { width: min(520px, calc(100vw - 32px)); }
+.case-reminder-dialog .detail-dialog-heading { padding: 18px 24px; }
+.case-reminder-dialog .detail-dialog-heading h2 { font-size: 17px; font-weight: 600; }
+.case-reminder-body { padding: 4px 24px; }
+.case-reminder-body ul { list-style: none; padding: 0; margin: 0; }
+.case-reminder-body li { padding: 20px 0; }
+.case-reminder-body li + li { border-top: 1px solid var(--border-subtle); }
+.case-reminder-body li > div:first-child {
+  min-width: 0; display: flex; flex-direction: column; gap: 6px; overflow-wrap: anywhere;
+}
+.case-reminder-body strong { font-size: 15px; line-height: 1.6; font-weight: 600; }
+.case-reminder-body li span { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+.case-reminder-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.case-reminder-actions button, .case-reminder-body [role="alert"] button {
+  border: 1px solid var(--border-subtle); border-radius: 8px; padding: 7px 12px;
+  background: var(--surface-primary); color: var(--text-secondary); font: inherit; font-size: 13px;
+  line-height: 1.5; cursor: pointer;
+}
+.case-reminder-actions button:hover { background: var(--surface-secondary); }
+.case-reminder-actions .case-reminder-open { color: var(--accent-strong); background: var(--accent-soft); border-color: transparent; }
+.case-reminder-actions .case-reminder-open:hover { background: var(--vl-selected-strong); }
+.case-reminder-dialog button:disabled { opacity: .5; cursor: default; }
+.case-reminder-note { margin: 16px 0; font-size: 13px; color: var(--text-secondary); line-height: 1.7; }
+.case-reminder-empty { margin: 0; padding: 32px 0; text-align: center; font-size: 14px; color: var(--text-secondary); }
+.case-reminder-footer { padding: 13px 24px; border-top: 1px solid var(--border-subtle); font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+@media (max-width: 480px) {
+  .case-reminder-dialog .detail-dialog-heading { padding: 16px 18px; }
+  .case-reminder-body { padding: 0 18px; }
+  .case-reminder-footer { padding: 12px 18px; }
+  .case-reminder-toast { right: 16px; bottom: 16px; max-width: calc(100vw - 32px); gap: 6px; }
+}

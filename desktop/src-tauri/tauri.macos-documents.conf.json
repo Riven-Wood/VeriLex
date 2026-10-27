@@ -1,0 +1,13 @@
+{
+  "app": {
+    "security": {
+      "csp": "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; img-src 'self' asset: data: blob:; style-src 'self' blob:; connect-src 'self' blob: http://127.0.0.1:* ws://127.0.0.1:* http://localhost:1420 ws://localhost:1420"
+    }
+  },
+  "bundle": {
+    "createUpdaterArtifacts": false,
+    "resources": {
+      "generated/documents-macos-arm64": "sidecar/documents"
+    }
+  }
+}

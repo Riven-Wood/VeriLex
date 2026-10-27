@@ -1,0 +1,19 @@
+.pkulaw-services { list-style: none; padding: 0; margin: 16px 0; border: 1px solid var(--border-subtle); border-radius: 8px; }
+.pkulaw-services > li { padding: 10px 12px; border-bottom: 1px solid var(--border-subtle); font-size: 13px; }
+.pkulaw-services > li:last-child { border-bottom: 0; }
+.pkulaw-service-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; }
+.pkulaw-service-row > strong { font-weight: 500; }
+.pkulaw-service-row > span { flex: 1; text-align: right; color: var(--text-secondary); overflow-wrap: anywhere; }
+.pkulaw-service-row > button { font-size: 12px; padding: 3px 8px; }
+.pkulaw-services details { margin-top: 8px; }
+.pkulaw-services summary { cursor: pointer; color: var(--text-secondary); }
+.pkulaw-tool { display: flex; align-items: flex-start; gap: 8px; padding-top: 10px; }
+.pkulaw-tool span { min-width: 0; overflow-wrap: anywhere; }
+.pkulaw-tool small { display: block; white-space: pre-wrap; color: var(--text-secondary); line-height: 1.6; }
+.pkulaw-setup .mcp-editor-actions { position: sticky; bottom: 0; padding: 12px 0; background: var(--surface-primary); }
+
+.mcp-guide-steps { list-style: none; display: flex; gap: 12px 20px; flex-wrap: wrap; padding: 0; margin: 20px 0; color: var(--text-secondary); font-size: 13px; }
+.mcp-guide-steps li { display: flex; align-items: center; gap: 8px; }
+.mcp-guide-steps li > span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--surface-secondary); color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.pkulaw-setup .mcp-editor-actions { flex-wrap: wrap; gap: 8px; }
+.pkulaw-setup button:focus-visible, .pkulaw-setup input:focus-visible, .pkulaw-setup summary:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 3px; }

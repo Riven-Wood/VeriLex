@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "license_allowlist": [
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "MIT",
+    "MPL-2.0",
+    "LGPL-3.0-or-later",
+    "OFL-1.1",
+    "Python-2.0"
+  ],
+  "forbidden_license_markers": [
+    "AGPL",
+    "GPL-only",
+    "PolyForm",
+    "proprietary",
+    "source-available"
+  ],
+  "gate_files": {
+    "THIRD_PARTY_NOTICES.md": "9086dbd64caf63f58b54237991a27072d54084ae67796d0befbe8858312d95f2",
+    "docs/qa/office-docx-engine-gate.schema.json": "e5686caaa6b5f39346e50bd44bf04079634f5f5af5f639bf88cfe3ed30004a79",
+    "qa/documents/fonts/LICENSES/OFL-1.1.txt": "ba055ffb6aed1fd0849e50686d09e0ea5a145b31a4b1a86d89f44ca02d136d5a",
+    "qa/documents/fonts/fonts.lock.json": "b0d4f3e0337cc7be759d6a26b852f555e98adce67f1bc8322501c72d58946edf",
+    "qa/documents/engine_probes/adeu_probe.py": "1b6e17b6764183e2590327f416f1aa5c6bccab2bfa9a00b71ea06ba07adebc8f",
+    "qa/documents/engine_probes/adeu_stack_probe.py": "13de9b85aa0c8a8b09370ce132672cab450d50f3f78db9f9ea07d06ca9723d31",
+    "qa/documents/engine_probes/docxodus_probe.py": "e534f751ebe9fd12955b5a99d0d5b10ec7971be74fdaedef24c2981e661fc45b",
+    "scripts/documents/generate_fixture_corpus.py": "2372157a09b0bf359c98828d53a747c7949af6fcac0fd2a8c2379c43cfb0b3f4",
+    "scripts/documents/run_engine_gate.py": "8ee0c47a21e1cc2e4ebea56b357ccdbbaee28060ec41464ee2db18fd4f2560a4",
+    "scripts/documents/verify_sources.py": "2020509dd29b5bc909e392887235800b8e00d00d7a0d4161451efc8d54a8902f",
+    "third_party/documents/engine-selection.schema.json": "1b608274ecf6d053c198a15d09525a4133f0378e9c7ba9633da0aa4aed694b45",
+    "third_party/licenses/documents/Adeu-LICENSE.txt": "fd9d2471ced7619b0b6c67e437e7ab037c5ea66f9d728801c9a406f3fa04f9dd",
+    "third_party/licenses/documents/Docxodus-LICENSE.txt": "b812b060623d0bc9c9122320f5a8b12e68b5c9d4324c6286d1951090c6668150",
+    "desktop/scripts/build-document-bundle.mjs": "d9a10421447da2df427178bceaf9431f3c15a6b3f40aa3bcc071aac327c4af29",
+    "desktop/patches/docxodus-keyboard.patch": "d8883467f21480c5930c66fa169f100c8afbc015dca1a2fa4605458e3a9fae17"
+  },
+  "sources": [
+    {
+      "id": "docxodus",
+      "name": "Docxodus",
+      "repository_url": "https://github.com/JSv4/Docxodus.git",
+      "commit": "b1457bbd78b14177e3e71c739911f1772a6b1b22",
+      "tree": "b04e0e4b471425aa8895c297e5cf9448012571e3",
+      "license": "MIT",
+      "upstream_license_sha256": "a1998f7eb856a98fa66fac2c64f0cf6be9aed7c999916d5d426272507a11dcae",
+      "distributed_license_path": "third_party/licenses/documents/Docxodus-LICENSE.txt",
+      "distributed_license_sha256": "b812b060623d0bc9c9122320f5a8b12e68b5c9d4324c6286d1951090c6668150",
+      "notice_heading": "Docxodus / Open-Xml-PowerTools",
+      "role": "primary_ooxml_engine_candidate",
+      "reviewed_files": {
+        "Docxodus/Docxodus.csproj": "d14aa388bf622c67b08dd070b030151a946cde4dc3678788bd6767be63c1aa18",
+        "python/pyproject.toml": "7a6cce35214c09cb178df952b5c6464b505d5d905c756ad6f7fc63e929fd1d40"
+      },
+      "upstream_lineage": [
+        {
+          "project": "Open-Xml-PowerTools",
+          "copyright": "Microsoft Corporation",
+          "license": "MIT"
+        }
+      ]
+    },
+    {
+      "id": "adeu",
+      "name": "Adeu",
+      "repository_url": "https://github.com/dealfluence/adeu.git",
+      "commit": "8a8b103849a3173c07638040c33282731d1af92e",
+      "tree": "3f7959813ece245e8ca4ae86e4bf96353e45b431",
+      "license": "MIT",
+      "upstream_license_sha256": "fd9d2471ced7619b0b6c67e437e7ab037c5ea66f9d728801c9a406f3fa04f9dd",
+      "distributed_license_path": "third_party/licenses/documents/Adeu-LICENSE.txt",
+      "distributed_license_sha256": "fd9d2471ced7619b0b6c67e437e7ab037c5ea66f9d728801c9a406f3fa04f9dd",
+      "notice_heading": "Adeu",
+      "role": "required_auxiliary_and_fallback_candidate",
+      "reviewed_files": {
+        "python/pyproject.toml": "29396392fec97e5bbc53a083b7bdd5ec5bab7e1cdaa4dd412e4f1669a10b3d07",
+        "python/uv.lock": "11cf5a90872e6e18f0845e450ec2ca5f4d3fd111dd2b80881cbaf5c9cf9cd2ee",
+        "python/src/adeu/diff.py": "bcdcc7e3e49f56e0a2c42357aa9d6a1847184976fddef74b73f3b06be090b180",
+        "python/src/adeu/ingest.py": "ecf216f103f5362426849459410b080ddd2d5da8798d043c18a57e31206971e7",
+        "python/src/adeu/models.py": "508162b6539e955cc5a27c32c7bbaf962e04d065957d139dac292200e6a8db5c",
+        "python/src/adeu/redline/engine.py": "37a8d10de85e6b9785bb7480def8b8f48bfc5247d8699f0a98df498d33a0d444",
+        "python/src/adeu/sanitize/core.py": "89863e5b24e2b59f026b7ef2da6d6e87ff43fc1c9fa69c89289fd39507274181",
+        "python/src/adeu/sanitize/report.py": "28ed7a78e3146b8b4654b5c6a1bf2b5e2b7b917bdf625c7951ec0869647b4c89",
+        "python/src/adeu/sanitize/transforms.py": "3a0bffeecd7e6b469940a634b3d3b3227dde12cb353d625fcc0dd3fb3d50ddca"
+      },
+      "upstream_lineage": []
+    },
+    {
+      "id": "libreoffice-macos-arm64",
+      "name": "LibreOffice for macOS arm64",
+      "repository_url": "https://download.documentfoundation.org/libreoffice/stable/26.2.4/mac/aarch64/LibreOffice_26.2.4_MacOS_aarch64.dmg",
+      "version": "26.2.4",
+      "artifact_sha256": "64e0ad05564554eeee639d49b08b20908a38d4722ec95f1620d05c99bcbe9fb1",
+      "license": "MPL-2.0",
+      "additional_licenses": [
+        "LGPL-3.0-or-later"
+      ],
+      "distributed_license_path": "third_party/licenses/documents/LibreOffice-REDISTRIBUTION.txt",
+      "distributed_license_sha256": "4a87a08a6f3e9653bb924e163af574a1f3b9c3cc39a7dbd724384e08200eb888",
+      "notice_heading": "LibreOffice",
+      "role": "unmodified_docx_to_pdf_process",
+      "reviewed_files": {
+        "LibreOffice_26.2.4_MacOS_aarch64.dmg": "64e0ad05564554eeee639d49b08b20908a38d4722ec95f1620d05c99bcbe9fb1"
+      },
+      "upstream_lineage": []
+    },
+    {
+      "id": "pypdfium2-macos-arm64",
+      "name": "pypdfium2 with PDFium for macOS arm64",
+      "repository_url": "https://github.com/pypdfium2-team/pypdfium2",
+      "version": "5.11.0",
+      "artifact_sha256": "73fe55dd258f02332bc0a34128ddc2994fd610e664d1f2f7d78dd9e2570f15ee",
+      "license": "Apache-2.0",
+      "additional_licenses": [
+        "BSD-3-Clause",
+        "CC-BY-4.0"
+      ],
+      "distributed_license_path": "third_party/licenses/documents/pypdfium2-REDISTRIBUTION.txt",
+      "distributed_license_sha256": "64f5dbedbd872f01ee73132bdd1b2de2ecdf96edc6fbe3da7316510e376ed34b",
+      "notice_heading": "pypdfium2 / PDFium",
+      "role": "isolated_pdf_rasterizer",
+      "reviewed_files": {
+        "pypdfium2-5.11.0-py3-none-macosx_12_0_arm64.whl": "73fe55dd258f02332bc0a34128ddc2994fd610e664d1f2f7d78dd9e2570f15ee"
+      },
+      "upstream_lineage": []
+    },
+    {
+      "id": "document-fonts",
+      "name": "Fixed Word QA fonts",
+      "repository_url": "https://github.com/google/fonts.git",
+      "commit": "ade3d1533e06b2b1462ffcde8e08b129627ca360",
+      "tree": "4c76fa531b58ca8f7b328f6eb21283cea8c25b9c",
+      "license": "OFL-1.1",
+      "distributed_license_path": "qa/documents/fonts/LICENSES/OFL-1.1.txt",
+      "distributed_license_sha256": "ba055ffb6aed1fd0849e50686d09e0ea5a145b31a4b1a86d89f44ca02d136d5a",
+      "notice_heading": "Word QA fonts",
+      "role": "fixed_rendering_fonts",
+      "reviewed_files": {
+        "qa/documents/fonts/fonts.lock.json": "b0d4f3e0337cc7be759d6a26b852f555e98adce67f1bc8322501c72d58946edf"
+      },
+      "upstream_lineage": []
+    }
+  ]
+}

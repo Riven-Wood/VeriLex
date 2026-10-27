@@ -1,0 +1,27 @@
+.command-palette{width:min(560px,calc(100vw - 40px))}
+.command-search{padding:16px 20px}
+.command-search input{width:100%;box-sizing:border-box;padding:12px;border:1px solid var(--border-subtle);border-radius:8px;background:var(--surface-primary);color:var(--text-primary);font:inherit}
+.command-results{max-height: min(410px,55vh);overflow:auto;padding:0 10px}
+.command-result{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 14px;border-radius:8px;cursor:pointer}
+.command-result[aria-selected=true]{background:var(--accent-soft);outline:1px solid var(--border-subtle);outline-offset:-1px}
+.command-result small{display:block;color:var(--text-secondary);font-size:11px;margin-top:3px}
+.command-result kbd{white-space:nowrap;color:var(--text-secondary);font-size:12px}
+.command-hint,.command-empty{padding:12px 24px;color:var(--text-secondary);font-size:12px}
+.shortcut-disclosure>summary{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px;list-style:none;cursor:pointer;font-size:calc(13px * var(--vl-font-scale,1));font-weight:550;line-height:1.5;color:var(--vl-ink)}
+.shortcut-disclosure>summary::-webkit-details-marker{display:none}
+.shortcut-disclosure>summary::after{content:"";width:7px;height:7px;flex-shrink:0;margin-right:3px;border-right:1.5px solid var(--text-secondary);border-bottom:1.5px solid var(--text-secondary);transform:rotate(45deg)}
+.shortcut-disclosure[open]>summary::after{transform:rotate(225deg)}
+.shortcut-disclosure>summary:hover{background:var(--vl-sidebar)}
+.shortcut-disclosure>summary:focus-visible{outline:2px solid var(--vl-blue);outline-offset:-3px;border-radius:10px}
+.shortcut-disclosure+.preference-row{border-top:1px solid var(--vl-border)}
+.shortcut-reference{margin:0;font-size:calc(13px * var(--vl-font-scale,1));line-height:1.5}
+.shortcut-disclosure .shortcut-reference{padding:0 20px 12px}
+.shortcut-reference>p{margin:0 0 12px;max-width:52em;font-size:calc(12px * var(--vl-font-scale,1));line-height:1.7;color:var(--text-secondary)}
+.shortcut-reference ul{list-style:none;margin:0;padding:0}
+.shortcut-reference li{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:44px;padding:9px 0}
+.shortcut-reference li+li{border-top:1px solid var(--vl-border)}
+.shortcut-label{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;min-width:0;color:var(--vl-ink)}
+.shortcut-label small{font-size:calc(11px * var(--vl-font-scale,1));color:var(--text-secondary)}
+.shortcut-reference kbd{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;min-width:64px;min-height:26px;padding:2px 8px;border:1px solid var(--vl-border-strong);border-radius:5px;background:var(--vl-sidebar);box-shadow:0 1px 0 var(--vl-border);white-space:nowrap;color:var(--text-secondary);font-family:inherit;font-size:calc(12px * var(--vl-font-scale,1));line-height:1.5;letter-spacing:1px}
+@media(max-width:760px){.shortcut-disclosure>summary{padding:16px}.shortcut-disclosure .shortcut-reference{padding:0 16px 10px}.shortcut-label{display:block}.shortcut-label small{display:block;margin-top:2px}}
+.command-error{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:1000;background:var(--surface-primary);padding:14px;border:1px solid var(--border-subtle);border-radius:10px}

@@ -1,0 +1,42 @@
+.contract-editor { display:flex; flex-direction:column; gap:8px; color:var(--vl-ink); min-width:0; font-size:13px; }
+.contract-editor p { margin:0; line-height:1.65; overflow-wrap:anywhere; }
+.contract-editor-toolbar { position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; padding:8px 12px; background:#fff; border:1px solid var(--vl-border); border-radius:8px; }
+.contract-editor-toolbar>div { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
+.contract-editor-toolbar span { color:var(--vl-muted); font-size:12px; }
+.contract-editor button,.contract-document-mode button { border:1px solid var(--vl-border); border-radius:6px; background:#fff; color:var(--vl-ink); padding:7px 10px; font:inherit; cursor:pointer; }
+.contract-editor button.primary-button { background:var(--vl-blue); border-color:var(--vl-blue); color:white; }
+.contract-editor button:disabled { opacity:.5; cursor:default; }
+.contract-editor-support { border:1px solid var(--vl-border); border-radius:8px; padding:8px 12px; background:#fff; font-size:12px; }
+.contract-editor-support summary { cursor:pointer; color:var(--vl-muted); }
+.contract-editor-support p { margin-top:8px; }
+.contract-editor-error,.contract-editor-conflicts { padding:12px; background:#fff5ed; border:1px solid #efcfb3; border-radius:8px; color:#7a461e; }
+.contract-editor-error button { margin-top:8px; }
+.contract-editor-result { color:#27634d; }
+.contract-editor-paragraphs { display:flex; flex-direction:column; gap:8px; }
+.contract-editor-paragraph { background:white; border:1px solid var(--vl-border); border-radius:8px; padding:9px 12px; }
+.contract-editor-paragraph.is-changed { border-left:3px solid var(--vl-blue); }
+.contract-editor-paragraph-label { display:flex; align-items:center; gap:10px; font-size:11px; color:var(--vl-muted); margin-bottom:4px; }
+.contract-editor-paragraph-label span { background:#edf3fb; border-radius:4px; padding:2px 5px; }
+.contract-editor textarea { display:block; width:100%; box-sizing:border-box; min-height:56px; max-height:420px; border:1px solid transparent; border-radius:4px; padding:6px; resize:vertical; font:inherit; line-height:1.85; color:var(--vl-ink); background:white; }
+.contract-editor textarea:hover { border-color:var(--vl-border); }
+.contract-editor textarea:focus { outline:2px solid var(--vl-blue); outline-offset:1px; }
+.contract-editor-readonly-text { white-space:pre-wrap; }
+.contract-editor-readonly-note { font-size:11px; color:var(--vl-muted); margin-top:8px!important; }
+.contract-editor-paragraph.is-readonly { background:#f7f8fa; }
+.contract-editor-proposals { display:flex; flex-direction:column; gap:12px; padding-top:8px; }
+.contract-editor-proposals h3,.contract-editor-conflicts h3 { font-size:14px; margin:0; }
+.contract-editor-proposals header { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.contract-editor-proposals article,.contract-editor-conflicts article { background:white; border:1px solid var(--vl-border); border-radius:8px; padding:12px; display:flex; flex-direction:column; gap:10px; }
+.contract-editor-conflicts article { margin-top:12px; }
+.contract-editor-before,.contract-editor-after { padding:10px; border-radius:5px; white-space:pre-wrap; }
+.contract-editor-before { background:#f8f1ee; }
+.contract-editor-after { background:#edf6f1; }
+.contract-editor-before span,.contract-editor-after span { display:block; font-size:11px; color:var(--vl-muted); margin-bottom:4px; }
+.contract-editor-proposal-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.contract-editor-stale { color:#875b22; font-size:12px; }
+.contract-document-mode { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding-bottom:8px; }
+.contract-document-mode button[aria-pressed=true] { background:#eaf2ff; color:var(--vl-blue); border-color:#c3d7f1; }
+.contract-original-notice { font-size:12px; line-height:1.7; color:var(--vl-muted); margin:0 0 10px; }
+.contract-editor-selection { padding:10px 14px; margin:0; border-bottom:1px solid var(--vl-border); font-size:12px; color:var(--vl-muted); background:#f3f7fd; flex-shrink:0; }
+.contract-editor-selection p { margin:5px 0; overflow-wrap:anywhere; white-space:pre-wrap; max-height:92px; overflow:auto; color:var(--vl-ink); }
+.contract-editor-selection button { font:inherit; border:0; padding:0; color:var(--vl-blue); background:transparent; cursor:pointer; }

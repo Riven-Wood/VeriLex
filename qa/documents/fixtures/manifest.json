@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "fixtures": [
+    {
+      "id": "read-structure",
+      "path": "qa/documents/fixtures/read_structure.docx",
+      "sha256": "607b65eb9d3e848934e23b88aa23593010d556070c72e01183f8e50ea0447fc4",
+      "size_bytes": 2615,
+      "source": "project_authored_synthetic",
+      "license": "VeriLex project license",
+      "package_part_count": 8,
+      "page_count": 1,
+      "style_count": 2,
+      "relationship_count": 5,
+      "expected_change_regions": [
+        "body",
+        "table",
+        "header",
+        "footer",
+        "footnote"
+      ],
+      "purpose": "read_structure"
+    },
+    {
+      "id": "comments-revisions",
+      "path": "qa/documents/fixtures/comments_revisions.docx",
+      "sha256": "38548abc4037f75b2abf8d6e82fad367ba79129eeeaef019cc1b5337076c8c5e",
+      "size_bytes": 1826,
+      "source": "project_authored_synthetic",
+      "license": "VeriLex project license",
+      "package_part_count": 5,
+      "page_count": 1,
+      "style_count": 0,
+      "relationship_count": 2,
+      "expected_change_regions": [
+        "comment",
+        "delete",
+        "insert"
+      ],
+      "purpose": "comments_revisions"
+    },
+    {
+      "id": "compare-base",
+      "path": "qa/documents/fixtures/compare_base.docx",
+      "sha256": "ef6280c9b5832c043387b5b3383b2f72eeb71b494a7e5e0c614a5bd1dcbbca48",
+      "size_bytes": 1936,
+      "source": "project_authored_synthetic",
+      "license": "VeriLex project license",
+      "package_part_count": 6,
+      "page_count": 1,
+      "style_count": 2,
+      "relationship_count": 3,
+      "expected_change_regions": [],
+      "purpose": "compare_merge"
+    },
+    {
+      "id": "compare-review",
+      "path": "qa/documents/fixtures/compare_review.docx",
+      "sha256": "f8006c3cc6219ce271acd619a86d911ff8c17cfad279c1a0737e014867aefa16",
+      "size_bytes": 1936,
+      "source": "project_authored_synthetic",
+      "license": "VeriLex project license",
+      "package_part_count": 6,
+      "page_count": 1,
+      "style_count": 2,
+      "relationship_count": 3,
+      "expected_change_regions": [
+        "table",
+        "payment_term"
+      ],
+      "purpose": "compare_merge"
+    },
+    {
+      "id": "merge-third",
+      "path": "qa/documents/fixtures/merge_third.docx",
+      "sha256": "158466c4220ef4251dceca6aa32816270f89142b1b039e1fc6fc4f4c40b43f31",
+      "size_bytes": 1935,
+      "source": "project_authored_synthetic",
+      "license": "VeriLex project license",
+      "package_part_count": 6,
+      "page_count": 1,
+      "style_count": 2,
+      "relationship_count": 3,
+      "expected_change_regions": [
+        "dispute_resolution"
+      ],
+      "purpose": "compare_merge"
+    },
+    {
+      "id": "protection-signature",
+      "path": "qa/documents/fixtures/protection_signature.docx",
+      "sha256": "fcc56adf1bcdd9f338a8688deddde7893eb4b3297a06ea4be374fd0fa1fbcbee",
+      "size_bytes": 2287,
+      "source": "project_authored_synthetic",
+      "license": "VeriLex project license",
+      "package_part_count": 8,
+      "page_count": 1,
+      "style_count": 0,
+      "relationship_count": 4,
+      "expected_change_regions": [],
+      "purpose": "protection_signature"
+    },
+    {
+      "id": "hidden-channels",
+      "path": "qa/documents/fixtures/hidden_channels.docx",
+      "sha256": "a5ba0ebede601a4b1c4e05526880a47d33909ff770dbe9031e77facf0680bbc9",
+      "size_bytes": 2202,
+      "source": "project_authored_synthetic",
+      "license": "VeriLex project license",
+      "package_part_count": 7,
+      "page_count": 1,
+      "style_count": 0,
+      "relationship_count": 4,
+      "expected_change_regions": [
+        "metadata",
+        "hidden_text",
+        "custom_xml"
+      ],
+      "purpose": "hidden_channels"
+    },
+    {
+      "id": "malformed-package",
+      "path": "qa/documents/fixtures/malformed_package.docx",
+      "sha256": "1083af991ccdc58ba569313c5ddf68d10fb89afb3dad5d360820fa3df16d16c2",
+      "size_bytes": 14,
+      "source": "project_authored_synthetic",
+      "license": "VeriLex project license",
+      "package_part_count": 0,
+      "page_count": 0,
+      "style_count": 0,
+      "relationship_count": 0,
+      "expected_change_regions": [],
+      "purpose": "security_attack"
+    }
+  ]
+}

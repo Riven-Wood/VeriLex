@@ -1,0 +1,23 @@
+.litigation-skill-trigger { display:inline-flex; align-items:center; gap:6px; flex:none; height:36px; padding:0 8px; border:0; border-radius:10px; background:transparent; color:var(--text-secondary); font:inherit; font-size:calc(12px * var(--vl-font-scale, 1)); white-space:nowrap; cursor:pointer; }
+.litigation-skill-trigger:hover, .litigation-skill-trigger[aria-expanded=true] { background:var(--vl-selected); color:var(--vl-blue); }
+.litigation-skill-dialog { width:min(720px, calc(100vw - 40px)); }
+.litigation-skill-search { display:flex; align-items:center; gap:8px; margin:16px 24px; padding:0 10px; border:1px solid var(--vl-border); border-radius:8px; color:var(--text-secondary); }
+.litigation-skill-search:focus-within { border-color:var(--vl-blue); }
+.litigation-skill-search input { flex:1; min-width:0; height:38px; border:0; outline:none; color:var(--vl-ink); background:transparent; font:inherit; font-size:13px; }
+.litigation-skill-content { display:grid; grid-template-columns:minmax(0, .9fr) minmax(0, 1.1fr); height:min(380px, 55dvh); min-height:180px; border-top:1px solid var(--vl-border); }
+.litigation-skill-list { overflow:auto; min-width:0; padding:8px; }
+.litigation-skill-list button { display:block; width:100%; padding:11px 12px; border:0; border-radius:7px; background:transparent; color:var(--vl-ink); font:inherit; font-size:13px; text-align:left; line-height:1.5; overflow-wrap:anywhere; }
+.litigation-skill-list button:hover { background:var(--vl-sidebar); }
+.litigation-skill-list button[aria-pressed=true] { background:var(--vl-selected); color:var(--vl-blue); }
+.litigation-skill-detail { display:flex; flex-direction:column; gap:18px; min-width:0; min-height:0; padding:20px; border-left:1px solid var(--vl-border); }
+.litigation-skill-description { flex:1; min-height:0; overflow:auto; overflow-wrap:anywhere; }
+.litigation-skill-description h3 { margin:0 0 12px; font-size:15px; line-height:1.5; }
+.litigation-skill-description p { margin:0; color:var(--text-secondary); font-size:13px; line-height:1.8; white-space:pre-wrap; }
+.litigation-skill-detail .litigation-skill-use { align-self:flex-start; flex:none; padding:9px 14px; border:0; border-radius:7px; background:var(--vl-blue); color:white; font:inherit; font-size:13px; cursor:pointer; }
+.litigation-skill-note { margin:0; padding:16px 24px 28px; color:var(--text-secondary); font-size:13px; line-height:1.7; }
+.litigation-skill-note button { border:1px solid var(--vl-border); border-radius:6px; padding:6px 12px; background:var(--vl-canvas); color:var(--vl-blue); }
+@media(max-width:600px) {
+  .litigation-skill-search { margin:12px 16px; }
+  .litigation-skill-content { grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(100px, .8fr) minmax(160px, 1fr); height:min(480px, 65dvh); }
+  .litigation-skill-detail { border-left:0; border-top:1px solid var(--vl-border); padding:16px; gap:12px; }
+}

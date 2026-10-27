@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "candidate_commit": "23d0ef2965305cd99c2692e16a658f96163ea6e0",
+  "candidate_tree": "1f0c1b26ab9a1dd337e300d88233380b69192b9a",
+  "fixture_manifest_sha256": "766e51632e561c81c3bd58ceefc976aeabe395ae1a4222ef894b5c065fcaeafd",
+  "source_lock_sha256": "4d34e2460bd8bb1720be2d81fc166a706ad5aebeda4bb856d253ed4a466ded2c",
+  "environment": {
+    "os": "darwin",
+    "arch": "arm64",
+    "offline": true
+  },
+  "attempts": [
+    {
+      "engine": "docxodus",
+      "commit": "b1457bbd78b14177e3e71c739911f1772a6b1b22",
+      "status": "passed",
+      "capabilities": [
+        "stable_anchors",
+        "atomic_batch",
+        "comments",
+        "tracked_changes",
+        "structured_compare",
+        "ordered_merge",
+        "safe_preview"
+      ],
+      "error_codes": [],
+      "duration_ms": 56962
+    },
+    {
+      "engine": "adeu_stack",
+      "commit": "8a8b103849a3173c07638040c33282731d1af92e",
+      "status": "passed",
+      "capabilities": [
+        "stable_anchors",
+        "atomic_batch",
+        "comments",
+        "tracked_changes",
+        "structured_compare",
+        "ordered_merge",
+        "safe_preview"
+      ],
+      "error_codes": [],
+      "duration_ms": 453
+    }
+  ],
+  "adeu_auxiliary": {
+    "engine": "adeu_auxiliary",
+    "commit": "8a8b103849a3173c07638040c33282731d1af92e",
+    "status": "passed",
+    "capabilities": [
+      "safe_revision",
+      "author_company_cleanup",
+      "rsid_cleanup",
+      "custom_xml_cleanup",
+      "transactional_report"
+    ],
+    "error_codes": [],
+    "duration_ms": 10837
+  },
+  "final_status": "passed"
+}

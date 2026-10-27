@@ -1,0 +1,237 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:mo="http://schemas.microsoft.com/office/mac/office/2008/main" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:mv="urn:schemas-microsoft-com:mac:vml" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 wp14">
+  <w:body>
+    <w:p>
+      <w:pPr>
+        <w:keepNext/>
+        <w:widowControl/>
+        <w:spacing w:line="360" w:lineRule="auto" w:after="120"/>
+        <w:jc w:val="center"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="宋体" w:hAnsi="宋体" w:eastAsia="宋体"/>
+          <w:b/>
+          <w:sz w:val="40"/>
+        </w:rPr>
+        <w:t>申请书</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:widowControl/>
+        <w:spacing w:line="360" w:lineRule="auto" w:after="120"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="宋体" w:hAnsi="宋体" w:eastAsia="宋体"/>
+          <w:b w:val="0"/>
+          <w:sz w:val="28"/>
+        </w:rPr>
+        <w:t>申请人：{{plaintiff_name}}，{{applicant}}。</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:widowControl/>
+        <w:spacing w:line="360" w:lineRule="auto" w:after="120"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="宋体" w:hAnsi="宋体" w:eastAsia="宋体"/>
+          <w:b w:val="0"/>
+          <w:sz w:val="28"/>
+        </w:rPr>
+        <w:t>法定代理人/指定代理人：{{legal_agent}}。</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:widowControl/>
+        <w:spacing w:line="360" w:lineRule="auto" w:after="120"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="宋体" w:hAnsi="宋体" w:eastAsia="宋体"/>
+          <w:b w:val="0"/>
+          <w:sz w:val="28"/>
+        </w:rPr>
+        <w:t>委托诉讼代理人：{{agent}}。</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:widowControl/>
+        <w:spacing w:line="360" w:lineRule="auto" w:after="120"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="宋体" w:hAnsi="宋体" w:eastAsia="宋体"/>
+          <w:b w:val="0"/>
+          <w:sz w:val="28"/>
+        </w:rPr>
+        <w:t>被申请人：{{defendant}}。</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:widowControl/>
+        <w:spacing w:line="360" w:lineRule="auto" w:after="120"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="宋体" w:hAnsi="宋体" w:eastAsia="宋体"/>
+          <w:b w:val="0"/>
+          <w:sz w:val="28"/>
+        </w:rPr>
+        <w:t>请求事项：</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:widowControl/>
+        <w:spacing w:line="360" w:lineRule="auto" w:after="120"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="宋体" w:hAnsi="宋体" w:eastAsia="宋体"/>
+          <w:b w:val="0"/>
+          <w:sz w:val="28"/>
+        </w:rPr>
+        <w:t>{{measure}}被申请人的{{property}}，期限为{{term}}。</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:widowControl/>
+        <w:spacing w:line="360" w:lineRule="auto" w:after="120"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="宋体" w:hAnsi="宋体" w:eastAsia="宋体"/>
+          <w:b w:val="0"/>
+          <w:sz w:val="28"/>
+        </w:rPr>
+        <w:t>事实和理由：</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:widowControl/>
+        <w:spacing w:line="360" w:lineRule="auto" w:after="120"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="宋体" w:hAnsi="宋体" w:eastAsia="宋体"/>
+          <w:b w:val="0"/>
+          <w:sz w:val="28"/>
+        </w:rPr>
+        <w:t>{{case_number}}一案，{{reasons}}</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:widowControl/>
+        <w:spacing w:line="360" w:lineRule="auto" w:after="120"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="宋体" w:hAnsi="宋体" w:eastAsia="宋体"/>
+          <w:b w:val="0"/>
+          <w:sz w:val="28"/>
+        </w:rPr>
+        <w:t>担保情况：{{guarantee}}</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:widowControl/>
+        <w:spacing w:line="360" w:lineRule="auto" w:after="120"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="宋体" w:hAnsi="宋体" w:eastAsia="宋体"/>
+          <w:b w:val="0"/>
+          <w:sz w:val="28"/>
+        </w:rPr>
+        <w:t>此致</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:widowControl/>
+        <w:spacing w:line="360" w:lineRule="auto" w:after="120"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="宋体" w:hAnsi="宋体" w:eastAsia="宋体"/>
+          <w:b w:val="0"/>
+          <w:sz w:val="28"/>
+        </w:rPr>
+        <w:t>{{court}}</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:widowControl/>
+        <w:spacing w:line="360" w:lineRule="auto" w:after="120"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="宋体" w:hAnsi="宋体" w:eastAsia="宋体"/>
+          <w:b w:val="0"/>
+          <w:sz w:val="28"/>
+        </w:rPr>
+        <w:t>申请人(签名或者盖章)</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:widowControl/>
+        <w:spacing w:line="360" w:lineRule="auto" w:after="120"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="宋体" w:hAnsi="宋体" w:eastAsia="宋体"/>
+          <w:b w:val="0"/>
+          <w:sz w:val="28"/>
+        </w:rPr>
+        <w:t>{{date}}</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:widowControl/>
+        <w:spacing w:line="360" w:lineRule="auto" w:after="120"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="宋体" w:hAnsi="宋体" w:eastAsia="宋体"/>
+          <w:b w:val="0"/>
+          <w:sz w:val="24"/>
+        </w:rPr>
+        <w:t>AI 草稿，须律师审查</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:keepNext/>
+        <w:pageBreakBefore/>
+      </w:pPr>
+      <w:r>
+        <w:t>核验状态汇总</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:r>
+        <w:t>{{verification_summary}}</w:t>
+      </w:r>
+    </w:p>
+    <w:sectPr w:rsidR="00FC693F" w:rsidRPr="0006063C" w:rsidSect="00034616">
+      <w:pgSz w:w="11906" w:h="16838"/>
+      <w:pgMar w:top="1440" w:right="1587" w:bottom="1440" w:left="1587" w:header="720" w:footer="720" w:gutter="0"/>
+      <w:cols w:space="720"/>
+      <w:docGrid w:linePitch="360"/>
+    </w:sectPr>
+  </w:body>
+</w:document>

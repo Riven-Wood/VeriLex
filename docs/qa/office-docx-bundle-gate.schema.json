@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "candidate_commit", "source_lock_sha256", "engine_selection_sha256", "macos_evidence_sha256", "windows_evidence_sha256", "final_status"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "candidate_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "source_lock_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "engine_selection_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "macos_evidence_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "windows_evidence_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "final_status": {"const": "passed"}
+  }
+}

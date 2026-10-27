@@ -1,0 +1,7 @@
+.detail-dialog { width: min(760px, calc(100vw - 40px)); max-height: calc(100dvh - 48px); padding: 0; margin: auto; border: 1px solid var(--border-subtle); border-radius: 16px; background: var(--surface-primary); color: var(--text-primary); box-shadow: var(--vl-shadow-float); overflow: auto; }
+.detail-dialog::backdrop { background: rgb(20 29 45 / 32%); }
+.detail-dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; position: sticky; top: 0; z-index: 2; margin: 0; padding: 20px 24px; background: var(--surface-primary); border-bottom: 1px solid var(--border-subtle); }
+.detail-dialog-heading h2 { margin: 0; font-size: 20px; line-height: 1.4; overflow-wrap: anywhere; }
+.detail-dialog-heading button { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 6px; border: 0; border-radius: 6px; background: transparent; color: var(--text-secondary); cursor: pointer; }
+.detail-dialog button:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+@media(max-width:600px) { .detail-dialog-heading { padding: 16px; } }

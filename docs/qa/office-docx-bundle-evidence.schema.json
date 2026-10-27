@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "platform", "status", "created_at", "candidate_commit", "source_lock_sha256", "engine_selection_sha256", "build_id", "package_sha256"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "platform": {"enum": ["macos12-arm64", "windows-negative"]},
+    "status": {"enum": ["passed", "failed"]},
+    "created_at": {"type": "string", "format": "date-time"},
+    "candidate_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "source_lock_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "engine_selection_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "build_id": {"type": "string", "pattern": "^[A-Za-z0-9._-]{1,128}$"},
+    "package_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "minimum_system": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "component_manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "renderer_lock_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "offline": {"type": "boolean"},
+    "package_inventory": {"enum": ["passed", "failed"]},
+    "primary_capabilities": {"enum": ["passed", "failed"]},
+    "adeu_auxiliary_capabilities": {"enum": ["passed", "failed"]},
+    "renderer_csp_smoke": {"enum": ["passed", "failed"]},
+    "seatbelt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["docxodus", "libreoffice", "pdfium"],
+      "properties": {
+        "docxodus": {"enum": ["passed", "failed"]},
+        "libreoffice": {"enum": ["passed", "failed"]},
+        "pdfium": {"enum": ["passed", "failed"]}
+      }
+    },
+    "documents_tools_registered": {"type": "boolean"},
+    "documents_resources_present": {"type": "boolean"},
+    "documents_sidecar_started": {"type": "boolean"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"platform": {"const": "macos12-arm64"}}},
+      "then": {
+        "required": ["minimum_system", "component_manifest_sha256", "renderer_lock_sha256", "offline", "package_inventory", "primary_capabilities", "adeu_auxiliary_capabilities", "renderer_csp_smoke", "seatbelt"],
+        "not": {"anyOf": [{"required": ["documents_tools_registered"]}, {"required": ["documents_resources_present"]}, {"required": ["documents_sidecar_started"]}]}
+      },
+      "else": {
+        "required": ["documents_tools_registered", "documents_resources_present", "documents_sidecar_started"],
+        "not": {"anyOf": [{"required": ["minimum_system"]}, {"required": ["component_manifest_sha256"]}, {"required": ["renderer_lock_sha256"]}, {"required": ["offline"]}, {"required": ["package_inventory"]}, {"required": ["primary_capabilities"]}, {"required": ["adeu_auxiliary_capabilities"]}, {"required": ["renderer_csp_smoke"]}, {"required": ["seatbelt"]}]}
+      }
+    },
+    {
+      "if": {"properties": {"status": {"const": "passed"}, "platform": {"const": "macos12-arm64"}}},
+      "then": {"properties": {"offline": {"const": true}, "package_inventory": {"const": "passed"}, "primary_capabilities": {"const": "passed"}, "adeu_auxiliary_capabilities": {"const": "passed"}, "renderer_csp_smoke": {"const": "passed"}, "seatbelt": {"properties": {"docxodus": {"const": "passed"}, "libreoffice": {"const": "passed"}, "pdfium": {"const": "passed"}}}}}
+    },
+    {
+      "if": {"properties": {"status": {"const": "passed"}, "platform": {"const": "windows-negative"}}},
+      "then": {"properties": {"documents_tools_registered": {"const": false}, "documents_resources_present": {"const": false}, "documents_sidecar_started": {"const": false}}}
+    }
+  ]
+}

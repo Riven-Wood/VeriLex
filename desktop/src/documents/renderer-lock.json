@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "route": "docxodus",
+  "package": "source-build",
+  "version": "b1457bbd78b14177e3e71c739911f1772a6b1b22",
+  "source_sha256": "b04e0e4b471425aa8895c297e5cf9448012571e3",
+  "asset_file_count": 88,
+  "asset_tree_sha256": "d1cf010aecbca305a78c76ada60b7c58ae82e133a2db6e86657e375c1fb7bad8",
+  "assets": [
+    {
+      "path": "renderer/docxodus.bundle.js",
+      "sha256": "a40414d45216c21890e435de63b5c5b0d829c802fc9134b4607596477dfce2e0"
+    },
+    {
+      "path": "renderer/wasm/_framework/dotnet.native.wasm",
+      "sha256": "e24e9963f0cf58d2d0a6065460dc6d4b95c1e5a37b7657b3375330269813edd5"
+    },
+    {
+      "path": "renderer/docxodus.worker.js",
+      "sha256": "dd3d5dccb66492d5869ebd1397774cd0e9278110ffa415258b084bb8b9d88dc4"
+    },
+    {
+      "path": "renderer/worker-proxy.bundle.js",
+      "sha256": "97ce665ab7938094988494bb9593fb8c7798d4bfef8782f8fef708e1b996adff"
+    }
+  ],
+  "required_csp_features": [
+    "wasm",
+    "worker-self",
+    "style-blob"
+  ],
+  "local_patch_sha256": "d8883467f21480c5930c66fa169f100c8afbc015dca1a2fa4605458e3a9fae17"
+}

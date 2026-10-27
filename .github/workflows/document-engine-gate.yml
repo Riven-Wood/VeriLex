@@ -1,0 +1,131 @@
+name: Document engine gate
+
+on:
+  push:
+    branches:
+      - feat/office-docx
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: document-engine-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  document-engine-gate:
+    name: Document engine gate
+    runs-on: macos-14
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: 3.13.14
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: 0.12.1
+          enable-cache: true
+          cache-dependency-glob: runtime/uv.lock
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          dotnet-version: 10.0.400
+
+      - name: Install locked verifier dependencies
+        run: uv sync --project runtime --locked --extra dev --python 3.13.14
+
+      - name: Verify committed gate baseline
+        run: |
+          runtime/.venv/bin/python -m pytest \
+            runtime/tests/documents/test_fixture_contract.py \
+            runtime/tests/documents/test_source_lock.py \
+            runtime/tests/documents/test_engine_gate.py \
+            -q
+          runtime/.venv/bin/python scripts/documents/verify_sources.py --check
+          runtime/.venv/bin/python scripts/documents/run_engine_gate.py --check-existing
+
+      - name: Run fresh primary and fallback gates
+        run: |
+          runtime/.venv/bin/python scripts/documents/run_engine_gate.py \
+            --run \
+            --candidate-commit "$GITHUB_SHA" \
+            --dotnet "$(command -v dotnet)" \
+            --uv "$(command -v uv)" \
+            --write-report docs/qa/office-docx-engine-gate.json \
+            --write-selection third_party/documents/engine-selection.json
+
+      - name: Validate fresh evidence identity
+        run: |
+          test "$(jq -r .candidate_commit docs/qa/office-docx-engine-gate.json)" = "$GITHUB_SHA"
+          test "$(jq -r .final_status docs/qa/office-docx-engine-gate.json)" = "passed"
+          test "$(jq -r .selected_engine third_party/documents/engine-selection.json)" = "docxodus"
+          test "$(jq -r '[.attempts[].status] | all(. == "passed")' docs/qa/office-docx-engine-gate.json)" = "true"
+          test "$(jq -r .adeu_auxiliary.status docs/qa/office-docx-engine-gate.json)" = "passed"
+
+      - name: Upload gate evidence
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: office-docx-engine-gate-${{ github.sha }}
+          path: |
+            docs/qa/office-docx-engine-gate.json
+            third_party/documents/engine-selection.json
+          if-no-files-found: error
+          retention-days: 90
+
+  attest-evidence:
+    name: Attest document engine evidence
+    if: github.event_name != 'pull_request'
+    needs: document-engine-gate
+    runs-on: macos-14
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: Download gate evidence
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: office-docx-engine-gate-${{ github.sha }}
+          path: evidence
+
+      - name: Attest fresh gate evidence
+        id: attest
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
+        with:
+          subject-path: |
+            evidence/docs/qa/office-docx-engine-gate.json
+            evidence/third_party/documents/engine-selection.json
+
+      - name: Verify published attestations
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh attestation verify evidence/docs/qa/office-docx-engine-gate.json --repo "$GITHUB_REPOSITORY"
+          gh attestation verify evidence/third_party/documents/engine-selection.json --repo "$GITHUB_REPOSITORY"
+
+      - name: Upload signed gate evidence
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: office-docx-engine-gate-attested-${{ github.sha }}
+          path: |
+            evidence/docs/qa/office-docx-engine-gate.json
+            evidence/third_party/documents/engine-selection.json
+            ${{ steps.attest.outputs.bundle-path }}
+          if-no-files-found: error
+          retention-days: 90

@@ -1,0 +1,60 @@
+.provider-guide { padding: 24px; overflow-y: auto; max-height: calc(100vh - 160px); }
+.provider-guide-steps { display: flex; gap: 18px; list-style: none; margin: 0 0 22px; padding: 0; }
+.provider-guide-steps li { display: flex; gap: 7px; align-items: center; color: var(--text-muted); font-size: calc(11px * var(--vl-font-scale, 1)); }
+.provider-guide-steps li > span { display: grid; place-items: center; width: 23px; height: 23px; border-radius: 50%; background: var(--surface-secondary); font-size: 11px; }
+.provider-guide-steps li[aria-current] { color: var(--text-primary); font-weight: 650; }
+.provider-guide-steps li[aria-current] > span { background: var(--accent-strong); color: white; }
+.provider-guide-steps li[data-complete="true"] > span { color: var(--vl-success); background: var(--vl-tint-success); }
+.provider-guide h3 { margin: 0; color: var(--text-primary); font-size: calc(17px * var(--vl-font-scale, 1)); }
+.provider-guide-intro > p, .provider-guide-selected p { margin: 7px 0 0; color: var(--text-muted); font-size: calc(12px * var(--vl-font-scale, 1)); line-height: 1.65; }
+.provider-preset-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 20px 0; }
+.provider-preset-card { display: flex; align-items: center; gap: 11px; text-align: left; min-height: 82px; padding: 15px 13px; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--vl-canvas); color: var(--text-primary); cursor: pointer; }
+.provider-preset-card:hover { border-color: var(--accent-strong); background: var(--accent-soft); }
+.provider-preset-mark { display: grid; place-items: center; flex: 0 0 34px; width: 34px; height: 34px; border-radius: 9px; color: var(--text-primary); background: var(--surface-secondary); border: 1px solid var(--border-subtle); font-size: 16px; font-weight: 650; }
+.provider-preset-copy { min-width: 0; flex: 1; display: grid; gap: 5px; }
+.provider-preset-copy strong { font-size: calc(13px * var(--vl-font-scale, 1)); }
+.provider-preset-copy small, .provider-other-connection small { color: var(--text-muted); font-size: calc(10px * var(--vl-font-scale, 1)); line-height: 1.5; }
+.provider-preset-card > svg { flex-shrink: 0; color: var(--text-muted); }
+.provider-other-connection { width: 100%; display: flex; align-items: center; gap: 12px; padding: 16px 0 0; background: transparent; border: 0; border-top: 1px solid var(--border-subtle); color: var(--text-secondary); text-align: left; cursor: pointer; }
+.provider-other-connection > span { flex: 1; display: grid; gap: 4px; }
+.provider-other-connection strong { font-size: calc(12px * var(--vl-font-scale, 1)); font-weight: 550; }
+.provider-guide-form { display: grid; gap: 14px; }
+.provider-guide-selected { display: flex; gap: 12px; align-items: center; }
+.provider-key-help { padding: 16px; border-radius: 12px; background: var(--surface-secondary); }
+.provider-key-help h4 { margin: 0 0 8px; font-size: calc(12px * var(--vl-font-scale, 1)); }
+.provider-key-help p { margin: 0; line-height: 1.75; font-size: calc(12px * var(--vl-font-scale, 1)); color: var(--text-secondary); }
+.provider-guide-links { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 12px; }
+.provider-guide .text-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 0; background: transparent; color: var(--text-secondary); cursor: pointer; font-size: calc(11px * var(--vl-font-scale, 1)); }
+.provider-guide button:disabled { opacity: .5; cursor: default; }
+.provider-guide-note { display: flex; align-items: baseline; gap: 6px; margin: 0; color: var(--text-muted); font-size: calc(10px * var(--vl-font-scale, 1)); line-height: 1.7; }
+.provider-guide-note > svg { flex-shrink: 0; }
+.provider-guide-extra { color: var(--text-secondary); font-size: calc(11px * var(--vl-font-scale, 1)); }
+.provider-guide-extra summary { padding: 5px 0; cursor: pointer; }
+.provider-guide-extra .provider-field { margin-top: 12px; }
+.provider-guide-extra .provider-guide-note { margin-top: 8px; }
+.provider-guide-endpoint { margin: 0; color: var(--text-muted); font-size: calc(10px * var(--vl-font-scale, 1)); line-height: 1.8; }
+.provider-guide-endpoint code { display: block; overflow-wrap: anywhere; color: var(--text-secondary); }
+.provider-guide-success { display: flex; align-items: center; gap: 12px; background: var(--vl-tint-success); color: var(--vl-success); padding: 15px; border-radius: 12px; font-size: calc(12px * var(--vl-font-scale, 1)); }
+.provider-guide-success p { margin: 6px 0 0; font-size: calc(11px * var(--vl-font-scale, 1)); }
+.provider-guide-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 18px; }
+.provider-guide-actions > div { display: flex; gap: 8px; }
+.provider-guide :is(button, summary, input, select):focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 3px; }
+@media (max-width: 560px) {
+  .provider-dialog-backdrop { padding: 12px; }
+  .provider-dialog { width: calc(100vw - 24px); max-height: calc(100vh - 24px); }
+  .provider-guide { padding: 18px; max-height: calc(100vh - 115px); }
+  .provider-preset-grid { grid-template-columns: 1fr; }
+  .provider-guide-steps { gap: 10px; flex-wrap: wrap; margin-bottom: 22px; }
+  .provider-guide-actions { flex-wrap: wrap; }
+  .provider-guide-actions > div { margin-left: auto; }
+}
+/* Keep the next action reachable when the key instructions need scrolling. */
+.provider-guide-actions { position: sticky; bottom: -24px; z-index: 1; padding: 16px 0; background: var(--vl-canvas); }
+@media (max-width: 560px) { .provider-guide-actions { bottom: -18px; } }
+.provider-dialog.provider-dialog-guided { display: flex; flex-direction: column; border-color: var(--border-subtle); }
+.provider-dialog-guided > header { flex-shrink: 0; }
+.provider-dialog-guided > .provider-guide { min-height: 0; max-height: none; }
+.provider-guide .secondary-button { color: var(--text-primary); background: var(--surface-primary); border-color: var(--border-subtle); }
+@media (max-width: 560px) { .provider-dialog.provider-dialog-guided { width: calc(100vw - 24px); max-height: calc(100vh - 24px); } }
+
+@media (max-width: 560px) { .provider-dialog-backdrop:has(> .provider-dialog-guided) { padding: 12px; } }

@@ -1,0 +1,19 @@
+.ima-connection { width: min(480px, calc(100vw - 48px)); max-height: calc(100vh - 64px); overflow: auto; padding: 28px; border: 1px solid var(--border, #e2e7ee); border-radius: 18px; color: var(--text-primary, #252b35); background: var(--surface, #fff); box-shadow: 0 24px 80px #18243d26; font: inherit; }
+.ima-connection::backdrop { background: #202c4040; }
+.ima-connection header, .ima-connection footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.ima-connection header button { padding: 6px; }
+.ima-connection h2 { margin: 5px 0 0; font-size: 23px; }
+.ima-eyebrow, .ima-help { color: var(--text-secondary, #677489); font-size: 12px; line-height: 1.7; }
+.ima-connection p { line-height: 1.7; }
+.ima-connection button { display: inline-flex; justify-content: center; align-items: center; gap: 8px; padding: 9px 13px; border: 1px solid var(--border, #e2e7ee); border-radius: 8px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.ima-connection button:disabled { opacity: .5; cursor: default; }
+.ima-connection .ima-official { width: 100%; justify-content: space-between; }
+.ima-connection form > label { display: grid; gap: 7px; margin: 16px 0; font-size: 13px; }
+.ima-connection input:not([type=checkbox]) { box-sizing: border-box; min-width: 0; width: 100%; padding: 10px 12px; border: 1px solid var(--border, #e2e7ee); border-radius: 8px; background: transparent; color: inherit; font: inherit; }
+.ima-connection footer { margin-top: 22px; }
+.ima-connection .ima-primary { margin-left: auto; background: #253b60; color: white; border-color: #253b60; }
+.ima-search { display: flex; gap: 8px; }
+.ima-choices { margin: 16px 0; max-height: 260px; overflow: auto; border-block: 1px solid var(--border, #e2e7ee); padding: 8px 0; }
+.ima-choices label { display: flex; align-items: start; gap: 10px; padding: 10px 4px; overflow-wrap: anywhere; }
+.ima-error { color: #a83333; font-size: 13px; }
+.ima-connection :focus-visible { outline: 2px solid #5277ae; outline-offset: 3px; }

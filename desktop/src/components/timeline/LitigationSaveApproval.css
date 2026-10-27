@@ -1,0 +1,17 @@
+.litigation-save-review { min-width: 0; font-size: 12px; line-height: 1.6; }
+.litigation-save-review p { margin: 0 0 6px; }
+.litigation-save-target { font-weight: 600; overflow-wrap: anywhere; }
+.litigation-save-scope, .litigation-save-limited { color: var(--text-secondary); }
+.litigation-save-scope span { display: block; }
+.litigation-save-detail { border-top: 1px solid var(--border-subtle); padding-top: 7px; }
+.litigation-save-detail summary { cursor: pointer; font-weight: 500; }
+.litigation-save-sections { max-height: 340px; overflow-y: auto; overscroll-behavior: contain; padding: 3px 6px 0 0; }
+.litigation-save-sections article + article { border-top: 1px solid var(--border-subtle); margin-top: 12px; padding-top: 8px; }
+.litigation-save-sections h4 { font-size: 12px; margin: 5px 0; }
+.litigation-save-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.litigation-save-sources { margin-top: 8px; color: var(--text-secondary); }
+.litigation-save-sources p { margin-top: 6px; overflow-wrap: anywhere; }
+.litigation-save-sources blockquote { margin: 3px 0 8px; border-left: 2px solid var(--border-subtle); padding-left: 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.litigation-save-pending { margin-top: 8px; color: var(--text-secondary); }
+.litigation-save-pending ul { padding-left: 18px; margin: 3px 0; }
+.litigation-save-limited { margin-top: 8px !important; }

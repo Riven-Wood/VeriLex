@@ -1,0 +1,14 @@
+.skills-category-filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.skills-category-filters button { border: 1px solid var(--border-subtle); border-radius: 8px; background: transparent; color: var(--text-secondary); padding: 6px 10px; cursor: pointer; font: inherit; font-size: 13px; }
+.skills-category-filters button[aria-pressed="true"] { background: var(--surface-secondary); color: var(--text-primary); border-color: var(--accent-strong); font-weight: 600; }
+.skills-category-filters button:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+.skills-category-label { display: block; width: fit-content; margin: 4px 0; color: var(--text-secondary); font-size: 11px; font-weight: 400; }
+.skills-category-result { color: var(--text-secondary); font-size: 13px; }
+.skill-detail-content { padding: 22px 24px 28px; }
+.skill-detail-meta { display: flex; gap: 10px; color: var(--text-secondary); font-size: 12px; }
+.skill-detail-meta span { padding: 4px 8px; border-radius: 5px; background: var(--surface-secondary); }
+.skill-detail-description { color: var(--text-secondary); font-size: 13px; line-height: 1.8; overflow-wrap: anywhere; padding-bottom: 20px; border-bottom: 1px solid var(--border-subtle); }
+.skill-detail-markdown { font-size: 14px; line-height: 1.85; overflow-wrap: anywhere; }
+.skill-detail-markdown h1 { font-size: 21px; }.skill-detail-markdown h2 { font-size: 18px; }.skill-detail-markdown h3 { font-size: 15px; }
+.skill-detail-markdown pre { white-space: pre-wrap; padding: 14px; background: var(--surface-secondary); border-radius: 8px; }
+.skill-detail-markdown table { display: block; overflow-x: auto; border-collapse: collapse; }.skill-detail-markdown :is(th,td) { border: 1px solid var(--border-subtle); padding: 6px 10px; }

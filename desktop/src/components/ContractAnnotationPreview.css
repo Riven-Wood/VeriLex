@@ -1,0 +1,6 @@
+.contract-annotation-preview{display:flex;flex-direction:column;flex:1;min-height:0;width:100%;gap:8px}
+.contract-preview-note{font-size:12px;color:var(--text-secondary);margin:0}
+.contract-preview-frame{width:100%;flex:1;min-height:280px;border:1px solid var(--border);border-radius:8px;background:#edf0f4}
+.contract-original-comments{max-height:30%;overflow:auto;font-size:13px;border-left:3px solid #7b6b98;padding:8px}
+.contract-original-comments article{padding:8px;border-bottom:1px solid var(--border)}
+.contract-original-comments p{white-space:pre-wrap}

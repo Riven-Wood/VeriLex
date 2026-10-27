@@ -1,0 +1,124 @@
+{
+  "probedAt": "2026-09-04T08:35:00Z",
+  "query": "劳动争议",
+  "note": "字段形态来自一次获授权的真实探测；所有案例内容、案号、标识和链接均已替换为虚构测试数据。",
+  "catalog": [
+    "yuandian_case_vector_search",
+    "yuandian_rh_case_details",
+    "yuandian_rh_qwal_search",
+    "yuandian_rh_ptal_search"
+  ],
+  "tools": [
+    {
+      "name": "yuandian_case_vector_search",
+      "arguments": {
+        "query": "劳动争议",
+        "return_num": 3
+      },
+      "output": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"msg\":\"请求成功\",\"code\":200,\"answer\":\"\",\"extra\":{\"wenshu\":[{\"title\":\"李某与某科技公司劳动合同纠纷案\",\"ah\":\"（2024）京0108民初12345号\",\"jbdw\":\"北京市海淀区人民法院\",\"cj\":\"基层\",\"spcx\":\"一审案件\",\"ajlb\":\"民事案件\",\"anyou\":[\"劳动争议\"],\"ay\":[\"9462\"],\"jaDate\":20240126,\"jand\":2024,\"content\":\"用人单位未能举证证明解除劳动合同具有合法依据，应承担相应责任。\",\"authority\":\"\",\"db\":\"精选案例库\",\"para_name\":\"总结\",\"scid\":\"case-fixture-001\",\"score\":0.91,\"type\":2,\"url\":\"https://example.invalid/cases/case-fixture-001\",\"wszl\":\"判决书\",\"xzqh_c\":\"北京市\",\"xzqh_p\":\"北京\"},{\"title\":\"王某与某服务公司经济补偿纠纷案\",\"ah\":\"（2023）沪0101民初23456号\",\"jbdw\":\"上海市黄浦区人民法院\",\"cj\":\"基层\",\"spcx\":\"一审案件\",\"ajlb\":\"民事案件\",\"anyou\":[\"劳动争议\"],\"ay\":[\"9462\"],\"jaDate\":20231018,\"jand\":2023,\"content\":\"劳动者主张经济补偿时，应结合解除原因与在职年限核对请求基础。\",\"authority\":\"参考案例\",\"db\":\"权威案例库\",\"para_name\":\"裁判要旨\",\"scid\":\"case-fixture-002\",\"score\":0.86,\"type\":1,\"url\":\"https://example.invalid/cases/case-fixture-002\",\"wszl\":\"判决书\",\"xzqh_c\":\"上海市\",\"xzqh_p\":\"上海\"},{\"title\":\"赵某与某制造公司加班工资纠纷案\",\"ah\":\"（2022）粤0305民初34567号\",\"jbdw\":\"深圳市南山区人民法院\",\"cj\":\"基层\",\"spcx\":\"一审案件\",\"ajlb\":\"民事案件\",\"anyou\":[\"劳动争议\"],\"ay\":[\"9462\"],\"jaDate\":20220812,\"jand\":2022,\"content\":\"加班工资请求应结合考勤、工资记录和双方关于工作时间的约定综合判断。\",\"authority\":\"\",\"db\":\"精选案例库\",\"para_name\":\"总结\",\"scid\":\"case-fixture-003\",\"score\":0.82,\"type\":2,\"url\":\"https://example.invalid/cases/case-fixture-003\",\"wszl\":\"判决书\",\"xzqh_c\":\"深圳市\",\"xzqh_p\":\"广东\"}]},\"messageId\":\"\",\"style\":\"\",\"request_id\":\"\"}"
+          }
+        ],
+        "isError": false,
+        "meta": null,
+        "structuredContent": {
+          "data": {
+            "answer": "",
+            "code": 200,
+            "extra": {
+              "wenshu": [
+                {
+                  "ah": "（2024）京0108民初12345号",
+                  "ajlb": "民事案件",
+                  "anyou": ["劳动争议"],
+                  "authority": "",
+                  "ay": ["9462"],
+                  "cj": "基层",
+                  "content": "用人单位未能举证证明解除劳动合同具有合法依据，应承担相应责任。",
+                  "db": "精选案例库",
+                  "jaDate": 20240126,
+                  "jand": 2024,
+                  "jbdw": "北京市海淀区人民法院",
+                  "para_name": "总结",
+                  "scid": "case-fixture-001",
+                  "score": 0.91,
+                  "spcx": "一审案件",
+                  "title": "李某与某科技公司劳动合同纠纷案",
+                  "type": 2,
+                  "url": "https://example.invalid/cases/case-fixture-001",
+                  "wszl": "判决书",
+                  "xzqh_c": "北京市",
+                  "xzqh_p": "北京"
+                },
+                {
+                  "ah": "（2023）沪0101民初23456号",
+                  "ajlb": "民事案件",
+                  "anyou": ["劳动争议"],
+                  "authority": "参考案例",
+                  "ay": ["9462"],
+                  "cj": "基层",
+                  "content": "劳动者主张经济补偿时，应结合解除原因与在职年限核对请求基础。",
+                  "db": "权威案例库",
+                  "jaDate": 20231018,
+                  "jand": 2023,
+                  "jbdw": "上海市黄浦区人民法院",
+                  "para_name": "裁判要旨",
+                  "scid": "case-fixture-002",
+                  "score": 0.86,
+                  "spcx": "一审案件",
+                  "title": "王某与某服务公司经济补偿纠纷案",
+                  "type": 1,
+                  "url": "https://example.invalid/cases/case-fixture-002",
+                  "wszl": "判决书",
+                  "xzqh_c": "上海市",
+                  "xzqh_p": "上海"
+                },
+                {
+                  "ah": "（2022）粤0305民初34567号",
+                  "ajlb": "民事案件",
+                  "anyou": ["劳动争议"],
+                  "authority": "",
+                  "ay": ["9462"],
+                  "cj": "基层",
+                  "content": "加班工资请求应结合考勤、工资记录和双方关于工作时间的约定综合判断。",
+                  "db": "精选案例库",
+                  "jaDate": 20220812,
+                  "jand": 2022,
+                  "jbdw": "深圳市南山区人民法院",
+                  "para_name": "总结",
+                  "scid": "case-fixture-003",
+                  "score": 0.82,
+                  "spcx": "一审案件",
+                  "title": "赵某与某制造公司加班工资纠纷案",
+                  "type": 2,
+                  "url": "https://example.invalid/cases/case-fixture-003",
+                  "wszl": "判决书",
+                  "xzqh_c": "深圳市",
+                  "xzqh_p": "广东"
+                }
+              ]
+            },
+            "messageId": "",
+            "msg": "请求成功",
+            "request_id": "",
+            "style": ""
+          },
+          "normalized": {
+            "hasItems": true,
+            "itemCount": 3,
+            "items": [],
+            "resultPath": null
+          },
+          "ok": true,
+          "requestId": "fixture-request-id",
+          "routeKey": "case_vector_search",
+          "status": 200,
+          "tool": "yuandian_case_vector_search"
+        }
+      }
+    }
+  ]
+}

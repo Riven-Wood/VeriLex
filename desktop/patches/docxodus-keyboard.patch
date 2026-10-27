@@ -1,0 +1,1342 @@
+diff --git a/Docxodus/DocxSession.cs b/Docxodus/DocxSession.cs
+index 6e60d1a8..8951f908 100644
+--- a/Docxodus/DocxSession.cs
++++ b/Docxodus/DocxSession.cs
+@@ -166,7 +166,7 @@ public sealed record ParagraphBorderEdge
+ }
+ 
+ /// <summary>Paragraph alignment (maps to w:jc): Justify → w:val "both".</summary>
+-public enum ParagraphAlignment { Left, Center, Right, Justify }
++public enum ParagraphAlignment { Left, Center, Right, Justify, Distributed }
+ 
+ /// <summary>
+ /// How <see cref="ParagraphFormatOp.LineSpacing"/> is interpreted — maps to
+@@ -239,6 +239,9 @@ public sealed record ParagraphFormatOp
+ {
+     public ParagraphAlignment? Alignment { get; init; }
+     public int? IndentDelta { get; init; }
++    /// <summary>Absolute physical left/right paragraph indents in twips; zero overrides inherited values.</summary>
++    public int? LeftIndent { get; init; }
++    public int? RightIndent { get; init; }
+     public bool? PageBreakBefore { get; init; }
+ 
+     /// <summary>
+@@ -292,6 +295,19 @@ public sealed record ParagraphFormatOp
+     /// <summary>When true, remove the entire <c>w:pBdr</c> (all paragraph borders) before applying
+     /// any <see cref="TopBorder"/>/<see cref="BottomBorder"/> in this same op.</summary>
+     public bool? ClearBorders { get; init; }
++    public bool? KeepNext { get; init; }
++    public bool? KeepLines { get; init; }
++    public bool? WidowControl { get; init; }
++    public bool? RightToLeft { get; init; }
++    public int? OutlineLevel { get; init; }
++    public int? LeftIndentCharacterUnits { get; init; }
++    public int? RightIndentCharacterUnits { get; init; }
++    public int? FirstLineIndentCharacterUnits { get; init; }
++    public int? HangingIndentCharacterUnits { get; init; }
++    public int? SpacingBeforeLineUnits { get; init; }
++    public int? SpacingAfterLineUnits { get; init; }
++    public ParagraphTabStop[]? TabStops { get; init; }
++
+ }
+ 
+ /// <summary>Options for <see cref="DocxSession.InsertTable"/>.</summary>
+@@ -423,6 +439,13 @@ public sealed record RunFormatting
+ /// line spacing, and on/off properties after applying document defaults and the paragraph-style
+ /// chain through <see cref="FormattingAssembler"/>.
+ /// </summary>
++public sealed record ParagraphTabStop
++{
++    public int Position { get; init; }
++    public string Alignment { get; init; } = "left";
++    public string Leader { get; init; } = "none";
++}
++
+ public sealed record ParagraphFormatting
+ {
+     /// <summary>The paragraph style id in effect at this layer. This is accepted directly by
+@@ -435,6 +458,16 @@ public sealed record ParagraphFormatting
+     public int? HangingIndentTwips { get; init; }
+     public int? SpacingBeforeTwips { get; init; }
+     public int? SpacingAfterTwips { get; init; }
++    // Raw alternate units are inspection metadata, not estimates in points or cm.
++    // Nonzero values take precedence over twips; explicit zero disables inheritance.
++    public int? LeftIndentCharacterUnits { get; init; }
++    public int? RightIndentCharacterUnits { get; init; }
++    public int? FirstLineIndentCharacterUnits { get; init; }
++    public int? HangingIndentCharacterUnits { get; init; }
++    public int? SpacingBeforeLineUnits { get; init; }
++    public int? SpacingAfterLineUnits { get; init; }
++    public bool? SpacingBeforeAuto { get; init; }
++    public bool? SpacingAfterAuto { get; init; }
+     public int? LineSpacing { get; init; }
+     public LineSpacingRule? LineSpacingRule { get; init; }
+     public bool? KeepNext { get; init; }
+@@ -444,6 +477,10 @@ public sealed record ParagraphFormatting
+     public string? ShadingFill { get; init; }
+     public ParagraphBorderEdge? TopBorder { get; init; }
+     public ParagraphBorderEdge? BottomBorder { get; init; }
++    public bool? WidowControl { get; init; }
++    public bool? RightToLeft { get; init; }
++    public ParagraphTabStop[]? TabStops { get; init; }
++
+ }
+ 
+ /// <summary>
+@@ -539,6 +576,9 @@ public sealed record FormattingInspection
+     required public string AnchorId { get; init; }
+     required public ParagraphFormatting DirectParagraph { get; init; }
+     required public ParagraphFormatting EffectiveParagraph { get; init; }
++    /// <summary>Numbering or table-style paragraph properties are outside this inspection
++    /// resolver. Treat fields without an explicit direct value as original document settings.</summary>
++    public bool UnresolvedInheritedFormatting { get; init; }
+     required public IReadOnlyList<InlineSpan> Runs { get; init; }
+ }
+ 
+@@ -2952,9 +2992,13 @@ public sealed partial class DocxSession : IDisposable
+ 
+     private static IReadOnlyList<int> NumberingIdsIntroducedBy(
+         Internal.RevisionOps.RevisionGroup group) =>
+-        group.Units.Where(unit =>
+-                unit.Kind == Internal.RevisionOps.UnitKind.NumberingPropertiesInsert)
+-            .Select(unit => (string?)unit.Element.Parent?.Element(W.numId)?.Attribute(W.val))
++        group.Units.Select(unit =>
++                unit.Kind == Internal.RevisionOps.UnitKind.NumberingPropertiesInsert
++                    ? (string?)unit.Element.Parent?.Element(W.numId)?.Attribute(W.val)
++                    : unit.Element.Name == W.pPrChange
++                        && unit.Element.Element(W.pPr)?.Element(W.numPr) is null
++                        ? (string?)unit.Element.Parent?.Element(W.numPr)?.Element(W.numId)?.Attribute(W.val)
++                        : null)
+             .Where(value => int.TryParse(value, out _))
+             .Select(value => int.Parse(
+                 value!, System.Globalization.CultureInfo.InvariantCulture))
+@@ -2963,7 +3007,8 @@ public sealed partial class DocxSession : IDisposable
+ 
+     /// <summary>
+     /// Remove Docxodus-authored numbering instances made unreachable by rejecting their native
+-    /// numPr insertion. Proof sessions exclude definitions present in the selected baseline.
++    /// numPr insertion or a cumulative paragraph revision that introduced numbering.
++    /// Proof sessions exclude definitions present in the selected baseline.
+     /// </summary>
+     private void PruneUnreferencedDocxodusNumbering(IReadOnlyCollection<int> candidateIds)
+     {
+@@ -6126,6 +6171,8 @@ public sealed partial class DocxSession : IDisposable
+         }
+ 
+         var deletedRuns = new List<XElement>(match.Fragments.Count);
++        var cancelledRuns = new HashSet<XElement>();
++        var ownInsertions = new HashSet<XElement>();
+         XElement? insertedRun = null;
+ 
+         for (int i = 0; i < match.Fragments.Count; i++)
+@@ -6142,6 +6189,11 @@ public sealed partial class DocxSession : IDisposable
+                 throw new InvalidOperationException(
+                     $"tracked replacement slice {start}+{len} is outside run text length {concat.Length}");
+ 
++            // Editing one's pending insertion cancels that proposal. A different
++            // reviewer's insertion remains reviewable through a deletion revision.
++            var insertionParents = run.Ancestors(W.ins).ToList();
++            var cancelsOwnInsertion = insertionParents.Count > 0
++                && insertionParents.All(e => (string?)e.Attribute(W.author) == author);
+             var before = concat[..start];
+             var removed = concat.Substring(start, len);
+             var after = concat[(start + len)..];
+@@ -6183,6 +6235,11 @@ public sealed partial class DocxSession : IDisposable
+ 
+             run.ReplaceWith(replacementNodes);
+             deletedRuns.Add(deletedRun);
++            if (cancelsOwnInsertion)
++            {
++                cancelledRuns.Add(deletedRun);
++                foreach (var parent in insertionParents) ownInsertions.Add(parent);
++            }
+         }
+ 
+         // Coalesce adjacent deleted slices under the same inline parent. This is the
+@@ -6193,6 +6250,14 @@ public sealed partial class DocxSession : IDisposable
+         XElement? currentEnvelope = null;
+         foreach (var deletedRun in deletedRuns)
+         {
++            if (cancelledRuns.Contains(deletedRun))
++            {
++                // Keep a temporary placement anchor until replacement text has
++                // inherited the original inline container and formatting.
++                deletionEnvelopes.Add(deletedRun);
++                currentEnvelope = null;
++                continue;
++            }
+             if (currentEnvelope is not null
+                 && ReferenceEquals(currentEnvelope.Parent, deletedRun.Parent)
+                 && ReferenceEquals(deletedRun.PreviousNode, currentEnvelope))
+@@ -6209,19 +6274,20 @@ public sealed partial class DocxSession : IDisposable
+             deletionEnvelopes.Add(currentEnvelope);
+         }
+ 
+-        if (insertedRun is null || deletionEnvelopes.Count == 0) return;
+-
+-        // Keep a replacement wholly inside its original hyperlink/SDT/smartTag/fldSimple.
+-        // When every deletion envelope has that same parent, put the insertion after the
+-        // final deletion (the canonical Word replacement order). A cross-container match
+-        // inserts beside the first slice so it retains the first run's inline semantics.
+-        var firstEnvelope = deletionEnvelopes[0];
+-        var insertionAnchor = deletionEnvelopes.All(e => ReferenceEquals(e.Parent, firstEnvelope.Parent))
+-            ? deletionEnvelopes[^1]
+-            : firstEnvelope;
+-        var insertionEnvelope = CreateRevisionEnvelope(W.ins, author, date);
+-        insertionEnvelope.Add(insertedRun);
+-        insertionAnchor.AddAfterSelf(insertionEnvelope);
++        if (insertedRun is not null && deletionEnvelopes.Count > 0)
++        {
++            // Preserve the first slice's inline semantics for cross-container edits.
++            var firstEnvelope = deletionEnvelopes[0];
++            var insertionAnchor = deletionEnvelopes.All(e => ReferenceEquals(e.Parent, firstEnvelope.Parent))
++                ? deletionEnvelopes[^1]
++                : firstEnvelope;
++            if (cancelledRuns.Contains(insertionAnchor)) insertionAnchor.AddAfterSelf(insertedRun);
++            else insertionAnchor.AddAfterSelf(CreateRevisionEnvelope(W.ins, author, date, insertedRun));
++        }
++        foreach (var cancelled in cancelledRuns) cancelled.Remove();
++        // Keep marker/control payloads, including comments, even when all text was cancelled.
++        foreach (var insertion in ownInsertions.OrderByDescending(e => e.Ancestors().Count()))
++            if (!insertion.Nodes().Any()) insertion.Remove();
+     }
+ 
+     /// <summary>Create native revision markup and keep Word's document-level recording flag in
+@@ -7809,6 +7875,144 @@ public sealed partial class DocxSession : IDisposable
+         }
+     }
+ 
++    /// <summary>Insert an actual line break or tab without flattening neighboring runs.</summary>
++    /// <summary>Commit keyboard text with line breaks/tabs as real OOXML controls.
++    /// A transaction normalizes control positions only during the existing run-preserving
++    /// replacement. Undo stores the original package, never the temporary normalized form.</summary>
++    public EditResult SyncKeyboardText(string anchorId, string text)
++    {
++        var target = FindAnchor(anchorId);
++        var paragraph = target?.Resolve(_doc!);
++        if (target is null || paragraph?.Name != W.p)
++            return EditResult.Fail(EditErrorCode.AnchorWrongKind, "keyboard text requires a paragraph", anchorId);
++        string TextOf(XElement run) => string.Concat(run.Elements().Select(e =>
++            e.Name == W.t ? (string)e : e.Name == W.br || e.Name == W.cr ? "\n" : e.Name == W.tab ? "\t" : ""));
++        var old = string.Concat(InlineRuns(paragraph).Where(r => !r.Ancestors().Any(e => e.Name == W.del || e.Name == W.moveFrom)).Select(TextOf));
++        if (old == text) return new EditResult { Success = true, Modified = new[] { target.Anchor } };
++        using var transaction = BeginTransaction();
++        try
++        {
++            foreach (var run in InlineRuns(paragraph).Where(r => !r.Ancestors().Any(e => e.Name == W.del || e.Name == W.moveFrom)).ToList())
++                foreach (var control in run.Elements().Where(e => e.Name == W.br || e.Name == W.cr || e.Name == W.tab).ToList())
++                    control.ReplaceWith(new XElement(W.t, control.Name == W.tab ? "\t" : "\n"));
++            EditResult result;
++            if (old.Length == 0)
++            {
++                _history.RecordPreOp(TakeSnapshot());
++                var run = new XElement(W.r, new XElement(W.t, new XAttribute(XNamespace.Xml + "space", "preserve"), text));
++                var rPr = paragraph.Element(W.pPr)?.Element(W.rPr);
++                if (rPr is not null) run.AddFirst(new XElement(W.rPr, rPr.Elements().Where(e => e.Name != W.ins && e.Name != W.del).Select(e => new XElement(e))));
++                XElement insertion = run;
++                if (_trackedChanges == TrackedChangeMode.RenderInline)
++                {
++                    EnsureTrackRevisionsEnabled();
++                    insertion = CreateRevisionEnvelope(W.ins, _revisionAuthor ?? "VeriLex", NextTrackedFormatRevisionDate(), run);
++                }
++                paragraph.Add(insertion);
++                UnidHelper.AssignToSelfAndDescendants(insertion);
++                result = new EditResult { Success = true, Modified = new[] { target.Anchor } };
++            }
++            else
++            {
++                int prefix = 0, suffix = 0;
++                while (prefix < old.Length && prefix < text.Length && old[prefix] == text[prefix]) prefix++;
++                while (suffix < old.Length-prefix && suffix < text.Length-prefix && old[old.Length-1-suffix] == text[text.Length-1-suffix]) suffix++;
++                int length = old.Length-prefix-suffix;
++                var replacement = text.Substring(prefix,text.Length-prefix-suffix);
++                if (length == 0 && !HasUnsupportedInlineInsertionBoundary(paragraph, prefix))
++                {
++                    // Pure typing must not delete and reinsert a neighbouring character.
++                    // Split at the exact boundary and inherit the adjacent run's formatting.
++                    _history.RecordPreOp(TakeSnapshot());
++                    XElement? properties = null;
++                    int consumed = 0;
++                    foreach (var adjacent in InlineRuns(paragraph).Where(r => !r.Ancestors().Any(e => e.Name == W.del || e.Name == W.moveFrom)))
++                    {
++                        properties = adjacent.Element(W.rPr);
++                        consumed += RunText(adjacent).Length;
++                        if (consumed >= prefix) break;
++                    }
++                    var existingInsertions = paragraph.Elements(W.ins).ToHashSet();
++                    SplitRunsAtOffset(paragraph, prefix);
++                    SplitInlineContainersAtOffset(paragraph, prefix);
++                    foreach (var splitInsertion in paragraph.Elements(W.ins).Where(e => !existingInsertions.Contains(e)))
++                        splitInsertion.SetAttributeValue(W.id, NextRevisionId());
++                    var run = new XElement(W.r, new XElement(W.t, new XAttribute(XNamespace.Xml + "space", "preserve"), replacement));
++                    if (properties is not null) run.AddFirst(new XElement(properties));
++                    XElement insertion = run;
++                    if (_trackedChanges == TrackedChangeMode.RenderInline)
++                    {
++                        EnsureTrackRevisionsEnabled();
++                        insertion = CreateRevisionEnvelope(W.ins, _revisionAuthor ?? "VeriLex", NextTrackedFormatRevisionDate(), run);
++                    }
++                    InsertInlineAtOffset(paragraph, prefix, insertion);
++                    UnidHelper.AssignToSelfAndDescendants(insertion);
++                    result = new EditResult { Success = true, Modified = new[] { target.Anchor } };
++                }
++                else
++                {
++                    if (length == 0) { if (prefix > 0) { prefix--; replacement = old[prefix]+replacement; } else replacement += old[0]; length=1; }
++                    result = ReplaceTextAtSpan(anchorId,prefix,length,replacement);
++                    if (!result.Success) return result;
++                }
++            }
++            foreach (var node in paragraph.Descendants().Where(e => e.Name == W.t || e.Name == W.delText).ToList())
++            {
++                if (!node.Value.Contains('\n') && !node.Value.Contains('\t')) continue;
++                var pieces = new List<XElement>(); var buffer = new System.Text.StringBuilder();
++                void Flush() { if (buffer.Length>0) { pieces.Add(new XElement(node.Name,new XAttribute(XNamespace.Xml+"space","preserve"),buffer.ToString()));buffer.Clear(); } }
++                foreach(var c in node.Value) { if(c=='\n'||c=='\t'){Flush();pieces.Add(new XElement(c=='\n'?W.br:W.tab));}else buffer.Append(c); }
++                Flush(); node.ReplaceWith(pieces);
++            }
++            InvalidateProjectionCache();
++            transaction.Commit();
++            return result;
++        }
++        catch(Exception ex) { return EditResult.Fail(EditErrorCode.InternalError,ex.Message,anchorId); }
++    }
++
++    public EditResult InsertKeyboardControl(string anchorId, int offset, string kind)
++    {
++        if (_disposed) return EditResult.Fail(EditErrorCode.SessionDisposed, "session disposed");
++        var target = FindAnchor(anchorId);
++        var paragraph = target?.Resolve(_doc!);
++        if (target is null || paragraph?.Name != W.p || (kind != "br" && kind != "tab"))
++            return EditResult.Fail(EditErrorCode.AnchorWrongKind, "keyboard control requires a paragraph", anchorId);
++        if (offset < 0 || offset > ParagraphText(paragraph).Length || HasUnsupportedInlineInsertionBoundary(paragraph, offset))
++            return EditResult.Fail(EditErrorCode.OffsetOutOfRange, "unsupported keyboard position", anchorId);
++        _history.RecordPreOp(TakeSnapshot());
++        try
++        {
++            SplitRunsAtOffset(paragraph, offset);
++            SplitInlineContainersAtOffset(paragraph, offset);
++            var run = new XElement(W.r, new XElement(kind == "br" ? W.br : W.tab));
++            var properties = InlineRuns(paragraph).FirstOrDefault()?.Element(W.rPr);
++            if (properties is not null) run.AddFirst(new XElement(properties));
++            XElement insertion = run;
++            if (_trackedChanges == TrackedChangeMode.RenderInline)
++            {
++                EnsureTrackRevisionsEnabled();
++                insertion = CreateRevisionEnvelope(W.ins, _revisionAuthor ?? "VeriLex", NextTrackedFormatRevisionDate(), run);
++            }
++            int consumed = 0;
++            XElement? before = null;
++            foreach (var child in paragraph.Elements().Where(e => e.Name != W.pPr))
++            {
++                if (consumed >= offset) { before = child; break; }
++                consumed += IsInlineChild(child) ? InlineChildTextLength(child) : 0;
++            }
++            if (before is null) paragraph.Add(insertion); else before.AddBeforeSelf(insertion);
++            UnidHelper.AssignToSelfAndDescendants(insertion);
++            InvalidateProjectionCache();
++            return new EditResult { Success = true, Modified = new[] { target.Anchor }, Patch = PatchFor(target) };
++        }
++        catch (Exception ex)
++        {
++            LastInternalError = ex; RollbackFailedOp();
++            return EditResult.Fail(EditErrorCode.InternalError, ex.Message, anchorId);
++        }
++    }
++
+     public EditResult SplitParagraph(string anchorId, int characterOffset)
+     {
+         if (_disposed) return EditResult.Fail(EditErrorCode.SessionDisposed, "session disposed");
+@@ -7832,8 +8036,6 @@ public sealed partial class DocxSession : IDisposable
+             return EditResult.Fail(EditErrorCode.UnsupportedInlineBoundary,
+                 "SplitParagraph offset falls inside a revision or unsupported inline container; " +
+                 "choose a boundary before or after that container", anchorId);
+-        if (_trackedChanges == TrackedChangeMode.RenderInline)
+-            return TrackedStructureUnsupported("SplitParagraph", anchorId);
+ 
+         _history.RecordPreOp(TakeSnapshot());
+         try
+@@ -7888,12 +8090,29 @@ public sealed partial class DocxSession : IDisposable
+                     }
+                 }
+ 
++                // Property history is copied with the formatting. Give the copied history
++                // fresh ids so both paragraphs remain individually reviewable in Word.
++                foreach (var revision in newPPr.Descendants().Where(e => e.Name == W.pPrChange || e.Name == W.rPrChange))
++                    revision.SetAttributeValue(W.id, NextRevisionId());
++
+                 // Re-mint Unids on the new paragraph's property subtree so cloned property elements
+                 // (jc, ind, numPr, ...) don't carry the original's Unid onto a second element.
+                 foreach (var el in newPPr.DescendantsAndSelf())
+                     el.Attributes(PtOpenXml.Unid).Remove();
+             }
+ 
++            // The old paragraph mark belongs to the second half. Only the newly
++            // inserted boundary is tracked; rejecting it joins the halves again.
++            if (_trackedChanges == TrackedChangeMode.RenderInline)
++            {
++                EnsureTrackRevisionsEnabled();
++                var originalPr = element.Element(W.pPr);
++                if (originalPr is null) { originalPr = new XElement(W.pPr); element.AddFirst(originalPr); }
++                var markPr = GetOrCreatePPrChild(originalPr, W.rPr);
++                markPr.Elements(W.ins).Remove();
++                markPr.Elements(W.del).Remove();
++                markPr.Add(CreateRevisionEnvelope(W.ins, _revisionAuthor ?? "VeriLex", NextTrackedFormatRevisionDate()));
++            }
+             UnidHelper.AssignToSelfAndDescendants(second);
+             element.AddAfterSelf(second);
+ 
+@@ -7962,22 +8181,40 @@ public sealed partial class DocxSession : IDisposable
+             return EditResult.Fail(EditErrorCode.AnchorsNotAdjacent,
+                 "MergeParagraphs requires second anchor to be the immediate next sibling of first");
+         if (_trackedChanges == TrackedChangeMode.RenderInline)
+-            return TrackedStructureUnsupported("MergeParagraphs", firstAnchorId);
++        {
++            // Keep both paragraphs until this boundary deletion is accepted. This
++            // preserves second-paragraph formatting and permits a faithful reject.
++            var existing = firstEl.Element(W.pPr)?.Element(W.rPr);
++            if (existing?.Element(W.ins) is null)
++            {
++                if (existing?.Element(W.del) is not null)
++                    return EditResult.Fail(EditErrorCode.UnresolvedStructuralRevision,
++                        "paragraph boundary is already deleted", firstAnchorId);
++                _history.RecordPreOp(TakeSnapshot());
++                EnsureTrackRevisionsEnabled();
++                var pr = firstEl.Element(W.pPr);
++                if (pr is null) { pr = new XElement(W.pPr); firstEl.AddFirst(pr); }
++                GetOrCreatePPrChild(pr, W.rPr).Add(CreateRevisionEnvelope(
++                    W.del, _revisionAuthor ?? "VeriLex", NextTrackedFormatRevisionDate()));
++                InvalidateProjectionCache();
++                return new EditResult { Success = true,
++                    Modified = new[] { firstTarget.Anchor, secondTarget.Anchor }, Patch = PatchFor(firstTarget) };
++            }
++            // Deleting a newly inserted boundary cancels that insertion. The
++            // surviving paragraph receives the second paragraph's original mark.
++        }
+ 
+         _history.RecordPreOp(TakeSnapshot());
+         try
+         {
+-            // Insert a single-space separator if both sides end/start with non-whitespace.
+-            // Sentences from two paragraphs should not jam into one another.
+-            var firstTail = ParagraphText(firstEl);
+-            var secondHead = ParagraphText(secondEl);
+-            if (firstTail.Length > 0 && secondHead.Length > 0
+-                && !char.IsWhiteSpace(firstTail[^1])
+-                && !char.IsWhiteSpace(secondHead[0]))
++            if (_trackedChanges == TrackedChangeMode.RenderInline)
+             {
+-                firstEl.Add(new XElement(W.r,
+-                    new XElement(W.t,
+-                        new XAttribute(XNamespace.Xml + "space", "preserve"), " ")));
++                var firstMark = firstEl.Element(W.pPr)?.Element(W.rPr);
++                firstMark?.Elements(W.ins).Remove();
++                firstMark?.Elements(W.del).Remove();
++                var secondMark = secondEl.Element(W.pPr)?.Element(W.rPr);
++                foreach (var mark in secondMark?.Elements().Where(e => e.Name == W.ins || e.Name == W.del).ToList() ?? new List<XElement>())
++                    firstMark?.Add(new XElement(mark));
+             }
+ 
+             // Move every paragraph-level child from secondEl into firstEl in document
+@@ -8605,18 +8842,38 @@ public sealed partial class DocxSession : IDisposable
+         if (element is null) return EditResult.Fail(EditErrorCode.AnchorNotFound, "element null", anchorId);
+         if (RefuseNestedTrackedParagraphPropertyChange(element, anchorId) is { } pending) return pending;
+ 
++        if (op.LeftIndent is not null && op.IndentDelta is not null)
++            return EditResult.Fail(EditErrorCode.InvalidParagraphFormat,
++                "leftIndent and indentDelta cannot be supplied together", anchorId);
+         if (op.FirstLineIndent is not null && op.HangingIndent is not null)
+             return EditResult.Fail(EditErrorCode.InvalidParagraphFormat,
+                 "firstLineIndent and hangingIndent are mutually exclusive (w:ind holds one or the other)", anchorId);
+         if (op.FirstLineIndent is < 0 || op.HangingIndent is < 0 ||
+             op.SpacingBefore is < 0 || op.SpacingAfter is < 0 || op.LineSpacing is < 0)
+             return EditResult.Fail(EditErrorCode.InvalidParagraphFormat,
+-                "indent/spacing values are unsigned twips and must be >= 0", anchorId);
++                "first-line/hanging indent and spacing values must be >= 0", anchorId);
+         if (op.LineSpacingRule is not null && op.LineSpacing is null)
+             return EditResult.Fail(EditErrorCode.InvalidParagraphFormat,
+                 "lineSpacingRule requires lineSpacing (w:lineRule qualifies w:line)", anchorId);
+ 
++        if (op.OutlineLevel is < 0 or > 9 || op.FirstLineIndentCharacterUnits is < 0 ||
++            op.HangingIndentCharacterUnits is < 0 || op.SpacingBeforeLineUnits is < 0 || op.SpacingAfterLineUnits is < 0 ||
++            (op.FirstLineIndentCharacterUnits is not null && op.HangingIndentCharacterUnits is not null) ||
++            (op.LeftIndentCharacterUnits is not null && (op.LeftIndent is not null || op.IndentDelta is not null)) ||
++            (op.RightIndentCharacterUnits is not null && op.RightIndent is not null) ||
++            ((op.FirstLineIndentCharacterUnits is not null || op.HangingIndentCharacterUnits is not null) && (op.FirstLineIndent is not null || op.HangingIndent is not null)) ||
++            (op.SpacingBeforeLineUnits is not null && op.SpacingBefore is not null) ||
++            (op.SpacingAfterLineUnits is not null && op.SpacingAfter is not null) ||
++            (op.TabStops is not null && (op.TabStops.Length > 64 || op.TabStops.Select(t => t.Position).Distinct().Count() != op.TabStops.Length || op.TabStops.Any(t => t.Position < 0 || t.Position > 31680 || t.Alignment is not ("left" or "center" or "right" or "decimal") || t.Leader is not ("none" or "dot" or "hyphen" or "underscore")))))
++            return EditResult.Fail(EditErrorCode.InvalidParagraphFormat, "invalid paragraph units, outline level or tab stops", anchorId);
++
+         var oldPPr = new XElement(element.Element(W.pPr) ?? new XElement(W.pPr));
++        var effectivePPr = FormattingAssembler.ResolveEffectiveParagraphProperties(_doc!, element);
++        // Explicit zero disables inherited character/line-unit formatting in Word.
++        // MS-OI29500 2.1.44 and 2.1.60; clearing a direct attribute revives its style value.
++        // Write the override even when the inspection resolver cannot see a numbering/table-style layer.
++        void DisableAlternateUnit(XElement targetElement, XName attribute)
++            => targetElement.SetAttributeValue(attribute, 0);
+         _history.RecordPreOp(TakeSnapshot());
+         try
+         {
+@@ -8631,6 +8888,7 @@ public sealed partial class DocxSession : IDisposable
+                     ParagraphAlignment.Center => "center",
+                     ParagraphAlignment.Right => "right",
+                     ParagraphAlignment.Justify => "both",
++                    ParagraphAlignment.Distributed => "distribute",
+                     _ => "left",
+                 };
+                 SetPPrChildInOrder(pPr, new XElement(W.jc, new XAttribute(W.val, val)));
+@@ -8639,7 +8897,44 @@ public sealed partial class DocxSession : IDisposable
+             if (op.PageBreakBefore is { } pbb)
+             {
+                 pPr.Element(W.pageBreakBefore)?.Remove();
+-                if (pbb) SetPPrChildInOrder(pPr, new XElement(W.pageBreakBefore));
++                SetPPrChildInOrder(pPr, new XElement(W.pageBreakBefore, new XAttribute(W.val, pbb ? "1" : "0")));
++            }
++
++            foreach (var (name, value) in new[] { ("keepNext", op.KeepNext), ("keepLines", op.KeepLines), ("widowControl", op.WidowControl), ("bidi", op.RightToLeft) })
++                if (value is { } enabled) SetPPrChildInOrder(pPr, new XElement(W.w + name, new XAttribute(W.val, enabled ? "1" : "0")));
++            if (op.OutlineLevel is { } level) SetPPrChildInOrder(pPr, new XElement(W.outlineLvl, new XAttribute(W.val, level)));
++            bool unitRtl = op.RightToLeft ?? (effectivePPr?.Element(W.bidi) is { } direction && (string?)direction.Attribute(W.val) is not ("0" or "false" or "off"));
++            foreach (var (side, value) in new[] { ("left", op.LeftIndentCharacterUnits), ("right", op.RightIndentCharacterUnits) })
++                if (value is { } chars) {
++                    var ind = GetOrCreatePPrChild(pPr, W.ind);
++                    string logical = (side == "left") != unitRtl ? "start" : "end";
++                    foreach (var attr in new[] { side, logical }) {
++                        ind.SetAttributeValue(W.w + attr, 0);
++                        ind.SetAttributeValue(W.w + (attr + "Chars"), chars);
++                    }
++                }
++            if (op.FirstLineIndentCharacterUnits is not null || op.HangingIndentCharacterUnits is not null) {
++                var ind = GetOrCreatePPrChild(pPr, W.ind);
++                ind.SetAttributeValue(W.firstLine, 0); ind.SetAttributeValue(W.hanging, 0);
++                ind.SetAttributeValue(W.w + "firstLineChars", op.FirstLineIndentCharacterUnits ?? 0);
++                ind.SetAttributeValue(W.w + "hangingChars", op.HangingIndentCharacterUnits ?? 0);
++            }
++            foreach (var (side, value) in new[] { ("before", op.SpacingBeforeLineUnits), ("after", op.SpacingAfterLineUnits) })
++                if (value is { } lines) {
++                    var spacing = GetOrCreatePPrChild(pPr, W.spacing);
++                    spacing.SetAttributeValue(W.w + side, 0);
++                    spacing.SetAttributeValue(W.w + (side + "Lines"), lines);
++                    spacing.SetAttributeValue(W.w + (side + "Autospacing"), "0");
++                }
++            if (op.TabStops is { } stops) {
++                var tabs = new XElement(W.tabs);
++                foreach (var pos in (effectivePPr?.Element(W.tabs)?.Elements(W.tab) ?? Enumerable.Empty<XElement>()).Select(t => (string?)t.Attribute(W.pos)).Where(pos => pos is not null).Distinct())
++                    tabs.Add(new XElement(W.tab, new XAttribute(W.val, "clear"), new XAttribute(W.pos, pos!)));
++                foreach (var stop in stops.OrderBy(t => t.Position)) {
++                    tabs.Elements().Where(t => (string?)t.Attribute(W.pos) == stop.Position.ToString(System.Globalization.CultureInfo.InvariantCulture)).Remove();
++                    tabs.Add(new XElement(W.tab, new XAttribute(W.pos, stop.Position), new XAttribute(W.val, stop.Alignment), new XAttribute(W.leader, stop.Leader)));
++                }
++                SetPPrChildInOrder(pPr, tabs);
+             }
+ 
+             if (op.IndentDelta is { } delta && delta != 0)
+@@ -8660,6 +8955,29 @@ public sealed partial class DocxSession : IDisposable
+                 ind.SetAttributeValue(W.left, next);
+             }
+ 
++            if (op.LeftIndent is not null || op.RightIndent is not null)
++            {
++                var ind = GetOrCreatePPrChild(pPr, W.ind);
++                var bidi = effectivePPr?.Element(W.bidi);
++                bool rtl = op.RightToLeft ?? (bidi is not null && (string?)bidi.Attribute(W.val) is not ("0" or "false" or "off"));
++                if (op.LeftIndent is { } left)
++                {
++                    ind.SetAttributeValue(W.left, left);
++                    var logical = W.w + (rtl ? "end" : "start");
++                    ind.SetAttributeValue(logical, left);
++                    DisableAlternateUnit(ind, W.w + "leftChars");
++                    DisableAlternateUnit(ind, W.w + (rtl ? "endChars" : "startChars"));
++                }
++                if (op.RightIndent is { } right)
++                {
++                    ind.SetAttributeValue(W.right, right);
++                    var logical = W.w + (rtl ? "start" : "end");
++                    ind.SetAttributeValue(logical, right);
++                    DisableAlternateUnit(ind, W.w + "rightChars");
++                    DisableAlternateUnit(ind, W.w + (rtl ? "startChars" : "endChars"));
++                }
++            }
++
+             // firstLine/hanging share one w:ind slot in Word: writing either evicts the other
+             // (validation above already rejected an op carrying both).
+             if (op.FirstLineIndent is { } firstLine)
+@@ -8667,12 +8985,16 @@ public sealed partial class DocxSession : IDisposable
+                 var ind = GetOrCreatePPrChild(pPr, W.ind);
+                 ind.SetAttributeValue(W.firstLine, firstLine);
+                 ind.SetAttributeValue(W.hanging, null);
++                DisableAlternateUnit(ind, W.w + "firstLineChars");
++                DisableAlternateUnit(ind, W.w + "hangingChars");
+             }
+             if (op.HangingIndent is { } hanging)
+             {
+                 var ind = GetOrCreatePPrChild(pPr, W.ind);
+                 ind.SetAttributeValue(W.hanging, hanging);
+                 ind.SetAttributeValue(W.firstLine, null);
++                DisableAlternateUnit(ind, W.w + "firstLineChars");
++                DisableAlternateUnit(ind, W.w + "hangingChars");
+             }
+ 
+             if (op.SpacingBefore is not null || op.SpacingAfter is not null || op.LineSpacing is not null)
+@@ -8684,12 +9006,14 @@ public sealed partial class DocxSession : IDisposable
+                 if (op.SpacingBefore is { } before)
+                 {
+                     spacing.SetAttributeValue(W.before, before);
+-                    spacing.SetAttributeValue(W.beforeAutospacing, null);
++                    DisableAlternateUnit(spacing, W.beforeAutospacing);
++                    DisableAlternateUnit(spacing, W.w + "beforeLines");
+                 }
+                 if (op.SpacingAfter is { } after)
+                 {
+                     spacing.SetAttributeValue(W.after, after);
+-                    spacing.SetAttributeValue(W.afterAutospacing, null);
++                    DisableAlternateUnit(spacing, W.afterAutospacing);
++                    DisableAlternateUnit(spacing, W.w + "afterLines");
+                 }
+                 if (op.LineSpacing is { } line)
+                 {
+@@ -10232,8 +10556,6 @@ public sealed partial class DocxSession : IDisposable
+         if (colWidths is not null && (colWidths.Count != cols || colWidths.Any(w => w <= 0)))
+             return EditResult.Fail(EditErrorCode.MalformedMarkdown,
+                 $"ColumnWidths must have one positive width per column ({cols}); got {colWidths.Count}", anchorId);
+-        if (_trackedChanges == TrackedChangeMode.RenderInline)
+-            return TrackedStructureUnsupported("InsertTable", anchorId);
+ 
+         _history.RecordPreOp(TakeSnapshot());
+         try
+@@ -10280,6 +10602,12 @@ public sealed partial class DocxSession : IDisposable
+                 tbl.Add(tr);
+             }
+ 
++            // A table has no table-level insertion marker in Word. Track each row and
++            // its cell contents using the same native encoding as inserted table rows.
++            var tracked = _trackedChanges == TrackedChangeMode.RenderInline;
++            var author = _revisionAuthor ?? "docxodus";
++            var date = tracked ? NextTrackedFormatRevisionDate() : null;
++            if (tracked) MarkTableRowsAsTrackedRevision(tbl, inserted: true, author, date!);
+             UnidHelper.AssignToSelfAndDescendants(tbl);
+ 
+             if (pos == Position.Before) element.AddBeforeSelf(tbl);
+@@ -10293,6 +10621,7 @@ public sealed partial class DocxSession : IDisposable
+             if (afterTbl is null || afterTbl.Name == W.sectPr || afterTbl.Name == W.tbl)
+             {
+                 var trailing = new XElement(W.p);
++                if (tracked) MarkParagraphContentAndMark(trailing, W.ins, author, date!);
+                 UnidHelper.AssignToSelfAndDescendants(trailing);
+                 tbl.AddAfterSelf(trailing);
+             }
+@@ -10550,6 +10879,78 @@ public sealed partial class DocxSession : IDisposable
+             anchorId);
+     }
+ 
++    // A table shape change is represented by native deletion of its old rows and
++    // insertion of its replacement. Further edits to our pending insertion update
++    // that insertion. No pre-existing revision is accepted or flattened.
++    private EditResult MutateTrackedTable(string cellAnchorId, Func<EditResult> mutation)
++    {
++        if (ResolveCell(cellAnchorId, out _, out _, out _, out var table, out _) is { } error)
++            return error;
++        var author = _revisionAuthor ?? "docxodus";
++        var rows = table!.Elements(W.tr).ToList();
++        var ownInsertion = rows.Count > 0 && rows.All(row =>
++            (string?)row.Element(W.trPr)?.Element(W.ins)?.Attribute(W.author) == author
++            && row.Element(W.trPr)?.Element(W.del) is null);
++        var revisions = table.Descendants().Where(e => e.Name.Namespace == W.w &&
++            (e.Name.LocalName is "ins" or "del" or "moveFrom" or "moveTo"
++                or "cellIns" or "cellDel" or "cellMerge" || e.Name.LocalName.EndsWith("PrChange")
++                || e.Name == W.tblGridChange)).ToList();
++        if (revisions.Count > 0 && (!ownInsertion || revisions.Any(e =>
++                (string?)e.Attribute(W.author) != author
++                || e.Name.LocalName is "tcPrChange" or "trPrChange" or "tblPrChange" or "tblGridChange")))
++            return EditResult.Fail(EditErrorCode.UnresolvedStructuralRevision,
++                "table contains pending revisions; resolve them before changing its structure", cellAnchorId);
++        if (table.Descendants(W.tbl).Any() || table.Descendants().Any(e =>
++                e.Name.Namespace == W.w && (e.Name.LocalName is "sdt" or "drawing" or "pict"
++                    or "fldChar" or "fldSimple" or "instrText" or "commentReference" or "bookmarkStart" or "bookmarkEnd"
++                    or "footnoteReference" or "endnoteReference" or "object"
++                    || e.Name.LocalName.EndsWith("RangeStart") || e.Name.LocalName.EndsWith("RangeEnd"))))
++            return TrackedStructureUnsupported("table with comments, fields, notes, drawings, bookmarks or nested content", cellAnchorId);
++
++        using var transaction = BeginTransaction();
++        var mode = _trackedChanges;
++        try
++        {
++            var date = ownInsertion
++                ? (string?)rows[0].Element(W.trPr)!.Element(W.ins)!.Attribute(W.date) ?? NextTrackedFormatRevisionDate()
++                : NextTrackedFormatRevisionDate();
++            if (!ownInsertion)
++            {
++                _history.RecordPreOp(TakeSnapshot());
++                var original = new XElement(table);
++                original.DescendantsAndSelf().Attributes(PtOpenXml.Unid).Remove();
++                UnidHelper.AssignToSelfAndDescendants(original);
++                table.AddBeforeSelf(original);
++                // Keep the original identities on the deletion so rejection restores
++                // them; the inserted copy needs fresh package-unique paragraph ids.
++                var paragraphIds = new Internal.CommentOps.ParaIdAllocator(_doc!.MainDocumentPart!);
++                foreach (var id in table.DescendantsAndSelf().Attributes(W14.paraId))
++                    id.Value = paragraphIds.Next();
++                MarkTableRowsAsTrackedRevision(original, inserted: false, author, date);
++                MarkTableRowsAsTrackedRevision(table, inserted: true, author, date);
++                InvalidateProjectionCache();
++            }
++            // Only the implementation of this already-recorded insertion is direct.
++            // Changing this mode never resolves existing native revisions.
++            _trackedChanges = TrackedChangeMode.Accept;
++            var result = mutation();
++            _trackedChanges = mode;
++            if (!result.Success) return result;
++            if (table.Parent is not null)
++                foreach (var row in table.Elements(W.tr).Where(r => r.Element(W.trPr)?.Element(W.ins) is null))
++                    MarkRowAsTrackedRevision(row, inserted: true, author, date);
++            InvalidateProjectionCache();
++            transaction.Commit();
++            return result;
++        }
++        catch (Exception ex)
++        {
++            LastInternalError = ex;
++            return EditResult.Fail(EditErrorCode.InternalError, ex.Message, cellAnchorId);
++        }
++        finally { _trackedChanges = mode; }
++    }
++
+     private static EditResult TrackedStructureUnsupported(string operation, string anchorId) =>
+         EditResult.Fail(EditErrorCode.TrackedOperationUnsupported,
+             $"{operation} has no reversible native tracked-change encoding on this document shape; no changes were made",
+@@ -10585,7 +10986,21 @@ public sealed partial class DocxSession : IDisposable
+     private void TrackPropertyMutation(XElement current, XElement oldProperties, XName changeName,
+         string author, string date, params XName[] excluded)
+     {
++        // Repeated paragraph formatting by the same reviewer keeps the first before-image.
++        // Never nest pPrChange or replace another reviewer's pending revision.
++        if (changeName == W.pPrChange && OwnPendingParagraphPropertyChange(current) is not null)
++            return;
+         var oldBase = PropertySnapshot(oldProperties, current.Name, changeName, excluded);
++        // An outstanding insertion of numPr already means the original paragraph had
++        // no numbering. Do not duplicate that revision ID inside the before-image.
++        if (changeName == W.pPrChange && OwnPendingNumberingInsertion(oldBase) is not null)
++        {
++            oldBase.Element(W.numPr)?.Remove();
++            // The list and subsequent paragraph formatting are now one cumulative
++            // revision. Leaving a second numPr insertion would let resolving one
++            // revision undo the already accepted state of the other.
++            current.Element(W.numPr)?.Element(W.ins)?.Remove();
++        }
+         if (PropertySnapshotEquals(oldBase, current, changeName, excluded)) return;
+         current.Add(CreateRevisionEnvelope(changeName, author, date, oldBase));
+     }
+@@ -10633,6 +11048,8 @@ public sealed partial class DocxSession : IDisposable
+     /// continuation rather than punching a hole through it. Returns the new canonical cell anchors.</summary>
+     public EditResult InsertTableRow(string cellAnchorId, Position pos)
+     {
++        if (_trackedChanges == TrackedChangeMode.RenderInline)
++            return MutateTrackedTable(cellAnchorId, () => InsertTableRow(cellAnchorId, pos));
+         if (ResolveCell(cellAnchorId, out _, out _, out var tr, out var tbl, out var target) is { } err)
+             return err;
+         if (RefuseUnresolvedTableStructure(tbl!, cellAnchorId) is { } pending) return pending;
+@@ -10699,6 +11116,8 @@ public sealed partial class DocxSession : IDisposable
+     /// canonical cell anchors (top→bottom); rows that only widened contribute none.</summary>
+     public EditResult InsertTableColumn(string cellAnchorId, Position pos)
+     {
++        if (_trackedChanges == TrackedChangeMode.RenderInline)
++            return MutateTrackedTable(cellAnchorId, () => InsertTableColumn(cellAnchorId, pos));
+         if (ResolveCell(cellAnchorId, out _, out var tc, out var tr, out var tbl, out var target) is { } err)
+             return err;
+         if (RefuseUnresolvedTableStructure(tbl!, cellAnchorId) is { } pending) return pending;
+@@ -10823,6 +11242,8 @@ public sealed partial class DocxSession : IDisposable
+     /// restart, so the run is never left headless. Deleting the last row removes the whole table.</summary>
+     public EditResult DeleteTableRow(string cellAnchorId)
+     {
++        if (_trackedChanges == TrackedChangeMode.RenderInline)
++            return MutateTrackedTable(cellAnchorId, () => DeleteTableRow(cellAnchorId));
+         if (ResolveCell(cellAnchorId, out _, out _, out var tr, out var tbl, out var target) is { } err)
+             return err;
+         var hyperlinkOwner = Internal.OwnedPartRelationships.FindOwner(_doc!, tbl!);
+@@ -10896,6 +11317,8 @@ public sealed partial class DocxSession : IDisposable
+     /// removes the whole table.</summary>
+     public EditResult DeleteTableColumn(string cellAnchorId)
+     {
++        if (_trackedChanges == TrackedChangeMode.RenderInline)
++            return MutateTrackedTable(cellAnchorId, () => DeleteTableColumn(cellAnchorId));
+         if (ResolveCell(cellAnchorId, out _, out var tc, out var tr, out var tbl, out var target) is { } err)
+             return err;
+         var hyperlinkOwner = Internal.OwnedPartRelationships.FindOwner(_doc!, tbl!);
+@@ -11034,6 +11457,8 @@ public sealed partial class DocxSession : IDisposable
+     public EditResult MergeCells(string cellAnchorId, int rowSpan, int colSpan,
+         TableMergeOptions? options = null)
+     {
++        if (_trackedChanges == TrackedChangeMode.RenderInline)
++            return MutateTrackedTable(cellAnchorId, () => MergeCells(cellAnchorId, rowSpan, colSpan, options));
+         if (ResolveCell(cellAnchorId, out _, out var tc, out var tr, out var tbl, out var target) is { } err)
+             return err;
+         if (RefuseUnresolvedTableStructure(tbl!, cellAnchorId) is { } pending) return pending;
+@@ -11151,6 +11576,8 @@ public sealed partial class DocxSession : IDisposable
+     /// </summary>
+     public EditResult UnmergeCells(string cellAnchorId)
+     {
++        if (_trackedChanges == TrackedChangeMode.RenderInline)
++            return MutateTrackedTable(cellAnchorId, () => UnmergeCells(cellAnchorId));
+         if (ResolveCell(cellAnchorId, out _, out var tc, out var tr, out var tbl, out var target) is { } err)
+             return err;
+         if (RefuseUnresolvedTableStructure(tbl!, cellAnchorId) is { } pending) return pending;
+@@ -11221,6 +11648,153 @@ public sealed partial class DocxSession : IDisposable
+         }
+     }
+ 
++    /// <summary>Split one visual cell into the requested rows and columns. Existing grid
++    /// boundaries are retained, and neighboring cells span any added grid lines/rows.
++    /// All original cell content stays in the upper-left result.</summary>
++    public EditResult SplitCell(string cellAnchorId, int rowCount, int columnCount)
++    {
++        if (_trackedChanges == TrackedChangeMode.RenderInline)
++            return MutateTrackedTable(cellAnchorId, () => SplitCell(cellAnchorId, rowCount, columnCount));
++        if (ResolveCell(cellAnchorId, out _, out var tc, out var tr, out var tbl, out var target) is { } err)
++            return err;
++        if (rowCount < 1 || rowCount > 20 || columnCount < 1 || columnCount > 20)
++            return MergeFail("split rows and columns must each be between 1 and 20", cellAnchorId);
++        if (RefuseUnresolvedTableStructure(tbl!, cellAnchorId) is { } pending) return pending;
++        var rows = tbl!.Elements(W.tr).ToList();
++        var widths = GridColWidths(tbl);
++        if (widths.Count == 0 || widths.Any(w => w <= 0)
++            || rows.Any(r => RowGrid(r).Count == 0 || RowGrid(r)[0].Start != 0
++                || RowGrid(r)[^1].End != widths.Count)
++            || tbl.Descendants(W.hMerge).Any())
++            return MergeFail("split requires a complete rectangular table grid with positive column widths", cellAnchorId);
++        var shape = RowGrid(tr!).First(g => g.Tc == tc);
++        var r0 = rows.IndexOf(tr!);
++        while (VMergeRestart(tc!) == false && r0 > 0)
++        {
++            r0--;
++            tc = AlignedCell(rows[r0], shape);
++            if (tc is null) return MergeFail("vertical merge has an inconsistent grid", cellAnchorId);
++        }
++        if (VMergeRestart(tc!) == false)
++            return MergeFail("vertical merge has no starting cell", cellAnchorId);
++        var r1 = r0;
++        if (VMergeRestart(tc!) == true)
++            while (r1 + 1 < rows.Count && AlignedCell(rows[r1 + 1], shape) is { } next
++                && VMergeRestart(next) == false) r1++;
++        for (var r = r0 + 1; r <= r1; r++)
++            if (CellBlocks(AlignedCell(rows[r], shape)!).Any(b => !IsEmptyBlock(b)))
++                return MergeFail("vertical merge continuation contains content; preserve it before splitting", cellAnchorId);
++        var height = r1 - r0 + 1;
++        var oldBoundaries = new List<int> { 0 };
++        foreach (var width in widths) oldBoundaries.Add(checked(oldBoundaries[^1] + width));
++        int x0 = oldBoundaries[shape.Start], x1 = oldBoundaries[shape.End];
++        if (x1 - x0 < columnCount)
++            return MergeFail("cell is too narrow for the requested number of columns", cellAnchorId);
++        var cuts = Enumerable.Range(0, columnCount + 1)
++            .Select(i => x0 + (int)((long)(x1 - x0) * i / columnCount)).ToArray();
++        var boundaries = oldBoundaries.Concat(cuts).Distinct().OrderBy(x => x).ToList();
++        var oldMap = oldBoundaries.Select(x => boundaries.IndexOf(x)).ToArray();
++        var columnCuts = cuts.Select(x => boundaries.IndexOf(x)).ToArray();
++        // Integer coordinates form the union of old row boundaries and requested
++        // divisions, avoiding rounded-away rows when splitting a pre-merged cell.
++        var yCuts = Enumerable.Range(0, rowCount + 1).Select(i => i * height).ToArray();
++        var yBoundaries = Enumerable.Range(0, height + 1).Select(i => i * rowCount)
++            .Concat(yCuts).Distinct().OrderBy(y => y).ToArray();
++        if (boundaries.Count - 1 > 63
++            || (long)(rows.Count - height + yBoundaries.Length - 1) * (boundaries.Count - 1) > 10000)
++            return MergeFail("split would exceed the supported table size (63 grid columns / 10000 grid positions)", cellAnchorId);
++        var before = CaptureTableMetadata(tbl);
++        _history.RecordPreOp(TakeSnapshot());
++        try
++        {
++            var grid = tbl.Element(W.tblGrid)!;
++            grid.Elements(W.gridCol).Remove();
++            for (var i = 0; i + 1 < boundaries.Count; i++)
++                grid.Add(new XElement(W.gridCol, new XAttribute(W._w, boundaries[i + 1] - boundaries[i])));
++            // Preserve every neighboring cell's original width and content.
++            foreach (var row in rows)
++                foreach (var cell in RowGrid(row))
++                    SetGridSpan(cell.Tc, oldMap[cell.End] - oldMap[cell.Start]);
++
++            var band = new List<(XElement Row, int Y)>();
++            for (var r = r0; r <= r1; r++)
++            {
++                var row = rows[r];
++                int low = (r - r0) * rowCount, high = low + rowCount;
++                var segments = yBoundaries.Where(y => y >= low && y < high).ToArray();
++                band.Add((row, segments[0]));
++                if (segments.Length == 1) continue;
++                var originals = RowGrid(row);
++                foreach (var cell in originals)
++                    if (VMergeRestart(cell.Tc) is null) SetVMerge(cell.Tc, restart: true);
++                var tail = row;
++                for (var i = 1; i < segments.Length; i++)
++                {
++                    var addedRow = new XElement(W.tr);
++                    if (row.Element(W.trPr) is { } properties)
++                    {
++                        var clone = new XElement(properties);
++                        clone.Elements().Where(e => e.Name == W.ins || e.Name == W.del || e.Name == W.trPrChange).Remove();
++                        addedRow.Add(clone);
++                    }
++                    foreach (var cell in originals)
++                    {
++                        var added = NewEmptyCellLike(cell.Tc, keepSpan: true);
++                        SetVMerge(added, restart: false);
++                        addedRow.Add(added);
++                    }
++                    addedRow.DescendantsAndSelf().Attributes(PtOpenXml.Unid).Remove();
++                    tail.AddAfterSelf(addedRow);
++                    tail = addedRow;
++                    band.Add((addedRow, segments[i]));
++                }
++                // Distribute explicit row heights across the added rows instead of
++                // multiplying their original fixed/minimum height.
++                var rowBand = band.Where(b => b.Y >= low && b.Y < high).ToArray();
++                if ((int?)row.Element(W.trPr)?.Element(W.trHeight)?.Attribute(W.val) is { } oldHeight)
++                    for (var i = 0; i < rowBand.Length; i++)
++                    {
++                        int end = i + 1 < rowBand.Length ? rowBand[i + 1].Y : high;
++                        rowBand[i].Row.Element(W.trPr)!.Element(W.trHeight)!.SetAttributeValue(W.val,
++                            Math.Max(1, (int)((long)oldHeight * (end - rowBand[i].Y) / rowCount)));
++                    }
++            }
++            for (var b = 0; b < band.Count; b++)
++            {
++                var (row, y) = band[b];
++                var cell = RowGrid(row).Single(g => g.Start == columnCuts[0] && g.End == columnCuts[^1]).Tc;
++                var group = Array.FindLastIndex(yCuts, cut => cut <= y);
++                bool vertical = band.Count(x => x.Y >= yCuts[group] && x.Y < yCuts[group + 1]) > 1;
++                var tail = cell;
++                for (var c = 0; c < columnCount; c++)
++                {
++                    var current = c == 0 ? cell : NewEmptyCellLike(cell);
++                    SetGridSpan(current, columnCuts[c + 1] - columnCuts[c]);
++                    SetCellWidth(current, cuts[c + 1] - cuts[c]);
++                    SetVMerge(current, vertical ? y == yCuts[group] : (bool?)null);
++                    if (c > 0) { tail.AddAfterSelf(current); tail = current; }
++                }
++            }
++            UnidHelper.AssignToSelfAndDescendants(tbl);
++            InvalidateProjectionCache();
++            var mapping = CompleteTableMapping(before, tbl);
++            return new EditResult
++            {
++                Success = true,
++                Created = mapping.Added.Where(a => a.EntityKind == TableAnchorEntityKind.Cell).Select(a => a.Anchor).ToList(),
++                Modified = new[] { AnchorForElement(tc!) ?? target!.Anchor },
++                TableAnchors = mapping,
++                Patch = PatchFor(target!),
++            };
++        }
++        catch (Exception ex)
++        {
++            LastInternalError = ex;
++            RollbackFailedOp();
++            return EditResult.Fail(EditErrorCode.InternalError, ex.Message, cellAnchorId);
++        }
++    }
++
+     // ─── Table styling (issue #315 Stage A), addressed by a canonical tc anchor ───────────
+     //
+     // Localized w:tblPr / w:trPr / w:tcPr writes over the grid model above.
+@@ -11649,14 +12223,41 @@ public sealed partial class DocxSession : IDisposable
+         }
+     }
+ 
++    private XElement? OwnPendingNumberingInsertion(XElement? pPr)
++    {
++        var numPr = pPr?.Element(W.numPr);
++        var markers = numPr?.Elements(W.ins).ToList();
++        if (markers is not { Count: 1 } || numPr?.Element(W.numberingChange) is not null) return null;
++        var marker = markers[0];
++        return !marker.HasElements && (string?)marker.Attribute(W.author) == (_revisionAuthor ?? "docxodus")
++            ? marker : null;
++    }
++
++    private XElement? OwnPendingParagraphPropertyChange(XElement? pPr)
++    {
++        var changes = pPr?.Elements(W.pPrChange).ToList();
++        if (changes is not { Count: 1 }) return null;
++        var change = changes[0];
++        return (string?)change.Attribute(W.author) == (_revisionAuthor ?? "docxodus")
++            && change.Elements().Count() == 1 && change.Element(W.pPr) is { } before
++            && !before.Descendants(W.pPrChange).Any()
++            && !before.Descendants().Any(e => e.Attribute(W.author) is not null)
++            ? change : null;
++    }
++
+     private EditResult? RefuseNestedTrackedParagraphPropertyChange(XElement paragraph, string anchorId)
+     {
+         if (_trackedChanges != TrackedChangeMode.RenderInline) return null;
+-        return paragraph.Element(W.pPr)?.Element(W.pPrChange) is null
+-            ? null
+-            : EditResult.Fail(EditErrorCode.UnresolvedStructuralRevision,
+-                "paragraph has an unresolved property revision; resolve it before another tracked property mutation",
+-                anchorId);
++        var pPr = paragraph.Element(W.pPr);
++        var numPr = pPr?.Element(W.numPr);
++        var unsupportedNumberingRevision = numPr?.Element(W.numberingChange) is not null
++            || numPr?.Element(W.ins) is not null && OwnPendingNumberingInsertion(pPr) is null;
++        if (!unsupportedNumberingRevision
++            && (pPr?.Element(W.pPrChange) is null || OwnPendingParagraphPropertyChange(pPr) is not null))
++            return null;
++        return EditResult.Fail(EditErrorCode.UnresolvedStructuralRevision,
++            "paragraph has another reviewer's or an unsupported property revision; resolve it before another tracked property mutation",
++            anchorId);
+     }
+ 
+     private void TrackListPropertyMutation(XElement paragraph, XElement oldPPr, bool insertedNumPr)
+@@ -11665,6 +12266,22 @@ public sealed partial class DocxSession : IDisposable
+         var author = _revisionAuthor ?? "docxodus";
+         var date = NextTrackedFormatRevisionDate();
+         var pPr = paragraph.Element(W.pPr);
++        var ownNumberingInsertion = OwnPendingNumberingInsertion(oldPPr);
++        if (OwnPendingParagraphPropertyChange(pPr) is not null)
++        {
++            // This before-image owns all subsequent paragraph formatting, including
++            // numbering. Keep it atomic instead of emitting a second list revision.
++            pPr?.Element(W.numPr)?.Element(W.ins)?.Remove();
++            return;
++        }
++        if (ownNumberingInsertion is not null)
++        {
++            // Before any paragraph property revision exists, changing our pending list
++            // keeps its original insertion marker; removing it cancels the insertion.
++            if (pPr?.Element(W.numPr) is { } liveNumPr && liveNumPr.Element(W.ins) is null)
++                liveNumPr.Add(new XElement(ownNumberingInsertion));
++            return;
++        }
+         var oldBase = PropertySnapshot(oldPPr, W.pPr, W.pPrChange, W.rPr, W.sectPr);
+         var newBase = PropertySnapshot(pPr, W.pPr, W.pPrChange, W.rPr, W.sectPr);
+         if (XNode.DeepEquals(oldBase, newBase)) return;
+@@ -13644,6 +14261,7 @@ public sealed partial class DocxSession : IDisposable
+                 var rFonts = new XElement(W.rFonts,
+                     new XAttribute(W.ascii, op.FontFamily),
+                     new XAttribute(W.hAnsi, op.FontFamily),
++                    new XAttribute(W.eastAsia, op.FontFamily),
+                     new XAttribute(W.cs, op.FontFamily));
+                 WordprocessingMLUtil.InsertRPrChildInOrder(rPr, rFonts);
+             }
+@@ -14031,7 +14649,7 @@ public sealed partial class DocxSession : IDisposable
+             if (consumed < offset && offset < consumed + length)
+             {
+                 if (child.Name == W.r) return false;
+-                if (child.Name != W.hyperlink) return true;
++                if (child.Name != W.hyperlink && child.Name != W.ins) return true;
+ 
+                 int localOffset = offset - consumed;
+                 int hyperlinkConsumed = 0;
+@@ -14102,7 +14720,7 @@ public sealed partial class DocxSession : IDisposable
+             if (consumed == offset) return; // boundary already clean
+             int local = offset - consumed;
+ 
+-            if (child.Name == W.hyperlink)
++            if (child.Name == W.hyperlink || child.Name == W.ins)
+                 SplitHyperlinkAt(child, local);
+             // For <w:r>: SplitRunsAtOffset already handled it. For sdt/fldSimple/smartTag and
+             // revision wrappers: treat as atomic — callers that insert a top-level child must
+@@ -14128,7 +14746,7 @@ public sealed partial class DocxSession : IDisposable
+         }
+         if (movedChildren.Count == 0) return;
+ 
+-        var newLink = new XElement(W.hyperlink);
++        var newLink = new XElement(hyperlink.Name);
+         // Every attribute EXCEPT the Unid: that one is this hyperlink's identity, and the public
+         // hl:<scope>:<unid> id is derived from it. Cloning it would give the two halves the same id,
+         // so FindHyperlinkElement would match only the first and Update/RemoveHyperlink would
+diff --git a/Docxodus/Internal/DocxSessionJson.cs b/Docxodus/Internal/DocxSessionJson.cs
+index 14a00ab9..bca9a70a 100644
+--- a/Docxodus/Internal/DocxSessionJson.cs
++++ b/Docxodus/Internal/DocxSessionJson.cs
+@@ -408,6 +408,7 @@ internal static class DocxSessionJson
+             "center" => ParagraphAlignment.Center,
+             "right" => ParagraphAlignment.Right,
+             "justify" or "both" => ParagraphAlignment.Justify,
++            "distributed" => ParagraphAlignment.Distributed,
+             _ => null,
+         };
+         LineSpacingRule? lineRule = TryGetString(root, "lineSpacingRule", null)?.ToLowerInvariant() switch
+@@ -421,6 +422,8 @@ internal static class DocxSessionJson
+         {
+             Alignment = align,
+             IndentDelta = TryGetIntNullable(root, "indentDelta"),
++            LeftIndent = TryGetIntNullable(root, "leftIndent"),
++            RightIndent = TryGetIntNullable(root, "rightIndent"),
+             FirstLineIndent = TryGetIntNullable(root, "firstLineIndent"),
+             HangingIndent = TryGetIntNullable(root, "hangingIndent"),
+             SpacingBefore = TryGetIntNullable(root, "spacingBefore"),
+@@ -428,6 +431,20 @@ internal static class DocxSessionJson
+             LineSpacing = TryGetIntNullable(root, "lineSpacing"),
+             LineSpacingRule = lineRule,
+             PageBreakBefore = TryGetBoolNullable(root, "pageBreakBefore"),
++            KeepNext = TryGetBoolNullable(root, "keepNext"),
++            KeepLines = TryGetBoolNullable(root, "keepLines"),
++            WidowControl = TryGetBoolNullable(root, "widowControl"),
++            RightToLeft = TryGetBoolNullable(root, "rightToLeft"),
++            OutlineLevel = TryGetIntNullable(root, "outlineLevel"),
++            LeftIndentCharacterUnits = TryGetIntNullable(root, "leftIndentCharacterUnits"),
++            RightIndentCharacterUnits = TryGetIntNullable(root, "rightIndentCharacterUnits"),
++            FirstLineIndentCharacterUnits = TryGetIntNullable(root, "firstLineIndentCharacterUnits"),
++            HangingIndentCharacterUnits = TryGetIntNullable(root, "hangingIndentCharacterUnits"),
++            SpacingBeforeLineUnits = TryGetIntNullable(root, "spacingBeforeLineUnits"),
++            SpacingAfterLineUnits = TryGetIntNullable(root, "spacingAfterLineUnits"),
++            TabStops = root.TryGetProperty("tabStops", out var tabs) && tabs.ValueKind == JsonValueKind.Array
++                ? tabs.EnumerateArray().Select(t => new ParagraphTabStop { Position = t.GetProperty("position").GetInt32(), Alignment = TryGetString(t, "alignment", "left")!, Leader = TryGetString(t, "leader", "none")! }).ToArray() : null,
++
+             TopBorder = ParseBorderEdge(root, "topBorder"),
+             BottomBorder = ParseBorderEdge(root, "bottomBorder"),
+             ClearBorders = TryGetBoolNullable(root, "clearBorders"),
+@@ -473,6 +490,7 @@ internal static class DocxSessionJson
+             "center" => ParagraphAlignment.Center,
+             "right" => ParagraphAlignment.Right,
+             "justify" or "both" => ParagraphAlignment.Justify,
++            "distributed" => ParagraphAlignment.Distributed,
+             _ => null,
+         };
+         List<int>? widths = null;
+@@ -2392,6 +2410,7 @@ internal static class DocxSessionJson
+         AppendParagraphFormatting(sb, inspection.DirectParagraph);
+         sb.Append(",\"effectiveParagraph\":");
+         AppendParagraphFormatting(sb, inspection.EffectiveParagraph);
++        sb.Append(",\"unresolvedInheritedFormatting\":").Append(inspection.UnresolvedInheritedFormatting ? "true" : "false");
+         sb.Append(",\"runs\":");
+         AppendInlineSpans(sb, inspection.Runs);
+         sb.Append('}');
+@@ -2460,6 +2479,7 @@ internal static class DocxSessionJson
+             ParagraphAlignment.Center => "center",
+             ParagraphAlignment.Right => "right",
+             ParagraphAlignment.Justify => "justify",
++            ParagraphAlignment.Distributed => "distributed",
+             ParagraphAlignment.Left => "left",
+             _ => null,
+         });
+@@ -2469,6 +2489,14 @@ internal static class DocxSessionJson
+         IntValue("hangingIndentTwips", f.HangingIndentTwips);
+         IntValue("spacingBeforeTwips", f.SpacingBeforeTwips);
+         IntValue("spacingAfterTwips", f.SpacingAfterTwips);
++        IntValue("leftIndentCharacterUnits", f.LeftIndentCharacterUnits);
++        IntValue("rightIndentCharacterUnits", f.RightIndentCharacterUnits);
++        IntValue("firstLineIndentCharacterUnits", f.FirstLineIndentCharacterUnits);
++        IntValue("hangingIndentCharacterUnits", f.HangingIndentCharacterUnits);
++        IntValue("spacingBeforeLineUnits", f.SpacingBeforeLineUnits);
++        IntValue("spacingAfterLineUnits", f.SpacingAfterLineUnits);
++        BoolValue("spacingBeforeAuto", f.SpacingBeforeAuto);
++        BoolValue("spacingAfterAuto", f.SpacingAfterAuto);
+         IntValue("lineSpacing", f.LineSpacing);
+         StringValue("lineSpacingRule", f.LineSpacingRule switch
+         {
+@@ -2477,6 +2505,18 @@ internal static class DocxSessionJson
+             LineSpacingRule.Auto => "auto",
+             _ => null,
+         });
++        BoolValue("widowControl", f.WidowControl);
++        BoolValue("rightToLeft", f.RightToLeft);
++        if (f.TabStops is not null) {
++            if (has) sb.Append(','); has = true;
++            sb.Append("\"tabStops\":[");
++            bool comma = false;
++            foreach (var tab in f.TabStops) {
++                if (comma) sb.Append(','); comma = true;
++                sb.Append("{\"position\":").Append(tab.Position).Append(",\"alignment\":").Append(JsonString(tab.Alignment)).Append(",\"leader\":").Append(JsonString(tab.Leader)).Append('}');
++            }
++            sb.Append(']');
++        }
+         BoolValue("keepNext", f.KeepNext);
+         BoolValue("keepLines", f.KeepLines);
+         BoolValue("pageBreakBefore", f.PageBreakBefore);
+diff --git a/Docxodus/Internal/DocxSessionOps.cs b/Docxodus/Internal/DocxSessionOps.cs
+index 2367bb70..fcd9dbbe 100644
+--- a/Docxodus/Internal/DocxSessionOps.cs
++++ b/Docxodus/Internal/DocxSessionOps.cs
+@@ -439,6 +439,12 @@ internal static class DocxSessionOps
+         Mutate(handle, preconditions, anchorId,
+             s => s.InsertParagraph(anchorId, position, markdown));
+ 
++    public static string SyncKeyboardText(int handle, string anchorId, string text) =>
++        Mutate(handle, null, anchorId, s => s.SyncKeyboardText(anchorId, text));
++
++    public static string InsertKeyboardControl(int handle, string anchorId, int offset, string kind) =>
++        Mutate(handle, null, anchorId, s => s.InsertKeyboardControl(anchorId, offset, kind));
++
+     public static string SplitParagraph(int handle, string anchorId, int characterOffset,
+         MutationPreconditions? preconditions = null) =>
+         Mutate(handle, preconditions, anchorId,
+@@ -876,6 +882,10 @@ internal static class DocxSessionOps
+         MutationPreconditions? preconditions = null) =>
+         Mutate(handle, preconditions, cellAnchorId, s => s.UnmergeCells(cellAnchorId));
+ 
++    public static string SplitCell(int handle, string cellAnchorId, int rows, int columns,
++        MutationPreconditions? preconditions = null) =>
++        Mutate(handle, preconditions, cellAnchorId, s => s.SplitCell(cellAnchorId, rows, columns));
++
+     // ─── Table styling (issue #315 Stage A) ─────────────────────────────
+ 
+     /// <summary><paramref name="widthsJson"/> is a JSON array of per-column twip widths
+diff --git a/Docxodus/Internal/FormattingIntrospectionOps.cs b/Docxodus/Internal/FormattingIntrospectionOps.cs
+index b563cc21..4cde724d 100644
+--- a/Docxodus/Internal/FormattingIntrospectionOps.cs
++++ b/Docxodus/Internal/FormattingIntrospectionOps.cs
+@@ -98,23 +98,38 @@ internal static class FormattingIntrospectionOps
+         var paragraph = target.Resolve(doc);
+         if (paragraph is null || paragraph.Name != W.p) return null;
+ 
+-        var direct = ParseParagraph(paragraph.Element(W.pPr), effective: false, effectiveStyleId: null);
++        var effectiveProperties = FormattingAssembler.ResolveEffectiveParagraphProperties(doc, paragraph);
++        var direct = ParseParagraph(paragraph.Element(W.pPr), effective: false, effectiveStyleId: null,
++            rightToLeft: ReadOnOffElement(effectiveProperties.Element(W.bidi)));
+         var effectiveStyleId = (string?)paragraph.Element(W.pPr)?.Element(W.pStyle)?.Attribute(W.val)
+             ?? DefaultParagraphStyleId(doc);
+-        var effective = ParseParagraph(
+-            FormattingAssembler.ResolveEffectiveParagraphProperties(doc, paragraph),
+-            effective: true,
+-            effectiveStyleId);
++        var effective = ParseParagraph(effectiveProperties, effective: true, effectiveStyleId);
+ 
+         return new FormattingInspection
+         {
+             AnchorId = target.Anchor.Id,
+             DirectParagraph = direct,
+             EffectiveParagraph = effective,
++            UnresolvedInheritedFormatting = HasUnresolvedParagraphInheritance(doc, paragraph, effectiveProperties),
+             Runs = ListInlineSpans(doc, target),
+         };
+     }
+ 
++    private static bool HasUnresolvedParagraphInheritance(WordprocessingDocument doc, XElement paragraph, XElement effectiveProperties)
++    {
++        var numId = (string?)effectiveProperties.Element(W.numPr)?.Element(W.numId)?.Attribute(W.val);
++        if (!string.IsNullOrEmpty(numId) && numId != "0") return true;
++        var table = paragraph.Ancestors(W.tbl).FirstOrDefault();
++        var styles = doc.MainDocumentPart?.StyleDefinitionsPart?.GetXDocument().Root;
++        if (table is null || styles is null) return false;
++        var styleId = (string?)table.Element(W.tblPr)?.Element(W.tblStyle)?.Attribute(W.val)
++            ?? (string?)styles.Elements(W.style).FirstOrDefault(style =>
++                (string?)style.Attribute(W.type) == "table" && ReadOnOffAttribute(style.Attribute(W._default)) == true)?.Attribute(W.styleId);
++        if (string.IsNullOrEmpty(styleId) || !styles.Elements(W.style).Any(style => (string?)style.Attribute(W.styleId) == styleId)) return false;
++        return FormattingAssembler.ResolveTableStyle(doc, styleId).Descendants(W.pPr)
++            .Any(properties => properties.HasElements || properties.HasAttributes);
++    }
++
+     public static IReadOnlyList<InlineSpan> ListInlineSpans(
+         WordprocessingDocument doc, AnchorTarget target)
+     {
+@@ -174,11 +189,13 @@ internal static class FormattingIntrospectionOps
+             .Attribute(W.styleId);
+ 
+     private static ParagraphFormatting ParseParagraph(
+-        XElement? pPr, bool effective, string? effectiveStyleId)
++        XElement? pPr, bool effective, string? effectiveStyleId, bool? rightToLeft = null)
+     {
+         var ind = pPr?.Element(W.ind);
+         var spacing = pPr?.Element(W.spacing);
+         var alignment = ParseAlignment((string?)pPr?.Element(W.jc)?.Attribute(W.val));
++        var bidi = pPr?.Element(W.bidi);
++        bool rtl = rightToLeft ?? (bidi is not null && (string?)bidi.Attribute(W.val) is not ("0" or "false" or "off"));
+         var line = ReadIntAttribute(spacing?.Attribute(W.line));
+         var lineRule = ParseLineSpacingRule((string?)spacing?.Attribute(W.lineRule));
+ 
+@@ -187,14 +204,25 @@ internal static class FormattingIntrospectionOps
+             StyleId = effectiveStyleId
+                 ?? (string?)pPr?.Element(W.pStyle)?.Attribute(W.val),
+             Alignment = alignment,
+-            LeftIndentTwips = ReadIntAttribute(ind?.Attribute(W.left) ?? ind?.Attribute(W.start)),
+-            RightIndentTwips = ReadIntAttribute(ind?.Attribute(W.right) ?? ind?.Attribute(W.end)),
++            LeftIndentTwips = ReadIntAttribute(ind?.Attribute(rtl ? W.end : W.start) ?? ind?.Attribute(W.left)),
++            RightIndentTwips = ReadIntAttribute(ind?.Attribute(rtl ? W.start : W.end) ?? ind?.Attribute(W.right)),
+             FirstLineIndentTwips = ReadIntAttribute(ind?.Attribute(W.firstLine)),
+             HangingIndentTwips = ReadIntAttribute(ind?.Attribute(W.hanging)),
+             SpacingBeforeTwips = ReadIntAttribute(spacing?.Attribute(W.before)),
+             SpacingAfterTwips = ReadIntAttribute(spacing?.Attribute(W.after)),
++            LeftIndentCharacterUnits = ReadIntAttribute(ind?.Attribute(W.w + (rtl ? "endChars" : "startChars")) ?? ind?.Attribute(W.w + "leftChars")),
++            RightIndentCharacterUnits = ReadIntAttribute(ind?.Attribute(W.w + (rtl ? "startChars" : "endChars")) ?? ind?.Attribute(W.w + "rightChars")),
++            FirstLineIndentCharacterUnits = ReadIntAttribute(ind?.Attribute(W.w + "firstLineChars")),
++            HangingIndentCharacterUnits = ReadIntAttribute(ind?.Attribute(W.w + "hangingChars")),
++            SpacingBeforeLineUnits = ReadIntAttribute(spacing?.Attribute(W.w + "beforeLines")),
++            SpacingAfterLineUnits = ReadIntAttribute(spacing?.Attribute(W.w + "afterLines")),
++            SpacingBeforeAuto = ReadOnOffAttribute(spacing?.Attribute(W.beforeAutospacing)),
++            SpacingAfterAuto = ReadOnOffAttribute(spacing?.Attribute(W.afterAutospacing)),
+             LineSpacing = line,
+-            LineSpacingRule = line is null ? null : lineRule ?? LineSpacingRule.Auto,
++            LineSpacingRule = lineRule,
++            RightToLeft = ReadOnOffElement(pPr?.Element(W.bidi)),
++            WidowControl = ReadOnOffElement(pPr?.Element(W.widowControl)),
++            TabStops = pPr?.Element(W.tabs)?.Elements(W.tab).Where(t => (string?)t.Attribute(W.val) != "clear").Select(t => new ParagraphTabStop { Position = ReadIntAttribute(t.Attribute(W.pos)) ?? 0, Alignment = (string?)t.Attribute(W.val) ?? "left", Leader = (string?)t.Attribute(W.leader) ?? "none" }).ToArray(),
+             KeepNext = ReadOnOffElement(pPr?.Element(W.keepNext)),
+             KeepLines = ReadOnOffElement(pPr?.Element(W.keepLines)),
+             PageBreakBefore = ReadOnOffElement(pPr?.Element(W.pageBreakBefore)),
+@@ -216,6 +244,8 @@ internal static class FormattingIntrospectionOps
+             SpacingAfterTwips = value.SpacingAfterTwips ?? 0,
+             LineSpacing = value.LineSpacing ?? 240,
+             LineSpacingRule = value.LineSpacingRule ?? LineSpacingRule.Auto,
++            RightToLeft = value.RightToLeft ?? false,
++            WidowControl = value.WidowControl ?? true,
+             KeepNext = value.KeepNext ?? false,
+             KeepLines = value.KeepLines ?? false,
+             PageBreakBefore = value.PageBreakBefore ?? false,
+@@ -313,7 +343,8 @@ internal static class FormattingIntrospectionOps
+         "left" or "start" => ParagraphAlignment.Left,
+         "center" => ParagraphAlignment.Center,
+         "right" or "end" => ParagraphAlignment.Right,
+-        "both" or "distribute" => ParagraphAlignment.Justify,
++        "both" => ParagraphAlignment.Justify,
++        "distribute" => ParagraphAlignment.Distributed,
+         _ => null,
+     };
+ 
+diff --git a/Docxodus/WmlToHtmlConverter.cs b/Docxodus/WmlToHtmlConverter.cs
+index 619cea2c..7c341073 100644
+--- a/Docxodus/WmlToHtmlConverter.cs
++++ b/Docxodus/WmlToHtmlConverter.cs
+@@ -6576,6 +6576,25 @@ namespace Docxodus
+ 
+             DefineFontSize(style, paragraph);
+             DefineLineHeight(style, paragraph);
++            var unitInd = pPr.Element(W.ind);
++            decimal Unit(string name) => WordprocessingMLUtil.AttributeToTwips(unitInd?.Attribute(W.w + name)) ?? 0;
++            var leftChars = Unit(isBidi ? "endChars" : "startChars");
++            if (leftChars == 0) leftChars = Unit("leftChars");
++            var rightChars = Unit(isBidi ? "startChars" : "endChars");
++            if (rightChars == 0) rightChars = Unit("rightChars");
++            string Em(decimal v) => (v / 100).ToString(CultureInfo.InvariantCulture) + "em";
++            if (leftChars != 0) style["margin-left"] = Em(leftChars);
++            if (rightChars != 0) style["margin-right"] = Em(rightChars);
++            if (Unit("hangingChars") != 0) style["text-indent"] = Em(-Unit("hangingChars"));
++            else if (Unit("firstLineChars") != 0) style["text-indent"] = Em(Unit("firstLineChars"));
++            foreach (var side in new[] { "before", "after" }) {
++                var lines = WordprocessingMLUtil.AttributeToTwips(pPr.Element(W.spacing)?.Attribute(W.w + (side + "Lines"))) ?? 0;
++                if (lines != 0) style[side == "before" ? "margin-top" : "margin-bottom"] = (lines / 100m).ToString(CultureInfo.InvariantCulture) + "lh";
++            }
++            if ((string)pPr.Element(W.jc)?.Attribute(W.val) == "distribute") {
++                style["text-align"] = "justify"; style["text-align-last"] = "justify";
++            }
++
+ 
+             // vertical text alignment as of December 2013 does not work in any major browsers.
+             CreateStyleFromTextAlignment(style, pPr.Element(W.textAlignment));
+diff --git a/wasm/DocxodusWasm/DocxSessionBridge.cs b/wasm/DocxodusWasm/DocxSessionBridge.cs
+index 60aaed10..4be79ef6 100644
+--- a/wasm/DocxodusWasm/DocxSessionBridge.cs
++++ b/wasm/DocxodusWasm/DocxSessionBridge.cs
+@@ -352,6 +352,14 @@ public static partial class DocxSessionBridge
+     public static string InsertParagraph(int h, string anchor, string posStr, string md) =>
+         DocxSessionOps.InsertParagraph(h, anchor, DocxSessionJson.ParsePos(posStr), md);
+ 
++    [JSExport]
++    public static string SyncKeyboardText(int h, string anchor, string text) =>
++        DocxSessionOps.SyncKeyboardText(h, anchor, text);
++
++    [JSExport]
++    public static string InsertKeyboardControl(int h, string anchor, int offset, string kind) =>
++        DocxSessionOps.InsertKeyboardControl(h, anchor, offset, kind);
++
+     [JSExport]
+     public static string SplitParagraph(int h, string anchor, int offset) =>
+         DocxSessionOps.SplitParagraph(h, anchor, offset);
+@@ -421,6 +429,11 @@ public static partial class DocxSessionBridge
+     public static string UnmergeCells(int h, string cellAnchor) =>
+         DocxSessionOps.UnmergeCells(h, cellAnchor);
+ 
++    /// <summary>Split a visual cell into the specified total rows and columns.</summary>
++    [JSExport]
++    public static string SplitCell(int h, string cellAnchor, int rows, int columns) =>
++        DocxSessionOps.SplitCell(h, cellAnchor, rows, columns);
++
+     /// <summary>Retune the column widths of the table containing <paramref name="cellAnchor"/>.
+     /// <paramref name="widthsJson"/> is a JSON array of per-column twip widths (one positive
+     /// value per column, left→right).</summary>

@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "source": {
+    "repository_url": "https://github.com/google/fonts.git",
+    "commit": "ade3d1533e06b2b1462ffcde8e08b129627ca360",
+    "tree": "4c76fa531b58ca8f7b328f6eb21283cea8c25b9c"
+  },
+  "license_path": "qa/documents/fonts/LICENSES/OFL-1.1.txt",
+  "license_sha256": "ba055ffb6aed1fd0849e50686d09e0ea5a145b31a4b1a86d89f44ca02d136d5a",
+  "fonts": [
+    {
+      "family": "Noto Sans SC",
+      "source_path": "ofl/notosanssc/NotoSansSC[wght].ttf",
+      "sha256": "a3041811a78c361b1de50f953c805e0244951c21c5bd412f7232ef0d899af0da",
+      "license": "OFL-1.1",
+      "upstream_license_path": "ofl/notosanssc/OFL.txt",
+      "upstream_license_sha256": "1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9"
+    },
+    {
+      "family": "Noto Serif SC",
+      "source_path": "ofl/notoserifsc/NotoSerifSC[wght].ttf",
+      "sha256": "050080d9255a86808f2945bffac582b31ef32bc36411ce29563b4961670c66f9",
+      "license": "OFL-1.1",
+      "upstream_license_path": "ofl/notoserifsc/OFL.txt",
+      "upstream_license_sha256": "5e0da210fb04058a8c0087985d2d456b931c2579811a49655721d3cf0c36b6d6"
+    },
+    {
+      "family": "Carlito",
+      "source_path": "ofl/carlito/Carlito-Regular.ttf",
+      "sha256": "f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595",
+      "license": "OFL-1.1",
+      "upstream_license_path": "ofl/carlito/OFL.txt",
+      "upstream_license_sha256": "58402f82a7c332a700294988fe7554fbb0a63a8d27ccc1ee3bbc640311990a00"
+    },
+    {
+      "family": "Caladea",
+      "source_path": "ofl/caladea/Caladea-Regular.ttf",
+      "sha256": "f1e899278b7b4491aba5b6a8253c4b04c050cc59b21865be5c37559a775153cd",
+      "license": "OFL-1.1",
+      "upstream_license_path": "ofl/caladea/OFL.txt",
+      "upstream_license_sha256": "ccdab61d371d8c8683a128a92cd7d498dbdb1d37689f7cb21f1bf6b16658d213"
+    }
+  ]
+}

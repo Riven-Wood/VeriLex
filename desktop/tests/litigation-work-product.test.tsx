@@ -1,0 +1,51 @@
+vi.mock('../src/views/LitigationVisualizations',()=>({LitigationVisualizations:()=>null}));
+import {editorClient} from '../src/components/editor/client';
+vi.mock('../src/components/editor/client',()=>({editorClient:{list:vi.fn().mockResolvedValue({products:[],errors:[]})}}));
+import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
+import {afterEach,beforeEach,expect,test,vi} from 'vitest';
+import {LitigationWorkProduct} from '../src/views/LitigationWorkProduct';
+import {litigationWorkClient} from '../src/views/LitigationClient';
+vi.mock('../src/views/LitigationClient',()=>({litigationWorkClient:{read:vi.fn(),versions:vi.fn()}}));
+const first={revision:1,data:{title:'案件经过',sections:[{id:'s1',title:'签约',body:'第一版签约内容',pending:['日期待核实'],sources:[{path:'合同.txt',page:null,quote:'签订合同'}]},{id:'s2',title:'付款',body:'付款待核实',pending:[],sources:[]}]}};
+const props={workspaceId:'w1',kind:'facts' as const,materials:['合同.txt'],busy:false,refreshKey:0,onStart:vi.fn(),onOpenSource:vi.fn(),canWrite:true,visible:true};
+beforeEach(()=>{vi.mocked(editorClient.list).mockResolvedValue({products:[],errors:[]});vi.mocked(litigationWorkClient.read).mockResolvedValue(first);});
+afterEach(()=>{cleanup();vi.resetAllMocks();});
+test('central result opens exact source and binds discussion to the selected section without composing a prompt',async()=>{
+ render(<LitigationWorkProduct {...props}/>);fireEvent.click(screen.getByRole('tab',{name:'事实底稿'}));
+ expect(await screen.findByText('第一版签约内容')).toBeTruthy();
+ fireEvent.click(screen.getAllByRole('button',{name:'讨论此项'})[0]);
+ expect(props.onStart).toHaveBeenCalledWith({kind:'facts',section_id:'s1',materials:['合同.txt'],expected_revision:1,title:'签约'});
+ fireEvent.click(screen.getByText('材料出处 · 1 处'));
+ fireEvent.click(screen.getByRole('button',{name:'合同.txt'}));expect(props.onOpenSource).toHaveBeenCalledWith('合同.txt',undefined,expect.objectContaining({quote:'签订合同'}));
+});
+test('material citation passes the physical PDF page to the workbench',async()=>{
+ vi.mocked(litigationWorkClient.read).mockResolvedValue({...first,data:{...first.data,sections:[{...first.data.sections[0],sources:[{path:'案卷.pdf',page:45,quote:'审计意见'}]}]}});
+ render(<LitigationWorkProduct {...props}/>);fireEvent.click(screen.getByRole('tab',{name:'事实底稿'}));
+ fireEvent.click(await screen.findByText('材料出处 · 1 处'));
+ fireEvent.click(screen.getByRole('button',{name:'案卷.pdf · 第45页'}));
+ expect(props.onOpenSource).toHaveBeenCalledWith('案卷.pdf',45,expect.objectContaining({quote:'审计意见'}));
+});
+test('completion refreshes central result and history stays read-only',async()=>{
+ const view=render(<LitigationWorkProduct {...props}/>);fireEvent.click(screen.getByRole('tab',{name:'事实底稿'}));await screen.findByText('第一版签约内容');
+ const next={...first,revision:2,data:{...first.data,sections:[{...first.data.sections[0],body:'第二版签约内容'},first.data.sections[1]]}};
+ vi.mocked(litigationWorkClient.read).mockResolvedValue(next);
+ view.rerender(<LitigationWorkProduct {...props} refreshKey={1}/>);
+ expect(await screen.findByText('第二版签约内容')).toBeTruthy();expect(screen.getByText('付款待核实')).toBeTruthy();
+ vi.mocked(litigationWorkClient.versions).mockResolvedValue({versions:[next,first]});
+ fireEvent.click(screen.getByRole('button',{name:'历史版本'}));
+ fireEvent.change(await screen.findByRole('combobox',{name:'查看版本'}),{target:{value:'1'}});
+ expect(screen.getByText('第一版签约内容')).toBeTruthy();expect(screen.queryByRole('button',{name:'讨论此项'})).toBeNull();
+ expect(screen.getByRole('button',{name:'讨论整份成果'})).toHaveProperty('disabled',true);
+ view.rerender(<LitigationWorkProduct {...props} refreshKey={1} focusKey={1}/>);
+ await waitFor(()=>expect(screen.queryByText('第一版签约内容')).toBeNull());
+ expect(screen.getByText('第二版签约内容')).toBeTruthy();
+});
+test('late response from previous workspace cannot replace the current case',async()=>{
+ let finish!:(value:typeof first)=>void;
+ vi.mocked(litigationWorkClient.read).mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve;})).mockResolvedValue({revision:0,data:null});
+ const view=render(<LitigationWorkProduct {...props}/>);fireEvent.click(screen.getByRole('tab',{name:'事实底稿'}));
+ view.rerender(<LitigationWorkProduct {...props} workspaceId="w2"/>);
+ await waitFor(()=>expect(screen.getByRole('button',{name:'开始事实梳理'})).toHaveProperty('disabled',false));
+ finish(first);
+ await waitFor(()=>expect(screen.queryByText('第一版签约内容')).toBeNull());
+});

@@ -1,0 +1,10 @@
+{
+  "source_url": "https://www.ftcourt.gov.cn/attachment/0/92/92645/1577086.docx",
+  "publication_url": "https://www.ftcourt.gov.cn/ssfw/sszn/content/post_1577086.html",
+  "publication_date": "2025-07-14",
+  "retrieved_at": "2026-09-09",
+  "download_sha256": "431af12dbada0e774754f5731f5b863812af62919282a9e18c5d21451b12648c",
+  "extracted_sha256": "299887f3470b8a5f376d3222739102d8ac87299c41d40df2c5fab08d61985255",
+  "extraction": "附件实际为OLE DOC。LibreOffice转换为OOXML后，提取body 1148/1149/1151/1157/1163/1169/1175/1181/1182：空白起诉状，不含答辩状或实例；此索引只适用于本次哈希固定的附件。",
+  "rights": "官方司法文书示范文本正文；不含出版社说明、案例实例或第三方模板代码"
+}
