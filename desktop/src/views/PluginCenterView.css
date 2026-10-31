@@ -6,6 +6,7 @@ body:has(.app-frame[data-view="plugins"]) { min-width: 0; }
   padding: 28px 36px 48px; min-width: 0; overflow-y: auto;
 }
 .plugin-center-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding-bottom: 20px; margin-bottom: 20px; border-bottom: 1px solid var(--border-subtle); }
+.plugin-center-heading:has(#plugin-tab-skills[aria-selected="true"]) { margin-bottom: 8px; }
 .plugin-center-heading h1 { flex-shrink: 0; margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -.5px; }
 .plugin-center .plugin-center-toolbar {
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
@@ -54,6 +55,9 @@ body:has(.app-frame[data-view="plugins"]) { min-width: 0; }
 .plugin-center .mcp-editor-entry { padding: 20px; gap: 14px; }
 .plugin-catalog-detail .mcp-editor-entry > .mcp-editor-grid { grid-template-columns: minmax(0, 1fr); }
 .plugin-center .mcp-editor-actions { flex-wrap: wrap; padding-top: 4px; }
+.yuandian-dialog { width:min(520px,calc(100vw - 40px)); }
+.yuandian-dialog .yuandian-setup-settings { display:flex; flex-direction:column; gap:16px; padding:24px; }
+.yuandian-dialog .yuandian-setup-settings .mcp-editor-actions { align-self:stretch; justify-content:flex-end; }
 .plugin-center .mcp-consequence, .plugin-center .mcp-inline-copy { color: var(--text-secondary); font-size: 12px; }
 .plugin-center .mcp-server-tools { padding: 12px 0; }
 .plugin-center .mcp-server-tools small, .plugin-center .mcp-server-tools strong { overflow-wrap: anywhere; }

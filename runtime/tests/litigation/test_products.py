@@ -104,13 +104,85 @@ def test_personal_template_import_keeps_source_and_produces_independent_document
     assert service.products.templates(ctx)['templates'][0]['path']==template['path']
 
 
-def test_import_complex_word_requires_explicit_text_copy(env):
+def test_complex_word_import_opens_original_package_in_legacy_workspace(env):
+    import base64
     from tests.litigation.test_editor import sample
     service,ctx,_=env;path=ctx.root_path/'复杂模板.docx';path.write_bytes(sample());before=path.read_bytes()
-    with pytest.raises(ToolError):service.products.import_copy(ctx,path.name,'复杂模板','facts')
+    result=service.products.import_copy(ctx,path.name,'复杂模板','facts')
+    assert result['native_word'] and not result['projection_complete']
+    opened=service.products.open_word(ctx,result['id'],result['file_hash'])
+    data=base64.b64decode(opened['content'])
+    reopened=Document(io.BytesIO(data))
+    assert reopened.tables[0].cell(0,0).tables[0].cell(0,0).text=='嵌套表格'
+    saved=service.products.save_word(ctx,result['id'],result['file_hash'],opened['content'])
+    assert not saved['projection_complete']
+    history=service.products.history(ctx,result['id'])['versions']
+    old=next(row for row in history if row['revision']==result['revision'])
+    old_word=service.products.open_word_history(ctx,result['id'],old['revision'],old['file_hash'])
+    assert Document(io.BytesIO(base64.b64decode(old_word['content']))).tables[0].cell(0,0).tables[0].cell(0,0).text=='嵌套表格'
+    with pytest.raises(ToolError):service.products.open_word_history(ctx,result['id'],old['revision'],'0'*64)
+    assert path.read_bytes()==before
     r=service.products.import_copy(ctx,path.name,'正文副本','documents',True)
     assert '嵌套表格' in document_text(r['document'])
     assert path.read_bytes()==before
+
+
+def test_legacy_word_opens_with_its_existing_track_changes_setting(env):
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+    service,ctx,_=env;document=Document();document.add_paragraph('正文')
+    setting=OxmlElement('w:trackRevisions');document.settings.element.append(setting)
+    path=ctx.root_path/'修订模板.docx';document.save(path);before=path.read_bytes()
+    product=service.products.import_copy(ctx,path.name,'修订模板','facts')
+    opened=service.products.open_word(ctx,product['id'],product['file_hash'])
+    assert opened['tracking_enabled'] is True
+    saved=service.products.save_word(ctx,product['id'],product['file_hash'],opened['content'])
+    assert service.products.open_word(ctx,saved['id'],saved['file_hash'])['tracking_enabled'] is True
+    assert path.read_bytes()==before
+    setting.set(qn('w:val'),'false');document.save(path)
+    product=service.products.import_copy(ctx,path.name,'关闭修订','facts')
+    assert service.products.open_word(ctx,product['id'],product['file_hash'])['tracking_enabled'] is False
+
+
+def test_non_document_template_import_preserves_word_package_on_edit(env):
+    service,ctx,_=env
+    document=Document();document.add_paragraph('模板正文').runs[0].bold=True
+    document.sections[0].header.paragraphs[0].text='虚构页眉'
+    document.sections[0].footer.paragraphs[0].text='虚构页脚'
+    path=ctx.root_path/'格式模板.docx';document.save(path);before=path.read_bytes()
+    product=service.products.import_copy(ctx,path.name,'模板','facts')
+    assert product['native_word']
+    saved=service.products.save(ctx,product['id'],product['file_hash'],body('模板正文修改'))
+    restored=Document(ctx.root_path/saved['path'])
+    assert restored.paragraphs[0].text=='模板正文修改'
+    assert restored.paragraphs[0].runs[0].bold is True
+    assert restored.sections[0].header.paragraphs[0].text=='虚构页眉'
+    assert restored.sections[0].footer.paragraphs[0].text=='虚构页脚'
+    assert path.read_bytes()==before
+
+
+def test_native_word_save_as_keeps_format_and_source_unchanged(env):
+    service,ctx,_=env
+    document=Document();document.add_paragraph().add_run('原有文本').bold=True
+    document.sections[0].header.paragraphs[0].text='虚构页眉'
+    source=ctx.root_path/'模板.docx';document.save(source)
+    product=service.products.import_copy(ctx,source.name,'成果','facts')
+    product_path=ctx.root_path/product['path'];original=product_path.read_bytes()
+    copied=service.products.copy_product(ctx,product['id'],product['file_hash'],body('原有文本与补充'),'成果副本')
+    reopened=Document(ctx.root_path/copied['path'])
+    assert reopened.paragraphs[0].text=='原有文本与补充'
+    assert reopened.paragraphs[0].runs[0].bold
+    assert reopened.sections[0].header.paragraphs[0].text=='虚构页眉'
+    assert product_path.read_bytes()==original
+    app=FastAPI();app.include_router(build_litigation_router(service))
+    client=TestClient(app)
+    route=f'/v1/litigation/workspaces/{ctx.workspace_id}/editor-products/{product["id"]}/copy'
+    response=client.post(route,json={'base_hash':product['file_hash'],'document':body('原有文本与补充'),'title':'接口副本'})
+    assert response.status_code==200
+    assert Document(ctx.root_path/response.json()['path']).paragraphs[0].text=='原有文本与补充'
+    assert product_path.read_bytes()==original
+    with pytest.raises(ToolError):
+        service.products.copy_product(ctx,product['id'],'0'*64,body('错误'),'不能保存')
 
 
 def test_late_draft_after_external_update_is_recoverable_without_overwriting_word(env):

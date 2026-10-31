@@ -22,9 +22,21 @@ window.installWordKeyboard = function(editor, paper, options) {
     return Math.max(0,Math.min(offset-(placeholder>=0&&offset>placeholder?1:0),text.length-(placeholder<0?0:1)));
   }
   const committed=new WeakMap();
+  function updateDeletedEmpty(block){
+    // Only collapse an empty paragraph whose end mark is already a tracked deletion.
+    // Keep embedded objects and real whitespace visible and never change the DOCX.
+    const children=[...block.children].filter(node=>!node.matches(chrome));
+    // WebKit/Chromium insert a bare BR to keep an emptied editing host focusable.
+    // A real Word line break is nested in a run and must remain visible.
+    const filler=children.length===1 && children[0].tagName==='BR' && !children[0].attributes.length && (block.dataset.committedText||'')==='';
+    const empty=block.matches('p.rev-para-del') && !block.closest('table') &&
+      !block.querySelector('img,svg,canvas,video,iframe,object,[data-docx-tab]') &&
+      (filler || (!block.querySelector('br') && keyboardText(block)===''));
+    block.classList.toggle('vl-deleted-empty',empty);
+  }
   function remember(block){
-    if(!('vlEmptyPlaceholder' in block.dataset))block.dataset.vlEmptyPlaceholder=String(!(block.dataset.committedText||'').trim()&&block.textContent.endsWith('\u00a0'));
-    committed.set(block,keyboardText(block));
+    if(!('vlEmptyPlaceholder' in block.dataset))block.dataset.vlEmptyPlaceholder=String(!(block.dataset.committedText||'').trim()&&content(block).endsWith('\u00a0'));
+    committed.set(block,keyboardText(block));updateDeletedEmpty(block);
   }
   const wireBlock=editor.wireBlock.bind(editor);
   editor.wireBlock=block=>{wireBlock(block);remember(block);};
@@ -48,7 +60,9 @@ window.installWordKeyboard = function(editor, paper, options) {
     const wrap=document.createElement('div');wrap.append(range.cloneContents());
     // Structural engine offsets exclude br/tab; text sync includes them. Both
     // spaces exclude the same known placeholder, only when before the caret.
-    const text=content(block);return {offset:normalizedOffset(block,text,content(wrap).length),length:normalizedOffset(block,text,text.length)};
+    const text=content(block),raw=rawKeyboardText(block);
+    return {offset:normalizedOffset(block,text,content(wrap).length),length:normalizedOffset(block,text,text.length),
+      keyboardOffset:normalizedOffset(block,raw,rawKeyboardText(wrap).length),keyboardLength:keyboardText(block).length};
   }
   function adjacent(block, backwards) {
     const blocks=[...editor.ownerRoot(block).querySelectorAll('[data-anchor][contenteditable="true"]')];
@@ -71,7 +85,7 @@ window.installWordKeyboard = function(editor, paper, options) {
       try { original();
       const after=[...paper.querySelectorAll('[contenteditable="true"]')];
       const target=after.find(node=>editor.anchorIdOf(node)===id)||after[Math.max(0,Math.min(index,after.length-1))];
-      if(target)point(target,position?.offset??content(target).length);
+      if(target)point(target,position?.keyboardOffset??keyboardText(target).length);
       } finally {editor.replacing=replacing;}
     };
   }
@@ -80,7 +94,7 @@ window.installWordKeyboard = function(editor, paper, options) {
   // repaginates the document and is reserved for lists, bands or complex wrappers.
   editor.mergeWithPrevious=(previous,block)=>{
     const previousId=editor.anchorIdOf(previous), nextId=editor.anchorIdOf(block);
-    const joinOffset=normalizedOffset(previous,content(previous),content(previous).length);
+    const joinOffset=keyboardText(previous).length;
     options.flush();
     const result=JSON.parse(editor.exports.DocxSessionBridge.MergeParagraphs(editor.handle,previousId,nextId));
     if(!result.success)throw new Error('paragraph_merge_failed');
@@ -109,8 +123,10 @@ window.installWordKeyboard = function(editor, paper, options) {
         }catch(_){patched=false;}
       }
       if(!patched)editor.reconcile();
-      const target=[...paper.querySelectorAll('[data-anchor][contenteditable="true"]')].find(el=>editor.anchorIdOf(el)===result.modified?.[0]?.id);
-      if(target)point(target,joinOffset);
+      const blocks=[...paper.querySelectorAll('[data-anchor][contenteditable="true"]')];
+      let target=blocks.find(el=>editor.anchorIdOf(el)===result.modified?.[0]?.id);
+      if(target?.classList.contains('vl-deleted-empty')){const index=blocks.indexOf(target);target=blocks.slice(index+1).find(el=>!el.classList.contains('vl-deleted-empty'))||blocks.slice(0,index).reverse().find(el=>!el.classList.contains('vl-deleted-empty'));if(target)caret(target,false);}
+      else if(target)point(target,joinOffset);
       options.changed();
     }finally{editor.replacing=replacing;}
   };
@@ -118,7 +134,7 @@ window.installWordKeyboard = function(editor, paper, options) {
     const position=boundary(block);if(!position)throw new Error('keyboard_selection_missing');
     options.flush();
     const id=editor.anchorIdOf(block);
-    const result=JSON.parse(editor.exports.DocxSessionBridge.InsertKeyboardControl(editor.handle,id,position.offset,kind));
+    const result=JSON.parse(editor.exports.DocxSessionBridge.InsertKeyboardControl(editor.handle,id,position.keyboardOffset,kind));
     if(!result.success)throw new Error('inline_control_failed');
     const fresh=editor.renderInto(id);if(!fresh)throw new Error('inline_control_render_failed');
     if(!editor.replaceNode(block,fresh))throw new Error('inline_control_replace_failed');
@@ -126,7 +142,7 @@ window.installWordKeyboard = function(editor, paper, options) {
     const control=[...fresh.querySelectorAll(kind==='br'?'br':'[data-docx-tab]')].find(node=>{
       if(node.closest(chrome))return false;
       const before=document.createRange();before.selectNodeContents(fresh);before.setEndBefore(node);
-      const wrap=document.createElement('div');wrap.append(before.cloneContents());return content(wrap).length===position.offset;
+      const wrap=document.createElement('div');wrap.append(before.cloneContents());return normalizedOffset(fresh,rawKeyboardText(fresh),rawKeyboardText(wrap).length)===position.keyboardOffset;
     });
     if(control){
       // WebKit may place typing before a zero-height tab box when the caret is
@@ -135,24 +151,54 @@ window.installWordKeyboard = function(editor, paper, options) {
       const anchor=document.createTextNode('\u200e');control.after(anchor);fresh.focus();
       const range=document.createRange();range.setStart(anchor,1);range.collapse(true);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);
     }
-    else point(fresh,position.offset);
+    else throw new Error('inline_control_position_missing');
     options.changed();
   }
-  function selectionBlocks() {
+  function selectionBlocks(includeSingle=false) {
     const selection=getSelection();if(!selection?.rangeCount||selection.isCollapsed)return null;
     const range=selection.getRangeAt(0),first=blockOf(range.startContainer),last=blockOf(range.endContainer);
-    if(!first||!last||first===last)return null;
+    if(!first||!last)return null;
+    if(first===last){
+      // Page separators are display wrappers inside one canonical paragraph.
+      // Native copy/cut would treat their block boxes as real line breaks.
+      if(first.classList.contains('vl-spanning-paragraph'))return {range,blocks:[first]};
+      if(!includeSingle)return null;
+      // A selection covering an entire simple paragraph can cause WebKit to
+      // remove the editing host itself, leaving its old Word text untouched.
+      // Commit that deletion through the same transaction as multiple blocks.
+      const span=selectedTextSpan(first,range);
+      if(span.start!==0||span.length!==span.text.length||first.querySelector('img,svg,canvas,video,iframe,object,br,[data-docx-tab],del,a'))return null;
+      return {range,blocks:[first]};
+    }
     const blocks=[...editor.ownerRoot(first).querySelectorAll('[data-anchor][contenteditable="true"]')];
     const from=blocks.indexOf(first),to=blocks.indexOf(last);
     if(from<0||to<from)return null;
     return {range,blocks:blocks.slice(from,to+1)};
   }
   function point(block,offset) {
-    const text=content(block),placeholder=block.dataset?.vlEmptyPlaceholder==='true'?text.indexOf('\u00a0'):-1;
+    const text=rawKeyboardText(block),placeholder=block.dataset?.vlEmptyPlaceholder==='true'?text.indexOf('\u00a0'):-1;
     if(placeholder>=0&&offset>=placeholder)offset++;
-    block.focus();const walk=document.createTreeWalker(block,NodeFilter.SHOW_TEXT);let node;
-    while((node=walk.nextNode())){if(node.parentElement.closest(chrome))continue;if(offset<=node.textContent.length){const range=document.createRange();range.setStart(node,offset);range.collapse(true);const sel=getSelection();sel.removeAllRanges();sel.addRange(range);return;}offset-=node.textContent.length;}
-    caret(block,true);
+    // Use keyboard positions for caret restoration too: a soft break and tab
+    // each occupy one position, while direction marks and review chrome do not.
+    let target=null;
+    function visit(node){
+      if(target||node.nodeType===1&&node.matches(chrome))return;
+      if(node.nodeType===3){
+        let raw=0;
+        while(raw<node.length){
+          if(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/.test(node.data[raw])){raw++;continue;}
+          if(offset===0){target=[node,raw];return;}offset--;raw++;
+        }
+        if(offset===0)target=[node,raw];return;
+      }
+      if(node.nodeType===1&&(node.tagName==='BR'||node.hasAttribute('data-docx-tab'))){
+        if(offset<=1)target=[node.parentNode,[...node.parentNode.childNodes].indexOf(node)+(offset?1:0)];else offset--;return;
+      }
+      [...node.childNodes].forEach(visit);
+    }
+    visit(block);block.focus();
+    if(!target){caret(block,true);return;}
+    const range=document.createRange();range.setStart(...target);range.collapse(true);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);
   }
   function selectedTextSpan(block,range) {
     const before=document.createRange();before.selectNodeContents(block);
@@ -166,7 +212,7 @@ window.installWordKeyboard = function(editor, paper, options) {
     return {start,length:end-start,text:keyboardText(block)};
   }
   function replaceAcrossBlocks(text) {
-    const state=selectionBlocks();if(!state)return false;
+    const state=selectionBlocks(true);if(!state)return false;
     const {range,blocks}=state;
     const bridge=editor.exports.DocxSessionBridge,handle=editor.handle;
     const spans=blocks.map(block=>({block,id:editor.anchorIdOf(block),...selectedTextSpan(block,range)}));
@@ -179,8 +225,10 @@ window.installWordKeyboard = function(editor, paper, options) {
       bridge.CommitTransaction(tx);
     } catch(error){bridge.RollbackTransaction(tx);editor.reconcile();throw error;}
     editor.reconcile();
-    const first=[...paper.querySelectorAll('[contenteditable="true"]')].find(block=>editor.anchorIdOf(block)===spans[0].id);
-    if(first)point(first,spans[0].start+text.length);
+    const refreshed=[...paper.querySelectorAll('[contenteditable="true"]')];
+    const first=refreshed.find(block=>editor.anchorIdOf(block)===spans[0].id);
+    if(first?.classList.contains('vl-deleted-empty')){const index=refreshed.indexOf(first),next=refreshed.slice(index+1).find(block=>!block.classList.contains('vl-deleted-empty'));if(next)caret(next,false);}
+    else if(first)point(first,spans[0].start+text.length);
     options.changed();return true;
   }
   paper.addEventListener('beforeinput',event=>{
@@ -192,11 +240,11 @@ window.installWordKeyboard = function(editor, paper, options) {
       try{event.inputType==='historyUndo'?editor.undo():editor.redo();options.changed();}catch(error){options.error(error);}
       return;
     }
-    if(!selectionBlocks()&&event.inputType.startsWith('delete')){
+    if(!selectionBlocks(true)&&event.inputType.startsWith('delete')){
       const target=event.getTargetRanges?.()[0],first=blockOf(target?.startContainer),last=blockOf(target?.endContainer);
       if(first&&last&&first!==last){const range=document.createRange();range.setStart(target.startContainer,target.startOffset);range.setEnd(target.endContainer,target.endOffset);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);}
     }
-    if(!selectionBlocks())return;
+    if(!selectionBlocks(true))return;
     if(event.inputType==='insertText'||event.inputType.startsWith('delete')){
       event.preventDefault();try{replaceAcrossBlocks(event.inputType==='insertText'?event.data||'':'');}catch(error){options.error(error);}
     }
@@ -210,6 +258,8 @@ window.installWordKeyboard = function(editor, paper, options) {
   function atomicEdit(action) {
     // Pending typing predates this command and must survive a failed paste.
     options.flush();
+    const selection=options.captureSelection?.();
+    const active=editor.activeBlock,activeId=active&&editor.anchorIdOf(active),position=active&&boundary(active);
     const bridge=editor.exports.DocxSessionBridge,transaction=bridge.BeginTransaction(editor.handle);
     const replacing=editor.replacing;
     editor.replacing=true;
@@ -219,13 +269,59 @@ window.installWordKeyboard = function(editor, paper, options) {
       bridge.RollbackTransaction(transaction);
       // Reconcile may retain unchanged render tokens despite uncommitted DOM
       // typing. Remount from the rolled-back session to discard that typing.
-      editor.remount();throw error;
+      editor.remount();
+      if(selection&&options.restoreSelection)options.restoreSelection(selection);
+      else {
+        const target=[...paper.querySelectorAll('[data-anchor][contenteditable="true"]')].find(node=>editor.anchorIdOf(node)===activeId);
+        if(target)point(target,position?.keyboardOffset||0);
+      }
+      throw error;
     } finally {editor.replacing=replacing;}
   }
   function splitParagraph(block) {
-    const id=editor.anchorIdOf(block);editor.splitAtCaret(block);
+    const id=editor.anchorIdOf(block),position=boundary(block);
+    if(!position)throw new Error('keyboard_selection_missing');
+    // Reuse upstream split rendering/focus handling with the keyboard-aware
+    // session operation. The original API intentionally counts only text runs.
+    const api=editor.exports.DocxSessionBridge,split=api.SplitParagraph;
+    api.SplitParagraph=(handle,anchor)=>api.SplitKeyboardParagraph(handle,anchor,position.keyboardOffset);
+    try{editor.splitAtCaret(block);}finally{api.SplitParagraph=split;}
     const next=blockOf(getSelection()?.anchorNode);
     if(!next||editor.anchorIdOf(next)===id)throw new Error('paragraph_split_rejected');
+  }
+  function isList(block){return block.matches('li,[data-list-marker]')||Boolean(block.querySelector('[data-list-marker]'));}
+  function changeParagraph(block,operation){
+    const id=editor.anchorIdOf(block);
+    atomicEdit(()=>{
+      const result=JSON.parse(operation(id));
+      if(!result.success)throw new Error(result.error?.code||'paragraph_format_rejected');
+      editor.reconcile();
+      // Removing list membership changes the anchor kind from li: to p:.
+      const nextId=result.modified?.[0]?.id||id;
+      const target=[...paper.querySelectorAll('[data-anchor][contenteditable="true"]')].find(node=>editor.anchorIdOf(node)===nextId);
+      if(!target)throw new Error('paragraph_selection_lost');
+      point(target,0);
+    });
+  }
+  function removeList(block){
+    changeParagraph(block,id=>editor.exports.DocxSessionBridge.RemoveListMembership(editor.handle,id));
+  }
+  function backspaceFormat(block){
+    if(isList(block)){removeList(block);return true;}
+    const api=editor.exports.DocxSessionBridge;
+    const inspection=JSON.parse(api.GetFormatting(editor.handle,editor.anchorIdOf(block)));
+    const value=inspection?.effectiveParagraph;
+    if(!value)throw new Error('paragraph_format_unavailable');
+    let op;
+    // A paragraph-start Backspace removes the current paragraph's positioning
+    // before deleting its boundary. Never alter a preceding paragraph's format.
+    if(['center','right'].includes(value.alignment))op={alignment:'left'};
+    else if(value.firstLineIndentTwips||value.firstLineIndentCharacterUnits||value.hangingIndentTwips||value.hangingIndentCharacterUnits)
+      op={firstLineIndent:0};
+    else if(value.leftIndentTwips>0||value.leftIndentCharacterUnits>0)op={leftIndent:0};
+    if(!op)return false;
+    changeParagraph(block,id=>api.SetParagraphFormat(editor.handle,id,JSON.stringify(op)));
+    return true;
   }
   function deleteSelection() {
     if(!replaceAcrossBlocks('')&&!getSelection()?.isCollapsed&&!document.execCommand('delete'))throw new Error('selection_delete_rejected');
@@ -291,7 +387,10 @@ window.installWordKeyboard = function(editor, paper, options) {
     plainPaste=false;
   },true);
   paper.addEventListener('keydown',event=>{
-    if(options.composing()||event.isComposing||event.keyCode===229)return;
+    // The upstream Backspace handler does not check IME composition. Keep the
+    // browser's native input, but do not let that handler merge a paragraph
+    // while the user is choosing or deleting a Chinese candidate.
+    if(options.composing()||event.isComposing||event.keyCode===229){event.stopImmediatePropagation();return;}
     const block=blockOf(getSelection()?.focusNode)||blockOf(event.target);if(!block)return;
     const key=event.key.toLowerCase();
     const stop=()=>{event.preventDefault();event.stopImmediatePropagation();};
@@ -335,15 +434,61 @@ window.installWordKeyboard = function(editor, paper, options) {
         stop();atomicEdit(()=>{deleteSelection();const current=blockOf(getSelection()?.anchorNode);if(!current)throw new Error('keyboard_selection_missing');insertControl(current,'br');});return;
       }
       if(event.key==='Enter'&&!event.shiftKey&&!event.metaKey&&!event.ctrlKey&&!event.altKey){
-        stop();atomicEdit(()=>{deleteSelection();const current=blockOf(getSelection()?.anchorNode);if(!current)throw new Error('keyboard_selection_missing');splitParagraph(current);});return;
+        stop();
+        if(getSelection()?.isCollapsed&&isList(block)&&keyboardText(block)===''){removeList(block);return;}
+        atomicEdit(()=>{deleteSelection();const current=blockOf(getSelection()?.anchorNode);if(!current)throw new Error('keyboard_selection_missing');splitParagraph(current);});return;
       }
       const pos=boundary(block);if(!pos)return;
       const backwards=event.key==='Backspace';
-      if((backwards&&pos.offset===0||event.key==='Delete'&&pos.offset===pos.length)&&!event.altKey&&!event.ctrlKey&&!event.metaKey) {
-        const other=adjacent(block,backwards);
-        if(other&&!block.closest('table')&&!other.closest('table')) {
-          stop();editor.mergeWithPrevious(backwards?other:block,backwards?block:other);return;
+      if((backwards||event.key==='Delete')&&!event.altKey&&!event.ctrlKey&&!event.metaKey){
+        const text=keyboardText(block),at=pos.keyboardOffset-(backwards?1:0);
+        let fragmentEnd=0;
+        const pageBoundary=[...block.querySelectorAll(':scope > .vl-page-fragment')].slice(0,-1).some(fragment=>{
+          fragmentEnd+=rawKeyboardText(fragment).length;return fragmentEnd===pos.keyboardOffset;
+        });
+        if(pageBoundary){
+          // A visual page gap is not a paragraph break. Chromium's native
+          // Delete can merge the display wrappers without deleting a character.
+          const graphemes=[...new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(text)];
+          const glyph=backwards?graphemes.findLast(g=>g.index<pos.keyboardOffset):graphemes.find(g=>g.index>=pos.keyboardOffset);
+          if(glyph){stop();atomicEdit(()=>{
+            const id=editor.anchorIdOf(block),api=editor.exports.DocxSessionBridge;
+            const result=JSON.parse(api.SyncKeyboardText(editor.handle,id,text.slice(0,glyph.index)+text.slice(glyph.index+glyph.segment.length)));
+            if(!result.success)throw new Error('page_boundary_delete_failed');
+            editor.reconcile();
+            const fresh=[...paper.querySelectorAll('[data-anchor][contenteditable="true"]')].find(p=>editor.anchorIdOf(p)===id);
+            if(!fresh)throw new Error('page_boundary_selection_missing');point(fresh,glyph.index);
+          });return;}
         }
+        if(at>=0&&['\n','\t'].includes(text[at])){
+          // Rendered controls have invisible caret anchors. Native Backspace
+          // can consume only that anchor and leave the actual BR/TAB behind.
+          // Delete the intended OOXML control in one undoable operation.
+          stop();atomicEdit(()=>{
+            const id=editor.anchorIdOf(block),api=editor.exports.DocxSessionBridge;
+            const result=JSON.parse(api.SyncKeyboardText(editor.handle,id,text.slice(0,at)+text.slice(at+1)));
+            if(!result.success)throw new Error('inline_control_delete_failed');
+            const fresh=editor.renderInto(id);
+            if(!fresh||!editor.replaceNode(block,fresh))throw new Error('inline_control_render_failed');
+            editor.wireBlock(fresh);point(fresh,at);
+          });return;
+        }
+      }
+      if((backwards&&pos.keyboardOffset===0||event.key==='Delete'&&pos.keyboardOffset===pos.keyboardLength)&&!event.altKey&&!event.ctrlKey&&!event.metaKey) {
+        stop();
+        if(backwards&&backspaceFormat(block))return;
+        let other=adjacent(block,backwards),right=block;
+        if(backwards)while(other?.classList.contains('vl-deleted-empty')){right=other;other=adjacent(other,true);}
+        if(other&&block.closest('td,th')===other.closest('td,th')) {
+          editor.mergeWithPrevious(backwards?other:block,backwards?right:other);return;
+        }
+        return; // Never let the browser remove a cell, page wrapper or final paragraph.
+      }
+      if(backwards||event.key==='Delete'){
+        // Inside a paragraph, the native browser removes text/BR/TAB. Prevent
+        // the upstream text-only offset check from mistaking a BR/TAB for the
+        // paragraph boundary; it intentionally does not count those controls.
+        event.stopImmediatePropagation();return;
       }
       if(!event.metaKey&&!event.ctrlKey&&!event.altKey&&!event.shiftKey&&['ArrowUp','ArrowDown'].includes(event.key)) {
         const selection=getSelection(),range=selection.getRangeAt(0),box=range.getBoundingClientRect();
@@ -355,10 +500,20 @@ window.installWordKeyboard = function(editor, paper, options) {
         }
       }
       if(!event.metaKey&&!event.ctrlKey&&!event.altKey&&!event.shiftKey&&
-        (event.key==='ArrowLeft'&&pos.offset===0||event.key==='ArrowRight'&&pos.offset===pos.length)) {
+        (event.key==='ArrowLeft'&&pos.keyboardOffset===0||event.key==='ArrowRight'&&pos.keyboardOffset===pos.keyboardLength)) {
         const back=event.key==='ArrowLeft',other=adjacent(block,back);if(other){stop();caret(other,back);}
       }
     } catch(error){stop();options.error(error);}
   },true);
-  return {mac,primary,pasteText,pasteRich};
+  function refreshDeletedEmpty(){
+    const blocks=[...paper.querySelectorAll('[data-anchor][contenteditable="true"]')],active=editor.activeBlock;
+    const hadFocus=active?.contains(document.activeElement);
+    blocks.forEach(updateDeletedEmpty);
+    if(hadFocus && active?.classList.contains('vl-deleted-empty')){
+      const index=blocks.indexOf(active),next=blocks.slice(index+1).find(node=>!node.classList.contains('vl-deleted-empty'));
+      const previous=blocks.slice(0,index).reverse().find(node=>!node.classList.contains('vl-deleted-empty'));
+      if(next)caret(next,false);else if(previous)caret(previous,true);
+    }
+  }
+  return {mac,primary,pasteText,pasteRich,refreshDeletedEmpty};
 };

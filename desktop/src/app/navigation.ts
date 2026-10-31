@@ -63,7 +63,7 @@ export function workViewLabel(id: WorkViewId): string {
   if (id === "settings") return "设置";
   if (id === "legal-search") return "法律检索";
   if (id === "case-search") return "案例检索";
-  if (id === "litigation") return "诉讼工作";
+  if (id === "litigation") return "文书起草";
   if (id === "contract-review") return "合同审查";
   return "VeriLex";
 }

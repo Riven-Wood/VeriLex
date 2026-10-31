@@ -7,7 +7,7 @@ window.installWordGuides=function({paper,scrollport,surface,button}){
   layer.id='word-editing-guides';layer.setAttribute('aria-hidden','true');
   surface.append(layer);
   let enabled=true,frame=0;
-  const ignored='del,[contenteditable="false"],[data-list-marker],.page-number,[class$="para-mark-del"],a.footnote-ref,a.endnote-ref,a[class$="-backref"]';
+  const ignored='del,[contenteditable="false"],[data-list-marker],.page-number,.vl-deleted-empty,[class$="para-mark-del"],a.footnote-ref,a.endnote-ref,a[class$="-backref"]';
   const visible=r=>r.width>=0&&r.height>0;
   function paint(){
     frame=0;
@@ -67,7 +67,7 @@ window.installWordGuides=function({paper,scrollport,surface,button}){
         if(last)last={...last,left:last.left,right:last.left,top:last.top,bottom:last.bottom,height:last.height,width:0};
         else{const r=block.getBoundingClientRect();last={left:r.left,right:r.left,top:r.top,bottom:r.bottom,height:r.height,width:0};}
       }
-      mark('↵',last);
+      if(!block.classList.contains('rev-para-del'))mark('↵',last);
     }
     layer.replaceChildren(fragment);
   }

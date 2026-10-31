@@ -1,10 +1,12 @@
 Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, writable: true, value() { this.setAttribute('open', ''); } });
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { PluginCenterView } from "../src/views/PluginCenterView";
 import * as api from "../src/runtime/api";
 import type { McpServerRecord, McpToolRecord } from "../src/runtime/contracts";
 import { YUANDIAN_SERVICES } from "../src/mcp/yuandian";
+
+beforeEach(() => { vi.spyOn(api, "listSkillCategories").mockResolvedValue([]); });
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 const server = (overrides: Partial<McpServerRecord> = {}): McpServerRecord => ({
@@ -69,7 +71,7 @@ test("saved test refreshes status and tools; delete stays behind confirmation", 
   await screen.findByText("查找资料");
   fireEvent.click(screen.getByRole("button", { name: "测试连接" }));
   await waitFor(() => expect(probe).toHaveBeenCalledTimes(1));
-  expect(await screen.findByText("测试通过。工具清单已刷新。")).toBeTruthy();
+  expect(await screen.findByText("连接成功，有 1 项工具更新需要确认。请在下方选择要启用的工具。")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "删除 本地检索" }));
   expect(remove).not.toHaveBeenCalled();
   const dialog = screen.getByRole("dialog");
@@ -83,11 +85,44 @@ test("Yuan Dian endpoints form one searchable built-in card", async () => {
   setup(YUANDIAN_SERVICES.map((s, i) => server({ id: `yd-${i}`, displayName: s.id, transport: "http", command: null, url: s.url, secretHeaderKeys: ["Authorization"] })));
   render(<PluginCenterView />);
   await screen.findByText("元典智库");
-  await waitFor(() => expect(screen.getByRole("button", { name: "查看 元典智库" })).toBeTruthy());
+  await waitFor(() => expect(screen.getByRole("button", { name: "更新元典智库密钥" })).toBeTruthy());
   expect(screen.getAllByText("内置")).toHaveLength(1);
   expect(screen.queryByText("自定义")).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "查看 元典智库" }));
-  expect(await screen.findByRole("button", { name: "更新元典智库密钥" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "更新元典智库密钥" }));
+  const dialog=screen.getByRole("dialog", {name:"元典智库"});
+  expect(within(dialog).getByLabelText("元典 API Key")).toBeTruthy();
+  expect(within(dialog).getByRole("button", {name:"确认更新"})).toBeTruthy();
+  expect(screen.queryByRole("heading", {name:"工具清单"})).toBeNull();
+  fireEvent.click(within(dialog).getByRole("button", {name:"取消"}));
+  expect(screen.queryByRole("dialog", {name:"元典智库"})).toBeNull();
+  expect(screen.getByRole("button", {name:"更新元典智库密钥"})).toBeTruthy();
+});
+
+test('connected Yuan Dian updates its key from the popup without opening the tool list', async()=>{
+  const records=YUANDIAN_SERVICES.map((s,i)=>server({id:`yd-${i}`,displayName:s.id,transport:'http',command:null,url:s.url,secretHeaderKeys:['Authorization']}));
+  setup(records);
+  vi.mocked(api.listMcpServerTools).mockResolvedValue([]);
+  const probe=vi.spyOn(api,'testSavedMcpServer').mockResolvedValue({testReceipt:'receipt',tools:[],riskCodes:[]});
+  const update=vi.spyOn(api,'updateMcpServer').mockImplementation(async id=>records.find(item=>item.id===id)!);
+  render(<PluginCenterView/>);
+  fireEvent.click(await screen.findByRole('button',{name:'更新元典智库密钥'}));
+  const dialog=screen.getByRole('dialog',{name:'元典智库'});
+  fireEvent.change(within(dialog).getByLabelText('元典 API Key'),{target:{value:'synthetic-key'}});
+  fireEvent.click(within(dialog).getByRole('button',{name:'确认更新'}));
+  await waitFor(()=>expect(update).toHaveBeenCalledTimes(records.length));
+  expect(probe).toHaveBeenCalledTimes(records.length);
+  await waitFor(()=>expect(screen.queryByRole('dialog',{name:'元典智库'})).toBeNull());
+  expect(screen.queryByRole('heading',{name:'工具清单'})).toBeNull();
+});
+
+test("unconfigured Yuan Dian opens the same key popup", async () => {
+  setup([]);
+  render(<PluginCenterView />);
+  fireEvent.click(await screen.findByRole("button", { name: "添加元典智库" }));
+  const dialog = screen.getByRole("dialog", { name: "元典智库" });
+  expect(within(dialog).getByLabelText("元典 API Key")).toBeTruthy();
+  expect(within(dialog).getByRole("button", { name: "确认添加" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "工具清单" })).toBeNull();
 });
 
 
@@ -116,7 +151,7 @@ test("refresh supersedes an unfinished detail read and releases the loading stat
   fireEvent.click(screen.getByRole("button", { name: "查看 本地检索" }));
   expect(screen.getByText("正在读取工具…")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "测试连接" }));
-  expect(await screen.findByText("测试通过。工具清单已刷新。")).toBeTruthy();
+  expect(await screen.findByText("连接成功，有 1 项工具更新需要确认。请在下方选择要启用的工具。")).toBeTruthy();
   expect(screen.queryByText("正在读取工具…")).toBeNull();
   expect(screen.getByRole("checkbox", { name: "启用 find" })).toBeTruthy();
 });

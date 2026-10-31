@@ -69,7 +69,7 @@ rmSync(stagedRoot, { recursive: true, force: true });
     return { start: start2, length: end - start2 };
   }`);
   writeFileSync(bundlePath, patched);
-  for (const name of ["word-editor.html", "word-editor.js", "word-keyboard.js", "word-clipboard.js", "word-search.js", "word-selection.js", "word-guides.js", "word-context.js", "word-layout.js", "word-editor.css"]) cpSync(resolve(desktopRoot, "src/documents", name), resolve(stagedRoot, name));
+  for (const name of ["word-editor.html", "word-editor.js", "word-typography.js", "word-pagination.js", "word-keyboard.js", "word-clipboard.js", "word-search.js", "word-selection.js", "word-guides.js", "word-context.js", "word-layout.js", "word-editor.css"]) cpSync(resolve(desktopRoot, "src/documents", name), resolve(stagedRoot, name));
   cpSync(
     resolve(desktopRoot, "src", "documents", "renderer-self-test.html"),
     resolve(stagedRoot, "renderer-self-test.html"),

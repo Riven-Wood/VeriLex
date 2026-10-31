@@ -394,7 +394,8 @@ test("an old hidden-draft ack keeps attachments added while its connection waits
     expect(screen.getByRole("button", { name: "发送" }).hasAttribute("disabled"))
       .toBe(false);
   });
-  const sendingSocket = ChatSocketStub.instances.at(-1)!;
+  // The mounted conversation connects before the separate project runner.
+  const sendingSocket = ChatSocketStub.instances[0]!;
   sendingSocket.readyState = 0;
   fireEvent.change(screen.getByRole("textbox", { name: "向智能体提问" }), {
     target: { value: "分析旧证据" },
@@ -456,11 +457,11 @@ test("a rejected hidden-draft submission does not overwrite newer text or attach
   fireEvent.change(composer, { target: { value: "分析旧证据" } });
   fireEvent.click(screen.getByRole("button", { name: "发送" }));
 
-  const sendingSocket = ChatSocketStub.instances.at(-1)!;
-  await waitFor(() => {
-    expect(sendingSocket.sentMessages.filter(
-      (message) => JSON.parse(message).type === "turn.start",
-    )).toHaveLength(1);
+  const sendingSocket = await waitFor(() => {
+    const socket = ChatSocketStub.instances.find(candidate => candidate.sentMessages.some(
+      message => JSON.parse(message).type === "turn.start"));
+    expect(socket).toBeTruthy();
+    return socket!;
   });
   fireEvent.change(composer, { target: { value: "这是拒绝发生前输入的新正文" } });
   fireEvent.change(screen.getByLabelText("选择附件文件"), {
@@ -1293,6 +1294,7 @@ test("sidebar archive action calls the runtime and refreshes all scopes", async 
   globalThis.__VERILEX_API_TOKEN__ = "test-token";
   const calls: string[] = [];
   let archivedNow = false;
+  let restoredLegal = false;
   const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
     const path = url.replace("http://127.0.0.1:9999", "");
     calls.push(`${init?.method ?? "GET"} ${path}`);
@@ -1304,6 +1306,10 @@ test("sidebar archive action calls the runtime and refreshes all scopes", async 
           { status: 200 },
         ),
       );
+    }
+    if (path === "/v1/threads/legal-trash/restore" && init?.method === "POST") {
+      restoredLegal = true;
+      return Promise.resolve(new Response(JSON.stringify({...threadRecord("legal-trash", "检索记录", "2026-08-18T01:00:00Z"),scene:"legal-retrieval"}), {status:200}));
     }
     if (path === "/v1/providers") {
       return Promise.resolve(new Response("[]", { status: 200 }));
@@ -1325,7 +1331,8 @@ test("sidebar archive action calls the runtime and refreshes all scopes", async 
       return Promise.resolve(new Response(JSON.stringify(archived), { status: 200 }));
     }
     if (path === "/v1/threads?scope=trash") {
-      return Promise.resolve(new Response("[]", { status: 200 }));
+      const trash = restoredLegal ? [] : [{...threadRecord("legal-trash", "检索记录", "2026-08-18T01:00:00Z"),scene:"legal-retrieval"}];
+      return Promise.resolve(new Response(JSON.stringify(trash), { status: 200 }));
     }
     return Promise.resolve(new Response("[]", { status: 200 }));
   });
@@ -1348,8 +1355,13 @@ test("sidebar archive action calls the runtime and refreshes all scopes", async 
   await waitFor(() => {
     expect(screen.queryByRole("button", { name: /劳动合同审查/ })).toBeNull();
   });
-  fireEvent.click(await screen.findByRole("button", { name: /^归档/ }));
+  fireEvent.click(screen.getByRole("button", {name:"设置"}));
+  fireEvent.click(screen.getByRole("button", {name:"对话"}));
   expect(await screen.findByText("劳动合同审查")).toBeTruthy();
+  expect(screen.getByText("检索记录")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", {name:"恢复回收站：检索记录"}));
+  await waitFor(()=>expect(calls).toContain("POST /v1/threads/legal-trash/restore"));
+  await waitFor(()=>expect(screen.queryByText("检索记录")).toBeNull());
 });
 
 test("command panel opens real settings, help and session search with collapsed navigation", async () => {

@@ -1,3 +1,4 @@
+import {runtimeRequest} from "../../runtime/api";
 import {useUiPreferences} from "../../settings/preferences";
 import { MessageActions } from "./MessageActions";
 import { visibleAssistantText } from "../../timeline/assistantText";
@@ -13,6 +14,7 @@ import { isWebTool, toolStepLine } from "../../timeline/toolPresentation";
 
 interface TurnGroupProps {
   items: TimelineItem[];
+  threadId?: string;
   caseContextItems?: TimelineItem[];
   /** Active turns show narration; repeated unsuccessful calls stay folded. */
   active: boolean;
@@ -68,25 +70,41 @@ function reasoningText(items: TimelineItem[]): { text: string; streaming: boolea
   return { text, streaming };
 }
 
-function AssistantNarrative({ item, allItems = [], onRegenerate, onConvertOpinion, actionsEnabled = true }: { onRegenerate?: () => void; onConvertOpinion?: (text: string) => boolean; actionsEnabled?: boolean; item: AssistantItem; allItems?: TimelineItem[] }) {
+function AssistantNarrative({ item, allItems = [], threadId, onRegenerate, onConvertOpinion, actionsEnabled = true, process = false, legal = false }: { threadId?:string; onRegenerate?: () => void; onConvertOpinion?: (text: string) => boolean; actionsEnabled?: boolean; process?: boolean; legal?: boolean; item: AssistantItem; allItems?: TimelineItem[] }) {
   const position = allItems.findIndex((entry) => entry.id === item.id);
   const preceding = position < 0 ? allItems : allItems.slice(0, position);
   const availableIds = new Set(caseSourcesFromItems(preceding).map((source) => source.sourceId));
   const caseSources = caseSourcesFromItems(allItems, item.sources?.length ?? 0).filter((source) => availableIds.has(source.sourceId));
-  const knowledge = preceding.filter(entry => entry.kind === "tool" && entry.turnId === item.turnId && entry.status === "succeeded" && entry.name.startsWith("knowledge_"));
+  const knowledge = preceding.filter(entry => entry.kind === "tool" && entry.status === "succeeded" && entry.name.startsWith("knowledge_"));
   const quoteCount = new Set(knowledge.flatMap(entry => entry.kind === "tool" && entry.name === "knowledge_quote" && entry.resultSummary?.kind === "knowledge_quote" && typeof entry.resultSummary.quoteId === "string" ? [entry.resultSummary.quoteId] : [])).size;
   const quoteLocations = new Map<string, { threadId: string; sourceName: string; first: number; last: number }>();
   for (const entry of knowledge) {
     if (entry.kind !== "tool" || entry.name !== "knowledge_quote") continue;
     const result = entry.resultSummary;
-    if (result?.kind !== "knowledge_quote" || typeof result.quoteId !== "string" || typeof result.threadId !== "string"
+    if (result?.kind !== "knowledge_quote" || typeof result.quoteId !== "string" || typeof result.threadId !== "string" || (threadId && result.threadId !== threadId)
       || typeof result.sourceName !== "string" || typeof result.lineStart !== "number" || typeof result.lineEnd !== "number"
       || !Number.isInteger(result.lineStart) || !Number.isInteger(result.lineEnd) || result.lineStart < 1 || result.lineEnd < result.lineStart) continue;
     quoteLocations.set(result.quoteId, {threadId: result.threadId, sourceName: result.sourceName, first: result.lineStart, last: result.lineEnd});
   }
+  const sourceNames:Record<string,string>={law_read:'法规读取',read_file:'文件读取',knowledge_read:'知识库读取',litigation_material_inspect:'案件材料读取'};
+  const pluginIds = threadId ? preceding.filter(entry => entry.kind === 'tool' && entry.status === 'succeeded' && (entry.name.startsWith('mcp__') || entry.name === 'law_read')).map(entry => entry.id) : [];
+  const pluginKey = JSON.stringify(pluginIds);
+  const [pluginLinks, setPluginLinks] = useState<Record<string, {title:string;url:string} | null>>({});
+  useEffect(() => {
+    let cancelled = false;
+    setPluginLinks({});
+    if (threadId) for (const id of JSON.parse(pluginKey) as string[]) {
+      void runtimeRequest<{links?: {title:string;url:string}[]}>(`/v1/threads/${encodeURIComponent(threadId)}/sources/${encodeURIComponent(id)}`)
+        .then(result => {
+          if (!cancelled) setPluginLinks(current => ({...current, [id]:result.links?.length === 1 ? result.links[0] : null}));
+        }).catch(() => { if (!cancelled) setPluginLinks(current => ({...current, [id]:null})); });
+    }
+    return () => { cancelled = true; };
+  }, [threadId, pluginKey]);
+  const toolSources=threadId ? preceding.filter((entry): entry is Extract<TimelineItem,{kind:'tool'}> => entry.kind==='tool' && entry.status==='succeeded' && (entry.name in sourceNames || entry.name.startsWith('mcp__'))).map((entry,i)=>({sourceId:entry.id,title:pluginLinks[entry.id]?.title ?? sourceNames[entry.name] ?? '插件来源',plugin:entry.name.startsWith('mcp__') || entry.name === 'law_read',url:pluginLinks[entry.id]?.url,hidden:(entry.name.startsWith('mcp__') || entry.name === 'law_read') && !pluginLinks[entry.id],unavailable:legal && pluginLinks[entry.id] === null,number:(item.sources?.length ?? 0)+caseSources.length+quoteLocations.size+i+1})) : [];
   return (
-    <div className="turn-narrative">
-      {actionsEnabled && messageText(item) && <MessageActions text={visibleAssistantText(item.segments.filter(s => s.type === "text").map(s => s.text).join(""), item.isStreaming)} createdAt={item.createdAt} onRegenerate={onRegenerate} onConvertOpinion={!item.isStreaming ? onConvertOpinion : undefined} />}
+    <div className={`turn-narrative${process ? " turn-narrative-process" : ""}`}>
+      {!process && actionsEnabled && messageText(item) && <MessageActions text={visibleAssistantText(item.segments.filter(s => s.type === "text").map(s => s.text).join(""), item.isStreaming)} createdAt={item.createdAt} onRegenerate={onRegenerate} onConvertOpinion={!item.isStreaming ? onConvertOpinion : undefined} />}
       {knowledge.length > 0 && <p className="knowledge-analysis-label">模型分析 · {quoteCount > 0 ? `已生成 ${quoteCount} 张原文卡，原文及位置见卡片` : "尚未生成原文卡"}</p>}
       {quoteLocations.size > 0 && <div className="knowledge-locations" aria-label="程序核对的原文位置">
         {[...quoteLocations].map(([quoteId, location]) => <button key={quoteId} type="button" className="knowledge-location" onClick={() => {
@@ -103,6 +121,9 @@ function AssistantNarrative({ item, allItems = [], onRegenerate, onConvertOpinio
               text={(segment as { text: string }).text}
               sources={item.sources}
               caseSources={caseSources.length ? caseSources : undefined}
+              knowledgeSources={quoteLocations.size ? [...quoteLocations].map(([quoteId,location],i)=>({sourceId:quoteId,cardId:`knowledge-quote-${location.threadId}-${quoteId}`,title:location.sourceName,number:(item.sources?.length ?? 0)+caseSources.length+i+1})) : undefined}
+              toolSources={toolSources.length ? toolSources : undefined}
+              threadId={threadId}
               streaming={item.isStreaming}
             />
             {segment.isStreaming && (
@@ -125,6 +146,7 @@ function AssistantNarrative({ item, allItems = [], onRegenerate, onConvertOpinio
  */
 export function TurnGroup({
   items,
+  threadId,
   caseContextItems,
   active,
   startedAt,
@@ -138,8 +160,15 @@ export function TurnGroup({
   const preferences=useUiPreferences();
   const [processOverride,setProcessOverride]=useState<boolean|null>(null);
   useEffect(()=>setProcessOverride(null),[preferences.executionDetail]);
-  const showProcess=!active||(processOverride??preferences.executionDetail==="detailed");
+  const hasAnswer = !reasoningText(items).streaming && items.some(item => item.kind === "assistant" && messageText(item).length > 0);
+  const [answerStarted, setAnswerStarted] = useState(hasAnswer);
+  if (hasAnswer !== answerStarted) {
+    setAnswerStarted(hasAnswer);
+    if (hasAnswer) setProcessOverride(false);
+  }
+  const showProcess=!active||(processOverride??(!hasAnswer && preferences.executionDetail==="detailed"));
   const legal = presentation === "legal";
+  const originalItems = items;
   // In legal results, successful searches are transport details, not result cards.
   items = legal ? orderLegalCards(items.filter((item) => !(item.kind === "tool" && item.name === "law_search" && item.status === "succeeded"))) : items;
   const caseHistory = caseContextItems ?? items;
@@ -157,7 +186,7 @@ export function TurnGroup({
   const renderVisibleItem = (item: TimelineItem) => {
     if (!issueIds.has(item.id)) return renderItem(item);
     return item.id === issues[0]?.id
-      ? <ToolIssues key="tool-issues" items={issues} renderItem={renderItem} />
+      ? <ToolIssues key="tool-issues" items={issues} renderItem={renderItem} hasAnswer={hasAnswer} />
       : null;
   };
   const [open, setOpen] = useState(active);
@@ -198,7 +227,9 @@ export function TurnGroup({
         )}
         {items.map((item) => {
           if (item.kind === "assistant") {
-            return <AssistantNarrative key={item.id} item={item} actionsEnabled={actionsEnabled} onConvertOpinion={onConvertOpinion} onRegenerate={item.id === regenerateItemId ? onRegenerate : undefined} allItems={caseHistory} />;
+            const position = originalItems.findIndex(entry => entry.id === item.id);
+            const process = originalItems.slice(position + 1).some(entry => entry.kind === "assistant" || entry.kind === "tool");
+            return <AssistantNarrative key={item.id} item={item} process={process} legal={presentation === 'legal'} threadId={threadId} actionsEnabled={actionsEnabled} onConvertOpinion={onConvertOpinion} onRegenerate={item.id === regenerateItemId ? onRegenerate : undefined} allItems={caseHistory} />;
           }
           if (item.kind === "tool") {
             // Approvals, failures, web results and law statute cards keep
@@ -215,7 +246,7 @@ export function TurnGroup({
               && item.name !== "knowledge_quote"
               && item.name !== "run_background_command"
             ) {
-              if (legal || (!showProcess && item.status === "succeeded")) return null;
+              if (legal || (!showProcess && (hasAnswer || item.status === "succeeded"))) return null;
               return (
                 <div
                   key={item.id}
@@ -271,7 +302,7 @@ export function TurnGroup({
         || item.name === "run_background_command"
       ) && !(legal && (isLawTool(item) || item.name.startsWith("mcp__")) && item.status === "failed")).map(renderVisibleItem)}
       {items.filter(item => item.kind === "tool" && item.name === "knowledge_quote" && item.status === "succeeded").map(renderItem)}
-      {lastAssistant && <AssistantNarrative item={lastAssistant} actionsEnabled={actionsEnabled} onConvertOpinion={onConvertOpinion} onRegenerate={lastAssistant.id === regenerateItemId ? onRegenerate : undefined} allItems={caseHistory} />}
+      {lastAssistant && <AssistantNarrative item={lastAssistant} legal={presentation === 'legal'} threadId={threadId} actionsEnabled={actionsEnabled} onConvertOpinion={onConvertOpinion} onRegenerate={lastAssistant.id === regenerateItemId ? onRegenerate : undefined} allItems={caseHistory} />}
       {renderDeliverables && artifacts && artifacts.length > 0
         ? renderDeliverables(artifacts)
         : null}
@@ -314,8 +345,13 @@ function ReasoningRow({ text, streaming }: { text: string; streaming: boolean })
 }
 
 /** Keep retry noise out of the conversation, without losing any error detail. */
-function ToolIssues({items, renderItem}: {items: TimelineItem[]; renderItem: (item: TimelineItem) => ReactNode}) {
+function ToolIssues({items, renderItem, hasAnswer}: {items: TimelineItem[]; renderItem: (item: TimelineItem) => ReactNode; hasAnswer: boolean}) {
   const [open, setOpen] = useState(false);
+  const [answerStarted, setAnswerStarted] = useState(hasAnswer);
+  if (hasAnswer !== answerStarted) {
+    setAnswerStarted(hasAnswer);
+    if (hasAnswer) setOpen(false);
+  }
   const counts = (["failed", "denied", "cancelled"] as const).map((status, index) => {
     const count = items.filter(item => item.kind === "tool" && item.status === status).length;
     return count ? `${count} 次${["失败", "拒绝", "取消"][index]}` : null;

@@ -64,8 +64,8 @@ export const litigationClient = {
 export type WorkKind = LitigationKind | 'documents';
 export interface WorkSection { id: string; title: string; body: string; sources: LitigationSource[]; pending: string[] }
 export interface WorkProduct { title: string; sections: WorkSection[]; last_thread_id?: string }
-export interface WorkBinding { cross_revision?: number; cross_entry_id?: string; evidence_revision?: number; kind: WorkKind; section_id: string | null; source_path?: string | null; materials: string[]; expected_revision: number }
-export interface WorkRequest extends WorkBinding { title: string; message?: string; editorContext?: import("../components/editor/DiscussionContext").EditorTurnContext }
+export interface WorkBinding { project_chart_kind?: 'timeline'|'chronicle'|'relationship'|'confrontation'; cross_revision?: number; cross_entry_id?: string; evidence_revision?: number; kind: WorkKind; section_id: string | null; source_path?: string | null; materials: string[]; expected_revision: number }
+export interface WorkRequest extends WorkBinding { title: string; message?: string; projectWorkspaceId?: string; editorContext?: import("../components/editor/DiscussionContext").EditorTurnContext }
 export const litigationWorkClient = {
   read: (id: string, kind: WorkKind) => runtimeRequest<LitigationRecord<WorkProduct>>(`${base(id)}/work-products/${kind}`),
   versions: (id: string, kind: WorkKind) => runtimeRequest<{versions: LitigationRecord<WorkProduct>[]}>(`${base(id)}/work-products/${kind}/versions`),

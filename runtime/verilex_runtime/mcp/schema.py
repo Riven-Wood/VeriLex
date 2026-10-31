@@ -260,6 +260,8 @@ def _validate_safe_pattern(expression: str) -> int:
 
     variable_quantifiers = 0
     has_quantifier = False
+    bounded_unanchored = True
+    unanchored_repeat_budget = 0
     index = 0
     atom_available = False
     while index < len(expression):
@@ -299,6 +301,7 @@ def _validate_safe_pattern(expression: str) -> int:
                 raise _schema_error()
             variable_quantifiers += 1
             has_quantifier = True
+            bounded_unanchored = False
             if variable_quantifiers > 1:
                 raise _schema_error()
             atom_available = False
@@ -325,6 +328,10 @@ def _validate_safe_pattern(expression: str) -> int:
                 variable_quantifiers += 1
                 if variable_quantifiers > 1:
                     raise _schema_error()
+            if upper is None or upper > 64:
+                bounded_unanchored = False
+            else:
+                unanchored_repeat_budget += upper
             if lower > 65_536 or (upper is not None and upper > 65_536):
                 raise _schema_error()
             atom_available = False
@@ -336,7 +343,8 @@ def _validate_safe_pattern(expression: str) -> int:
         index += 1
 
     try:
-        if has_quantifier and not expression.startswith("^"):
+        if (has_quantifier and not expression.startswith("^")
+                and (not bounded_unanchored or unanchored_repeat_budget > 128)):
             raise _schema_error()
         re.compile(expression)
     except (OverflowError, re.error):

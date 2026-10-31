@@ -12,13 +12,14 @@ import tempfile
 
 from verilex_runtime.attachments.docx import MAX_DOCX_BYTES, inspect_docx
 from verilex_runtime.attachments.errors import attachment_error
+from verilex_runtime.attachments import legacy_layout
 
 DOC_MEDIA_TYPE = "application/msword"
 DOC_CONVERSION_NOTICE = "旧版 .doc 已在本机转换；复杂排版可能变化，导出统一为 .docx，原件未改动。"
 _MAGIC = bytes.fromhex("d0cf11e0a1b11ae1")
 
 
-def _sandbox_policy(root: Path) -> str:
+def _sandbox_policy(root: Path, reader: Path | None = None) -> str:
     import json
 
     job = json.dumps(str(root))
@@ -29,7 +30,8 @@ def _sandbox_policy(root: Path) -> str:
             # A concrete operation deny overrides the wildcard file-read*
             # allow above. Explicitly allow data reads inside this job too.
             f'(allow file-read-data (subpath {job}))\n'
-            '(allow file-read* (subpath "/private/var/db/timezone"))\n')
+            '(allow file-read* (subpath "/private/var/db/timezone"))\n'
+            + (f'(allow file-read* file-read-data (subpath {json.dumps(str(reader))}))\n' if reader else ''))
 
 
 def convert_doc(data: bytes) -> bytes:
@@ -40,6 +42,7 @@ def convert_doc(data: bytes) -> bytes:
     office = Path("/Applications/LibreOffice.app/Contents/MacOS/soffice")
     if sys.platform != "darwin" or not office.is_file() or not Path("/usr/bin/sandbox-exec").is_file():
         raise attachment_error("attachment_doc_converter_missing")
+    reader = legacy_layout.reader_root()
     with tempfile.TemporaryDirectory(prefix="vld-", dir="/private/tmp") as raw:
         root = Path(raw).resolve()
         source = root / "source.doc"
@@ -54,7 +57,7 @@ def convert_doc(data: bytes) -> bytes:
         # Deny access to user files, other temp jobs, network, and all writes
         # outside this one job. System/application resources remain readable.
         sandbox = root / "import.sb"
-        sandbox.write_text(_sandbox_policy(root))
+        sandbox.write_text(_sandbox_policy(root, reader))
         output = root / "source.docx"
         try:
             completed = subprocess.run([
@@ -70,6 +73,11 @@ def convert_doc(data: bytes) -> bytes:
                 raise attachment_error("attachment_too_large")
             # Reapply the OOXML trust boundary; converting does not imply safe.
             inspect_docx(output)
-            return output.read_bytes()
+            restored = legacy_layout.restore_layout(output.read_bytes(), legacy_layout.read_layout(root, reader))
+            if len(restored) > MAX_DOCX_BYTES:
+                raise attachment_error('attachment_too_large')
+            output.write_bytes(restored)
+            inspect_docx(output)
+            return restored
         except (OSError, subprocess.TimeoutExpired):
             raise attachment_error("attachment_doc_conversion_failed") from None

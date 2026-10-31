@@ -1,14 +1,14 @@
 import { runtimeRequest } from './api';
 import type { ContractReviewExport } from './contractReviewClient';
 
-export interface ContractEditorTurnContext {
+export type ContractEditorTurnContext = {
   review_id: string;
   revision: number;
   paragraph_id: string;
   start: number;
   end: number;
   selected_text: string;
-}
+} | {mode:'word';review_id:string;document_id:string;revision:number;selection:import('./wordDocumentClient').WordSelection;selected_text:string};
 export interface ContractEditorParagraph {
   id: string;
   text: string;

@@ -38,6 +38,7 @@ class WorkProduct(StrictRecord):
 
 class WorkBinding(StrictRecord):
     kind: WorkKind
+    project_chart_kind: Literal['timeline', 'chronicle', 'relationship', 'confrontation'] | None = None
     section_id: str | None = Field(default=None, pattern=r'^[a-zA-Z0-9_-]{1,80}$')
     source_path: str | None = Field(default=None, max_length=500)
     cross_revision: int | None = Field(default=None, ge=0)
@@ -81,6 +82,8 @@ class Workbench:
     def bind(self, context, thread_id, binding: WorkBinding):
         with _LOCK:
             self._thread(context, thread_id)
+            if binding.project_chart_kind and (binding.kind != 'facts' or binding.section_id or binding.source_path or binding.cross_revision is not None or binding.evidence_revision is not None or not binding.materials):
+                raise _failure('project_facts_scope', '图表任务需要绑定事实梳理和本次材料。')
             current = self.record(context, binding.kind)
             if current['revision'] != binding.expected_revision:
                 raise _failure('litigation_revision_conflict', '成果已有更新，请刷新后再讨论。')

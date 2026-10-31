@@ -165,6 +165,8 @@ window.installWordLayout = function(editor, paper, options) {
   for(const [title,names] of [['常规',['alignment','outline','direction']],['缩进',['left','special','right','specialValue']],['间距',['before','lineRule','after','lineValue']]]) {
     const group=element('fieldset','','paragraph-group');group.append(element('legend',title));const grid=element('div','','layout-fields');group.append(grid);for(const name of names)grid.append(fields[name].parentElement);paragraph.fields.append(group);
   }
+  const borders=element('fieldset','','paragraph-group');borders.append(element('legend','段落边框'));
+  const removeBottom=button('移除下边框','paragraph-remove-bottom-border',()=>{dirty.add('removeBottomBorder');removeBottom.textContent='已选择移除下边框';error(paragraphPanel,'');});borders.append(removeBottom);paragraph.fields.append(borders);
   const paging=element('div','','layout-fields'),tabsPage=element('div'),tabbar=element('div','','paragraph-tabs');
   tabbar.setAttribute('role','tablist');tabbar.setAttribute('aria-label','段落设置类别');
   paragraphPanel.insertBefore(tabbar,paragraph.fields);paragraph.fields.after(paging,tabsPage);
@@ -227,6 +229,7 @@ window.installWordLayout = function(editor, paper, options) {
     fields.direction.value=unresolved(value=>value.rightToLeft!=null)?'':String(common(formats,value=>value.rightToLeft??false)??'');
     fields.outline.value=unresolved(value=>value.outlineLevel!=null)?'':String(common(formats,value=>value.outlineLevel??9)??'');
     const sharedStops=common(formats,value=>JSON.stringify(value.tabStops||[]));stops=sharedStops?JSON.parse(sharedStops):[];tabHint.textContent=sharedStops?'设置按 Tab 键后文字对齐的位置。未设置的部分沿用文档默认制表间隔。':'所选段落的制表位不同，未调整时保持各自设置。';renderStops();updatePreview();
+    removeBottom.textContent='移除下边框';
     paragraph.hint.textContent=bookmark.targetIds.length>1?`应用到所选 ${bookmark.targetIds.length} 个段落；只改变你调整的项目。`:'应用到当前段落。';dirty.clear();
   }
   function applyParagraph(){
@@ -246,6 +249,7 @@ window.installWordLayout = function(editor, paper, options) {
       if(dirty.has('direction')&&fields.direction.value!=='')op.rightToLeft=fields.direction.value==='true';
       if(dirty.has('outline')&&fields.outline.value!=='')op.outlineLevel=Number(fields.outline.value);
       if(dirty.has('tabStops'))op.tabStops=stops;
+      if(dirty.has('removeBottomBorder'))op.bottomBorder={style:'nil',size:0,space:0};
     }catch(reason){error(paragraphPanel,reason.message);return;}
     if(!Object.keys(op).length){close();return;}
     mutate(paragraphPanel,()=>{for(const id of bookmark.targetIds)checked(api.SetParagraphFormat(editor.handle,id,JSON.stringify(op)));rebuild();});

@@ -4,8 +4,8 @@ import { FolderOpen, LoaderCircle, Trash2, Wrench } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { DetailDialog } from "./DetailDialog";
-import type { SkillSummary } from "../runtime/contracts";
-import { skillCategories, skillCategory, skillCategoryLabel } from "./skillCategories";
+import type { SkillCategory, SkillSummary } from "../runtime/contracts";
+import { skillCategories, managedSkillCategory as skillCategory, skillCategoryLabel } from "./skillCategories";
 import "./SkillsManager.css";
 import {
   RuntimeApiError,
@@ -13,6 +13,7 @@ import {
   listSkills,
   revealSkill,
   setSkillEnabled,
+  listSkillCategories, createSkillCategory, renameSkillCategory, deleteSkillCategory, setSkillCategory,
 } from "../runtime/api";
 
 const CREATE_HINT = "想新建技能？在对话里说『帮我创建一个技能：…』";
@@ -25,6 +26,7 @@ function errorMessage(error: unknown): string {
 
 export function SkillsManager({ query = "" }: { query?: string } = {}) {
   const [skills, setSkills] = useState<SkillSummary[]>([]);
+  const [customCategories, setCustomCategories] = useState<SkillCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -33,6 +35,13 @@ export function SkillsManager({ query = "" }: { query?: string } = {}) {
   const [armedName, setArmedName] = useState<string | null>(null);
   const [busyName, setBusyName] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [managingCategories, setManagingCategories] = useState(false);
+  const [categoryBusy, setCategoryBusy] = useState(false);
+  const [newCategory, setNewCategory] = useState("");
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [categoryName, setCategoryName] = useState("");
+  const [deletingCategory, setDeletingCategory] = useState<string | null>(null);
+  const categoryTrigger = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     setArmedName(null);
@@ -41,8 +50,9 @@ export function SkillsManager({ query = "" }: { query?: string } = {}) {
 
   const refresh = useCallback(async () => {
     try {
-      const records = await listSkills();
+      const [records, categories] = await Promise.all([listSkills(), listSkillCategories()]);
       setSkills(Array.isArray(records) ? records : []);
+      setCustomCategories(categories);
       setLoadError(null);
     } catch (error) {
       setLoadError(errorMessage(error));
@@ -50,6 +60,27 @@ export function SkillsManager({ query = "" }: { query?: string } = {}) {
       setLoading(false);
     }
   }, []);
+
+  const changeCategory = async (skill: SkillSummary, category: string) => {
+    setActionError(null);
+    setBusyName(skill.name);
+    try {
+      await setSkillCategory(skill.name, category === "auto" ? null : category);
+      await refresh();
+    } catch (error) { setActionError(errorMessage(error)); }
+    finally { setBusyName(null); }
+  };
+
+  const manageCategory = async (action: () => Promise<unknown>, after: () => void) => {
+    setActionError(null);
+    setCategoryBusy(true);
+    try {
+      await action();
+      await refresh();
+      after();
+    } catch (error) { setActionError(errorMessage(error)); }
+    finally { setCategoryBusy(false); }
+  };
 
   useEffect(() => {
     void refresh();
@@ -121,7 +152,8 @@ export function SkillsManager({ query = "" }: { query?: string } = {}) {
   }
   // Keep an emptied selected category visible so deleting its last item does
   // not unexpectedly switch the user's context back to the full collection.
-  const categories = skillCategories.filter(([id]) => counts.has(id) || selectedCategory === id);
+  const categoryOptions: readonly (readonly [string, string])[] = [...skillCategories, ...customCategories.map(item => [item.id, item.name] as const)];
+  const categories = categoryOptions.filter(([id]) => counts.has(id) || selectedCategory === id || id.startsWith("custom:"));
   const visibleSkills = skills.filter(skill =>
     (selectedCategory === "all" || skillCategory(skill) === selectedCategory) &&
     skill.name.toLocaleLowerCase("zh-CN").includes(query.trim().toLocaleLowerCase("zh-CN")));
@@ -134,11 +166,16 @@ export function SkillsManager({ query = "" }: { query?: string } = {}) {
           {banner}
         </p>
       ) : null}
-      <div className="skills-manager-meta">
-        <p className="skills-manager-count">
-          {`本机 ${skills.length} 个技能，${enabledCount} 个启用`}
-        </p>
-        <p className="skills-manager-hint">{CREATE_HINT}</p>
+      <div className="skills-manager-heading">
+        <div className="skills-manager-meta">
+          <p className="skills-manager-count">
+            {`本机 ${skills.length} 个技能，${enabledCount} 个启用`}
+          </p>
+          <p className="skills-manager-hint">{CREATE_HINT}</p>
+        </div>
+        {!loadError && <div className="skills-category-toolbar">
+          <button ref={categoryTrigger} type="button" className="mcp-secondary-button" disabled={busyName !== null} onClick={() => setManagingCategories(true)}>管理分类</button>
+        </div>}
       </div>
       {!loadError && skills.length > 0 ? <div className="skills-category-filters" role="group" aria-label="技能用途分类">
         <button type="button" aria-pressed={selectedCategory === "all"} onClick={() => setSelectedCategory("all")}>
@@ -148,7 +185,7 @@ export function SkillsManager({ query = "" }: { query?: string } = {}) {
           onClick={() => setSelectedCategory(id)}>{label}（{counts.get(id) ?? 0}）</button>)}
       </div> : null}
       {selectedCategory !== "all" ? <p className="skills-category-result" role="status">
-        {skillCategories.find(([id]) => id === selectedCategory)?.[1]} · 显示 {visibleSkills.length} 项
+        {categoryOptions.find(([id]) => id === selectedCategory)?.[1]} · 显示 {visibleSkills.length} 项
       </p> : null}
       {(query.trim() || selectedCategory !== "all") && visibleSkills.length === 0 && !loadError ? <p className="mcp-empty">{query.trim() ? "没有找到匹配的名称" : "此分类暂无技能"}</p> : null}
       {visibleSkills.length === 0 ? null : (
@@ -170,7 +207,7 @@ export function SkillsManager({ query = "" }: { query?: string } = {}) {
                     >
                       {skill.name}
                     </strong>
-                    <span className="skills-category-label">{skillCategoryLabel(skill)}</span>
+                    <span className="skills-category-label">{skillCategoryLabel(skill, customCategories)}</span>
                     {skill.valid ? (
                       <small className="skills-manager-description">{skill.description}</small>
                     ) : (
@@ -180,6 +217,14 @@ export function SkillsManager({ query = "" }: { query?: string } = {}) {
                       </small>
                     )}
                   </div>
+                  <label className="skills-category-select">
+                    <span>分类</span>
+                    <select aria-label={`选择技能 ${skill.name} 的分类`} value={skill.categoryOverride ?? "auto"} disabled={busyName !== null}
+                      onChange={event => void changeCategory(skill, event.target.value)}>
+                      <option value="auto">自动分类</option>
+                      {categoryOptions.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+                    </select>
+                  </label>
                   {skill.valid ? (
                     <>
                       <button
@@ -241,9 +286,35 @@ export function SkillsManager({ query = "" }: { query?: string } = {}) {
       )}
       {selectedSkill?.valid && <DetailDialog returnFocus={detailTrigger.current} title={selectedSkill.name} onClose={() => setExpandedName(null)} className="skill-detail-dialog">
         <div className="skill-detail-content">
-          <div className="skill-detail-meta"><span>{skillCategoryLabel(selectedSkill)}</span><span>{selectedSkill.enabled ? '已启用' : '已停用'}</span></div>
+          <div className="skill-detail-meta"><span>{skillCategoryLabel(selectedSkill, customCategories)}</span><span>{selectedSkill.enabled ? '已启用' : '已停用'}</span></div>
           <p className="skill-detail-description">{selectedSkill.description}</p>
           <div className="skill-detail-markdown"><ReactMarkdown remarkPlugins={[remarkGfm]} disallowedElements={['img', 'a']} unwrapDisallowed>{selectedSkill.instructions.replace(/^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/, '')}</ReactMarkdown></div>
+        </div>
+      </DetailDialog>}
+      {managingCategories && <DetailDialog title="管理技能分类" className="skill-category-dialog" busy={categoryBusy}
+        returnFocus={categoryTrigger.current} onClose={() => {setManagingCategories(false); setActionError(null);}}>
+        <div className="skill-category-content">
+          <p>新建分类后，可在每个技能旁选择。删除分类后，其中的技能会恢复自动分类。</p>
+          {actionError && <p role="alert" className="skills-manager-error">{actionError}</p>}
+          <form className="skill-category-form" onSubmit={event => {event.preventDefault(); const name = newCategory.trim(); if (name) void manageCategory(() => createSkillCategory(name), () => setNewCategory(""));}}>
+            <label htmlFor="new-skill-category">新分类名称</label>
+            <div><input id="new-skill-category" value={newCategory} maxLength={64} disabled={categoryBusy} onChange={event => setNewCategory(event.target.value)} placeholder="例如：我的办案流程" />
+              <button type="submit" className="mcp-add" disabled={categoryBusy || !newCategory.trim()}>新建分类</button></div>
+          </form>
+          <h3>自定义分类</h3>
+          {customCategories.length === 0 ? <p className="skill-category-empty">还没有自定义分类</p> : <ul className="skill-category-list">
+            {customCategories.map(category => <li key={category.id}>
+              {editingCategory === category.id ? <form onSubmit={event => {event.preventDefault(); const name = categoryName.trim(); if (name) void manageCategory(() => renameSkillCategory(category.id, name), () => setEditingCategory(null));}}>
+                <input aria-label={`修改分类 ${category.name} 的名称`} value={categoryName} maxLength={64} disabled={categoryBusy} onChange={event => setCategoryName(event.target.value)} />
+                <button type="submit" disabled={categoryBusy || !categoryName.trim()}>保存</button>
+                <button type="button" disabled={categoryBusy} onClick={() => setEditingCategory(null)}>取消</button>
+              </form> : <><span>{category.name} <small>{counts.get(category.id) ?? 0} 个技能</small></span>
+                <div><button type="button" disabled={categoryBusy} aria-label={`重命名分类 ${category.name}`} onClick={() => {setDeletingCategory(null); setEditingCategory(category.id); setCategoryName(category.name);}}>重命名</button>
+                  <button type="button" disabled={categoryBusy} aria-label={`${deletingCategory === category.id ? "确认删除" : "删除"}分类 ${category.name}`}
+                    onClick={() => deletingCategory !== category.id ? setDeletingCategory(category.id) : void manageCategory(() => deleteSkillCategory(category.id), () => {setDeletingCategory(null); if (selectedCategory === category.id) setSelectedCategory("all");})}>
+                    {deletingCategory === category.id ? "确认删除" : "删除"}</button></div></>}
+            </li>)}
+          </ul>}
         </div>
       </DetailDialog>}
     </div>

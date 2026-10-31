@@ -36,6 +36,9 @@ SKILL_NAME_CONFLICT = "skill_name_conflict"
 SKILL_NAME_UNCHANGEABLE = "skill_name_unchangeable"
 SKILL_TOO_LARGE = "skill_too_large"
 SKILL_WRITE_FAILED = "skill_write_failed"
+SKILL_CATEGORY_INVALID = "skill_category_invalid"
+SKILL_CATEGORY_CONFLICT = "skill_category_conflict"
+SKILL_CATEGORY_NOT_FOUND = "skill_category_not_found"
 
 _MESSAGES = {
     SKILL_NOT_FOUND: "技能不存在",
@@ -48,6 +51,9 @@ _MESSAGES = {
     SKILL_NAME_UNCHANGEABLE: "技能名称创建后不可修改",
     SKILL_TOO_LARGE: "内容超出长度限制：描述不超过 1000 字，正文不超过 65536 字",
     SKILL_WRITE_FAILED: "写入失败，请重试",
+    SKILL_CATEGORY_INVALID: "请输入有效的分类名称",
+    SKILL_CATEGORY_CONFLICT: "分类名称已存在",
+    SKILL_CATEGORY_NOT_FOUND: "分类不存在，请刷新后重试",
 }
 
 # Name whitelist adapted from OpenWorker coworker/skills/store.py (MIT) and
@@ -84,6 +90,7 @@ class SkillEntry:
     error: str | None
     path: str
     category: str = ""
+    category_override: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -173,6 +180,7 @@ class SkillService:
 
     def list_skills(self) -> list[SkillEntry]:
         disabled = self._state.disabled_names()
+        assignments = self._state.category_assignments()
         entries = [
             SkillEntry(
                 name=item.canonical_name,
@@ -185,11 +193,20 @@ class SkillService:
                 error=item.error,
                 path=str(item.directory / SKILL_FILE),
                 category=item.record.category if item.record is not None else "",
+                category_override=assignments.get(item.canonical_name.strip().lower()),
             )
             for item in self._scan()
         ]
         entries.sort(key=lambda entry: entry.name)
         return entries
+
+    @property
+    def category_state(self) -> SkillStateRepository:
+        return self._state
+
+    def set_category(self, name: str, category_id: str | None, builtin_ids: set[str]) -> bool:
+        item = self._locate(name)
+        return self._state.set_category(item.canonical_name, category_id, builtin_ids)
 
     def effective_skills(self) -> list[SkillRecord]:
         """Valid, enabled skills — the catalog injected into new Turns."""

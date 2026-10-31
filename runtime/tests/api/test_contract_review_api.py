@@ -76,6 +76,68 @@ def _contract_bytes(tmp_path) -> bytes:
     return build_contract(tmp_path / "contract.docx").read_bytes()
 
 
+def test_open_word_waits_for_database_without_blocking_other_requests(api_fixture, tmp_path):
+    import sqlite3
+    import threading
+    import time
+    from concurrent.futures import ThreadPoolExecutor
+
+    client, _, repository = api_fixture
+    data = _contract_bytes(tmp_path)
+    lock = sqlite3.connect(repository._database.path, check_same_thread=False)
+    lock.execute("BEGIN IMMEDIATE")
+    started = threading.Event()
+
+    def open_contract():
+        started.set()
+        return client.post('/v1/contract-reviews/documents', params={'filename': 'test.docx'},
+                           content=data, headers=HEADERS)
+
+    try:
+        with client, ThreadPoolExecutor() as pool:
+            pending = pool.submit(open_contract)
+            try:
+                assert started.wait(2)
+                time.sleep(5.5)  # Longer than the ordinary five-second database wait.
+                assert not pending.done()
+                assert client.get('/v1/health', headers=HEADERS).status_code == 200
+            finally:
+                lock.rollback()
+            response = pending.result(timeout=10)
+        assert response.status_code == 201
+        assert response.json()['filename'] == 'test.docx'
+    finally:
+        lock.close()
+
+
+def test_open_word_reports_database_busy(api_fixture, tmp_path, monkeypatch):
+    import sqlite3
+    from contextlib import contextmanager
+
+    client, _, repository = api_fixture
+    data = _contract_bytes(tmp_path)
+    database = repository._database
+    original_connect = database.connect
+
+    @contextmanager
+    def short_connect(**kwargs):
+        kwargs['busy_timeout_ms'] = 10
+        with original_connect(**kwargs) as connection:
+            yield connection
+
+    lock = sqlite3.connect(database.path)
+    lock.execute('BEGIN IMMEDIATE')
+    monkeypatch.setattr(database, 'connect', short_connect)
+    try:
+        response = client.post('/v1/contract-reviews/documents', params={'filename': 'test.docx'},
+                               content=data, headers=HEADERS)
+    finally:
+        lock.rollback()
+        lock.close()
+    assert response.status_code == 503
+    assert response.json()['error']['code'] == 'contract_storage_busy'
+
+
 def _create(client, data: bytes, **overrides):
     params = {
         "filename": "技术服务合同.docx",
@@ -111,6 +173,31 @@ def test_create_review_contract(api_fixture, tmp_path):
     assert payload["strictness"] == "strict"
     assert payload["opinions"] == []
 
+
+def test_create_discussion_does_not_start_a_full_review(api_fixture,tmp_path):
+    client,service,repository=api_fixture
+    data=_contract_bytes(tmp_path)
+    from verilex_runtime.contract_review.service import _utc_now
+    service._now=_utc_now
+    document=repository.create_word_document('discussion-doc','技术服务合同.docx',data,data,service._now())
+    response=_create(client,data,discussion_only=True,document_id=document['id'],document_revision=0)
+    assert response.status_code==201
+    handle=response.json()
+    detail=client.get(f"/v1/contract-reviews/{handle['review_id']}",headers=HEADERS).json()
+    assert detail['discussion_only'] is True and detail['opinions']==[]
+    assert service._turns.list(handle['thread_id'])==[]
+    assert repository.review_document_id(handle['review_id'])==document['id']
+
+
+
+def test_custom_party_is_saved_in_review(api_fixture, tmp_path):
+    client, _, _ = api_fixture
+    response = client.post("/v1/contract-reviews", params={"filename": "合同.docx", "model": "m", "skill": "通用合同审查", "party": "neutral"}, headers=HEADERS,
+        files={"file": ("合同.docx", _contract_bytes(tmp_path), "application/vnd.openxmlformats-officedocument.wordprocessingml.document")},
+        data={"requirements": "", "custom_party": "丙方和担保人"})
+    assert response.status_code == 201
+    detail = client.get(f"/v1/contract-reviews/{response.json()['review_id']}", headers=HEADERS)
+    assert detail.json()["custom_party"] == "丙方和担保人"
 
 def test_create_rejects_bad_files_with_whitelist_code(api_fixture, tmp_path):
     client, _, _ = api_fixture

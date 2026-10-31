@@ -5,7 +5,7 @@ import { exportFilename, exportMarkdown } from "../timeline/exportMarkdown";
 import { saveConversation } from "../platform/saveFileDialog";
 import { UserMessageEdit } from "../components/timeline/UserMessageEdit";
 import { MessageActions } from "../components/timeline/MessageActions";
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type SetStateAction } from "react";
 
 import { AgentComposer } from "../components/AgentComposer";
 import { McpThreadPicker } from "../components/McpThreadPicker";
@@ -85,6 +85,9 @@ export interface PendingAgentMessage {
 }
 
 interface AgentWorkspaceViewProps {
+  searchControls?: ReactNode;
+  searchSelection?: ComposerSubmission["searchSelection"];
+  searchKnowledgeIds?: string[];
   hasModel: boolean;
   thread: ThreadSummary | null;
   workspaceName: string;
@@ -94,6 +97,7 @@ interface AgentWorkspaceViewProps {
   readOnly?: boolean;
   disableContractOpinionConversion?: boolean;
   variant?: "chat" | "legal" | "litigation";
+  searchBlockedReason?: string;
   ordinaryDiscussion?: boolean;
   hideConversationHeader?: boolean;
   onPreviewTarget?: (target: PreviewTarget) => void;
@@ -102,6 +106,7 @@ interface AgentWorkspaceViewProps {
   draft: string;
   composerQuote?: string;
   onComposerQuoteClear?: () => void;
+  beforeContractSend?: () => Promise<void>;
   onDraftChange: (value: string) => void;
   draftWebEnabled?: boolean;
   draftWebError?: string | null;
@@ -245,6 +250,9 @@ const AssistantMessage = memo(function AssistantMessage({
 });
 
 export function AgentWorkspaceView({
+  searchControls,
+  searchSelection,
+  searchKnowledgeIds,
   hasModel,
   thread,
   workspaceName,
@@ -253,6 +261,7 @@ export function AgentWorkspaceView({
   draft,
   composerQuote = "",
   onComposerQuoteClear,
+  beforeContractSend,
   onDraftChange,
   draftWebEnabled = false,
   draftWebError = null,
@@ -280,6 +289,7 @@ export function AgentWorkspaceView({
 
   onPreviewTarget,
   readOnly = false,
+  searchBlockedReason = "",
   disableContractOpinionConversion = false,
   ordinaryDiscussion = false, hideConversationHeader = false,
   variant = "chat",}: AgentWorkspaceViewProps) {
@@ -344,8 +354,6 @@ export function AgentWorkspaceView({
       setKnowledgeIds([...(pendingAgentMessage?.submission.knowledgeLibraryIds ?? [])]);
     }
   }, [thread?.id, variant, pendingAgentMessage?.operationId]);
-  const [legalComposerExpanded, setLegalComposerExpanded] = useState(false);
-  useEffect(() => setLegalComposerExpanded(false), [thread?.id, variant]);
   const [showPlugins, setShowPlugins] = useState(false);
   const pluginScopeRef = useRef(`${thread?.backendId ?? "draft"}:${mcpTaskGeneration}`);
   const [approvalMode, setApprovalMode] = useState<ApprovalMode>("ask");
@@ -387,6 +395,7 @@ export function AgentWorkspaceView({
   >([]);
   const [editingTurnId, setEditingTurnId] = useState<string | null>(null);
   const editLockRef = useRef<string | null>(null);
+  const contractSendLock = useRef(false);
   const [queuesByThread, setQueuesByThread] = useState<Record<string, ReturnType<typeof emptyComposerQueue>>>({});
   const queuedAttachmentsByThreadRef = useRef(new Map<string, ComposerAttachment[]>());
   const inFlightQueuedAttachmentsByThreadRef = useRef(new Map<string, ComposerAttachment[]>());
@@ -437,7 +446,7 @@ export function AgentWorkspaceView({
         if (thread?.backendId === acceptedThreadId) {
           if (submission.replaceTurnId) { editLockRef.current = null; setEditingTurnId(null); }
           if (!submission.preserveDraft && draftRef.current === submission.text) onDraftChange("");
-          if (composerQuote && submission.text === `合同原文引用：\n${composerQuote}\n\n问题：${draftRef.current}`) {
+          if (composerQuote && submission.text === `引用内容：\n${composerQuote}\n\n问题：${draftRef.current}`) {
             onDraftChange("");
             onComposerQuoteClear?.();
           }
@@ -778,12 +787,20 @@ export function AgentWorkspaceView({
   const litigationMaterials=useLitigationMaterials();
 
   async function handleSend() {
-    if (editLockRef.current || needsThreadModel) return;
+    if (editLockRef.current || needsThreadModel || contractSendLock.current || searchBlockedReason) return;
     if (!draft.trim() && attachments.ready.length === 0) return;
+    if (beforeContractSend) {
+      contractSendLock.current=true;
+      try { await beforeContractSend(); }
+      catch (error) { setContextError(error instanceof Error ? error.message : '合同未能保存，请重试。'); return; }
+      finally { contractSendLock.current=false; }
+      if(currentThreadIdRef.current!==currentThreadId || draftRef.current!==draft)return;
+    }
     const submission: ComposerSubmission = {
-      text: composerQuote ? `合同原文引用：\n${composerQuote}\n\n问题：${draft}` : draft,
-      ...(variant === "litigation" && litigationMaterials ? {litigationMaterials:structuredClone(litigationMaterials)} : {}),
-      knowledgeLibraryIds: [...knowledgeIds],
+      text: composerQuote ? `引用内容：\n${composerQuote}\n\n问题：${draft}` : draft,
+      ...(litigationMaterials ? {litigationMaterials:structuredClone(litigationMaterials)} : {}),
+      ...(searchSelection ? {searchSelection} : {}),
+      knowledgeLibraryIds: searchSelection ? (searchSelection.channel === "knowledge" ? [...(searchKnowledgeIds ?? [])] : []) : [...knowledgeIds],
       attachmentUploadIds: attachments.ready
         .map((attachment) => attachment.uploadId)
         .filter((uploadId): uploadId is string => Boolean(uploadId)),
@@ -822,12 +839,13 @@ export function AgentWorkspaceView({
   );
 
   function queueCurrentSubmission(mode: ComposerQueueMode) {
-    if (editLockRef.current) return;
+    if (editLockRef.current || searchBlockedReason) return;
     if (!currentThreadId) return;
     const submission: ComposerSubmission = {
       text: draft,
-      ...(variant === "litigation" && litigationMaterials ? {litigationMaterials:structuredClone(litigationMaterials)} : {}),
-      knowledgeLibraryIds: [...knowledgeIds],
+      ...(litigationMaterials ? {litigationMaterials:structuredClone(litigationMaterials)} : {}),
+      ...(searchSelection ? {searchSelection: structuredClone(searchSelection)} : {}),
+      knowledgeLibraryIds: searchSelection ? (searchSelection.channel === "knowledge" ? [...(searchKnowledgeIds ?? [])] : []) : [...knowledgeIds],
       attachmentUploadIds: attachments.ready
         .map((attachment) => attachment.uploadId)
         .filter((uploadId): uploadId is string => Boolean(uploadId)),
@@ -922,12 +940,12 @@ export function AgentWorkspaceView({
     if (!item.turnId || editLockRef.current !== item.turnId || isRunning || !connectionReady || queue.submission) return false;
     return sendMessage({text, replaceTurnId: item.turnId, preserveDraft: true,
       attachmentUploadIds: [], attachmentNames: item.attachmentNames ?? item.attachments?.map(a => a.name) ?? [],
-      attachments: item.attachments, knowledgeLibraryIds: knowledgeIds,
+      attachments: item.attachments, ...(searchSelection ? {searchSelection} : {}), knowledgeLibraryIds: searchSelection ? (searchSelection.channel === "knowledge" ? searchKnowledgeIds : []) : knowledgeIds,
       approvalMode, reasoningEffort: composerContext?.reasoningEffort ?? "auto"});
   }
   function resendText(text: string, mode?: ComposerQueueMode): boolean {
     if (editLockRef.current || !currentThreadId || historyLoadedThreadId !== currentThreadId || !text.trim() || queue.submission) return false;
-    const submission: ComposerSubmission = {text, preserveDraft: true, attachmentUploadIds: [], attachmentNames: [], approvalMode, reasoningEffort: composerContext?.reasoningEffort ?? "auto"};
+    const submission: ComposerSubmission = {text, preserveDraft: true, ...(searchSelection ? {searchSelection, knowledgeLibraryIds: searchSelection.channel === "knowledge" ? searchKnowledgeIds : []} : {}), attachmentUploadIds: [], attachmentNames: [], approvalMode, reasoningEffort: composerContext?.reasoningEffort ?? "auto"};
     if (isRunning) {
       if (!mode) return false;
       setQueuesByThread(current => ({...current, [currentThreadId]: queueSubmission(queue, submission, mode, {threadId: currentThreadId, terminalToken, historyToken}).state}));
@@ -999,7 +1017,7 @@ export function AgentWorkspaceView({
           </div>
         </header>
       ) : null}
-      {(variant !== "litigation" || ordinaryDiscussion) && thread && <div className="conversation-export">
+      {(variant !== "litigation" || ordinaryDiscussion) && thread && thread.scene !== "contract-review" && <div className="conversation-export">
         <button type="button" disabled={!renderedThreadId || historyLoading || exporting} onClick={async () => {
           setExporting(true); setExportStatus("");
           try { setExportStatus(await saveConversation(exportFilename(thread.title), exportMarkdown(thread.title, thread.createdAt, items, isRunning)) ? "对话已保存" : "已取消导出"); }
@@ -1034,6 +1052,7 @@ export function AgentWorkspaceView({
             return (
               <TurnGroup
                 key={entry.turnId}
+                threadId={renderedThreadId ?? undefined}
                 items={entry.items}
                 actionsEnabled={!readOnly && (variant !== "litigation" || ordinaryDiscussion)}
                 regenerateItemId={canRegenerate ? lastAnswer?.id : undefined}
@@ -1181,9 +1200,9 @@ export function AgentWorkspaceView({
               <img className="agent-empty-logo" src="/verilex-logo.png" alt="" />
               <h1>开启今天的法律工作</h1>
             </>
-          ) : (
-            <h1>{variant === "litigation" ? "围绕本案继续讨论" : "输入问题开始检索，结果会显示在这里"}</h1>
-          )}
+          ) : variant === "legal" ? (
+            <h1>输入问题开始检索，结果会显示在这里</h1>
+          ) : null}
           {isThinking && (
             <div className="thinking-indicator" role="status">正在深度思考…</div>
           )}
@@ -1209,14 +1228,6 @@ export function AgentWorkspaceView({
             })} />
         </div>}
         <div hidden={hasPendingApproval}>
-        {variant === "legal" && (
-          <button type="button" className="legal-followup-toggle"
-            aria-expanded={legalComposerExpanded}
-            onClick={() => setLegalComposerExpanded((open) => !open)}>
-            {legalComposerExpanded ? "收起追问" : "继续追问"}
-          </button>
-        )}
-        <div hidden={variant === "legal" && !legalComposerExpanded}>
         {showJump && !editingTurnId && (
           <button type="button" className="jump-to-latest" onClick={jumpToLatest}>
             {hasPendingApproval ? "有操作等待确认 · 查看" : isRunning ? "回到最新（运行中）" : "回到最新"}
@@ -1264,10 +1275,11 @@ export function AgentWorkspaceView({
         )}
         {composerQuote && <div className="contract-review-quote" role="status">
           <span>已选中：『{composerQuote}』</span>
-          <button aria-label="移除合同引用" onClick={onComposerQuoteClear}>×</button>
+          <button aria-label="移除引用" onClick={onComposerQuoteClear}>×</button>
         </div>}
         <AgentComposer
-        litigationSkillScope={variant === "litigation" && ordinaryDiscussion
+        searchControls={searchControls}
+        litigationSkillScope={variant === "litigation"
           ? `${previewWorkspaceId ?? "none"}:${currentThreadId ?? "new"}:${mcpTaskGeneration}` : undefined}
         knowledgeSelection={{selected: knowledgeIds, onChange: setKnowledgeIds, disabled: isRunning || draftSendPreparing || readOnly}}
         hasModel={hasModel}
@@ -1285,7 +1297,7 @@ export function AgentWorkspaceView({
         attachmentError={[recoveryError, contextError, attachments.error]
           .filter(Boolean)
           .join(" ")}
-        sendBlockedReason={needsThreadModel ? "原模型连接已删除，会话内容已保留。请选择模型后继续。" : editingTurnId ? "请先完成或取消上方的指令编辑。" : attachmentBlockedReason}
+        sendBlockedReason={needsThreadModel ? "原模型连接已删除，会话内容已保留。请选择模型后继续。" : editingTurnId ? "请先完成或取消上方的指令编辑。" : attachmentBlockedReason || searchBlockedReason}
         submissionPending={draftSendPreparing}
         actionScopeKey={currentThreadId}
         focusRequestToken={focusRequestToken}
@@ -1367,7 +1379,6 @@ export function AgentWorkspaceView({
           />
         ) : undefined}
       />
-      </div>
       </div>
       </div>}
     </div>

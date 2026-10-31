@@ -6,6 +6,7 @@ import type { SkillSummary } from "../src/runtime/contracts";
 
 function skill(overrides: Partial<SkillSummary> = {}): SkillSummary {
   return {
+    category: "legal-retrieval",
     name: "法律检索方法",
     description: "按争议焦点拆解检索关键词",
     instructions: "...",
@@ -52,11 +53,12 @@ test("没有技能时保留选择入口和真实空态", async () => {
   expect(await screen.findByText("暂无可用的检索技能")).toBeTruthy();
 });
 
-test("名称不含法律关键词的有效技能也可选择", async () => {
-  LIST_SKILLS.mockResolvedValue([skill({ name: "文件整理", description: "整理文件" }), skill({ name: "损坏", valid: false })]);
+test("按分类选择技能而非依赖名称", async () => {
+  LIST_SKILLS.mockResolvedValue([skill({ name: "文件整理", description: "整理文件" }), skill({ name: "损坏", valid: false }), skill({ name: "其他", category: "case-retrieval" })]);
   const onChange = vi.fn(); render(<LegalSkillSuggestions value={[]} onChange={onChange} />);
   fireEvent.click(screen.getByRole("combobox", { name: "检索技能" }));
   fireEvent.click(await screen.findByRole("option", { name: /文件整理/ }));
   expect(onChange).toHaveBeenCalledWith(["文件整理"]);
   expect(screen.queryByText("损坏")).toBeNull();
+  expect(screen.queryByText("其他")).toBeNull();
 });

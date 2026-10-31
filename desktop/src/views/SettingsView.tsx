@@ -1,3 +1,4 @@
+import { ConversationSettings, type ConversationSettingsProps } from "../settings/ConversationSettings";
 import { ShortcutSettings } from "../commands/GlobalShortcut";
 import { HelpCenter } from "../help/HelpCenter";
 import {PersonalInstructions} from "../settings/PersonalInstructions";
@@ -23,6 +24,7 @@ import { updateAction, updateProgressText } from "../updater/presentation";
 import type { UpdateController, UpdatePhase } from "../updater/contracts";
 
 interface SettingsViewProps {
+  conversationSettings?: ConversationSettingsProps;
   onOpenCapabilities?: () => void;
   onWorkspaceChanged?: (id:string,revoked:boolean) => void;
   configured: ConfiguredCapabilities;
@@ -210,7 +212,7 @@ export function SettingsView({
   onModelMetadataChanged = () => undefined, providerAutoDiscoverDelayMs,
   runtimeVersion = "未知", updates, embeddedNavigation = false,
   selectedCategory, onSelectCategory, query, onQueryChange,
-  onOpenCapabilities, onWorkspaceChanged,
+  onOpenCapabilities, onWorkspaceChanged, conversationSettings,
 }: SettingsViewProps) {
   const [internalCategory,setInternalCategory] = useState<SettingsCategoryId>("general");
   const [internalQuery,setInternalQuery] = useState("");
@@ -244,6 +246,7 @@ export function SettingsView({
         <SettingsRow id="follow-up" title="运行中追加消息" description="任务执行期间发送新消息时，默认如何处理。">{choice("followUp","运行中追加消息",[["ask","每次选择"],["queue","排队，完成后继续"],["interrupt","打断后发送"]])}</SettingsRow>
       </SettingsGroup><ShortcutSettings/><NativePreferences />
     </>; break;
+    case "conversations": content=conversationSettings ? <ConversationSettings {...conversationSettings}/> : null; break;
     case "appearance": content=<>
       <SettingsGroup title="界面">
         <SettingsRow id="theme" title="界面主题">{choice("theme","界面主题",[["light","浅色"],["dark","深色"],["system","跟随系统"]])}</SettingsRow>

@@ -158,6 +158,14 @@ def test_schema_accepts_one_bounded_variable_quantifier():
     validate_mcp_arguments(canonical, {"slug": "case_42"})
 
 
+def test_unanchored_bounded_pattern_matches_yuandian_report_tool():
+    schema = validate_mcp_schema({"type": "object", "properties": {
+        "idempotencyKey": {"type": "string", "pattern": "[A-Za-z0-9_-]{8,64}"}}})
+    validate_mcp_arguments(schema, {"idempotencyKey": "test-key-123"})
+    with pytest.raises(MCPDomainError):
+        validate_mcp_arguments(schema, {"idempotencyKey": "short"})
+
+
 @pytest.mark.parametrize(
     "pattern",
     [
@@ -167,6 +175,9 @@ def test_schema_accepts_one_bounded_variable_quantifier():
         "^a+a+$",
         "a+b",
         ".*b",
+        "a{1,65536}b",
+        "a{1,}b",
+        "a{64}b{64}c{64}",
     ],
 )
 def test_schema_rejects_potentially_superlinear_regex_before_arguments(pattern):

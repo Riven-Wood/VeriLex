@@ -30,10 +30,11 @@ vi.mock("../src/runtime/contractReviewClient", async () => {
 vi.mock("../src/platform/contractReviewExport", () => ({ saveContractReview: vi.fn() }));
 vi.mock("../src/components/ContractAnnotationPreview", () => ({ ContractAnnotationPreview: ({onQuote, opinions}: {onQuote: (text: string) => void; opinions: unknown[]}) => <button data-opinion-count={opinions.length} onClick={() => onQuote("合同选区")}>选中合同文字</button> }));
 
-vi.mock("../src/runtime/wordDocumentClient", () => ({wordDocumentApi:{remove:vi.fn().mockResolvedValue(undefined),list:vi.fn().mockResolvedValue([]),get:vi.fn(),open:vi.fn(),forReview:vi.fn().mockResolvedValue({id:'wd',filename:'合同.docx',content:'QQ==',revision:0})}}));
-vi.mock("../src/components/wordEditor/WordDocumentEditor", () => ({WordDocumentEditor: React.forwardRef(({document,onReady,headerActions}:any,ref:any)=>{ React.useEffect(()=>onReady?.(true),[]); React.useImperativeHandle(ref,()=>({history:editHistory,flush:async()=>({document,bytes:new Uint8Array([66])})})); return <div>{headerActions}<div>完整 Word 文档</div></div>; })}));
+vi.mock("../src/runtime/wordDocumentClient", () => ({wordDocumentApi:{remove:vi.fn().mockResolvedValue(undefined),list:vi.fn().mockResolvedValue([]),get:vi.fn(),open:vi.fn(),aiEdits:vi.fn().mockResolvedValue([]),aiConflict:vi.fn(),forReview:vi.fn().mockResolvedValue({id:'wd',filename:'合同.docx',content:'QQ==',revision:0})}}));
+vi.mock("../src/components/wordEditor/WordDocumentEditor", () => ({WordDocumentEditor: React.forwardRef(({document,onReady,onSelection,headerActions}:any,ref:any)=>{ React.useEffect(()=>onReady?.(true),[]); React.useImperativeHandle(ref,()=>({history:editHistory,flush:async()=>({document,bytes:new Uint8Array([66])}),applyAiEdit,isDirty:()=>false})); return <div>{headerActions}<div>完整 Word 文档</div>{onSelection&&<button onClick={()=>onSelection({texts:['甲乙丙','丁戊己'],start:0,end:1,from:1,to:2})}>选中测试文字</button>}</div>; })}));
 const wordApi=vi.mocked(wordDocumentApi);
 const editHistory=vi.hoisted(()=>vi.fn());
+const applyAiEdit=vi.hoisted(()=>vi.fn().mockResolvedValue(undefined));
 
 const nativeDrop = vi.hoisted(() => ({ listen: vi.fn().mockResolvedValue(() => {}), read: vi.fn(), dispose: vi.fn() }));
 vi.mock("@tauri-apps/api/webview", () => ({ getCurrentWebview: () => ({ onDragDropEvent: nativeDrop.listen }) }));
@@ -157,15 +158,16 @@ describe("ContractReviewView", () => {
     fireEvent.keyDown(requirements,{key:'Escape'});
     expect(menu.open).toBe(false);
     expect(requirements.value).toBe('重点核对付款');
-    fireEvent.change(screen.getByRole("combobox", {name: "代表方"}), {target: {value: "party_b"}});
+    fireEvent.change(screen.getByRole("combobox", {name: "代表方"}), {target: {value: "custom"}});
+    fireEvent.change(screen.getByLabelText("自定义代表方"), {target: {value: "丙方和担保人"}});
     fireEvent.drop(screen.getByLabelText("合同审查"), {dataTransfer: {files: [new File(["fixture"], "合同.docx")]}});
     const editor = await screen.findByText("完整 Word 文档");
-    expect((screen.getByRole("combobox", {name: "代表方"}) as HTMLSelectElement).value).toBe("party_b");
+    expect((screen.getByRole("combobox", {name: "代表方"}) as HTMLSelectElement).value).toBe("custom");
     fireEvent.click(menu.querySelector('summary')!);
     expect(screen.getByText("完整 Word 文档")).toBe(editor);
     fireEvent.click(screen.getByRole("button", {name: "开始审查"}));
     await waitFor(() => expect(start).toHaveBeenCalledTimes(1));
-    expect(start.mock.calls[0][1]).toMatchObject({party: "party_b", documentId: "wd", requirements:'重点核对付款'});
+    expect(start.mock.calls[0][1]).toMatchObject({party: "neutral", customParty: "丙方和担保人", documentId: "wd", requirements:'重点核对付款'});
   });
 
   it("历史记录点开回到那次审查", async () => {
@@ -216,7 +218,7 @@ describe("ContractReviewView", () => {
     expect((screen.getByRole("button", {name: "选择合同"}) as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it("导出如实显示原生保存成功、取消与字符串错误", async () => {
+  it("导出取消时不显示提示，保存成功和错误仍可见", async () => {
     const row = {id: "r", thread_id: "t", filename: "合同.docx", skill: "通用合同审查", status: "completed", created_at: "t", updated_at: "t", opinion_count: 1, party: "neutral", strictness: "normal", signature: "V", retrieval_enabled: false, opinions: [{id: "o", adopted: true, clause_label: "条款", clause_excerpt: "原文", anchor_text: "原文", occurrence: null, level: "低", category: "建议协商", body: "意见", suggestion: "", edited_text: null, citations: []}]};
     api.list.mockResolvedValue([row]); api.get.mockResolvedValue(row);
     api.export.mockResolvedValue({filename: "合同（批注版）.docx", content: "dGVzdA=="});
@@ -227,7 +229,9 @@ describe("ContractReviewView", () => {
       await screen.findByRole("region", {name: "合同.docx 的审查文档"});
       fireEvent.click(screen.getByText("导出审查成果"));
       fireEvent.click(screen.getByText("导出批注版"));
-      expect(await screen.findByText("已取消保存。")).toBeTruthy();
+      await waitFor(() => expect(saveContractReview).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect((screen.getByText("导出批注版") as HTMLButtonElement).disabled).toBe(false));
+      expect(screen.queryByText("已取消保存。")).toBeNull();
       fireEvent.click(screen.getByText("导出审查成果"));
       fireEvent.click(screen.getByText("导出批注版"));
       expect(await screen.findByText("批注版已保存：/tmp/合同（批注版）.docx")).toBeTruthy();
@@ -247,7 +251,7 @@ describe("ContractReviewView", () => {
     view.rerender(<ContractReviewView {...props} thread={{id: "th-new", status: "idle"} as never} />);
     expect(await screen.findByRole("region", {name: "新合同.docx 的审查文档"})).toBeTruthy();
     expect((screen.getByLabelText("代表方") as HTMLSelectElement).value).toBe("party_b");
-    expect((screen.getByLabelText("代表方") as HTMLSelectElement).disabled).toBe(true);
+    expect((screen.getByLabelText("代表方") as HTMLSelectElement).disabled).toBe(false);
 
   });
 
@@ -279,6 +283,38 @@ describe("ContractReviewView", () => {
     view.rerender(<ContractReviewView {...props} thread={{id: "t", status: "awaiting_approval"} as never} />);
     expect(screen.getByText("完整 Word 文档")).toBeTruthy();
     expect(assistant).toHaveBeenCalled();
+  });
+
+  it("合同选区和模型回答分别作为引用交给讨论区", async () => {
+    const assistant = vi.fn((quote:string) => <div><span className="turn-narrative-text">模型给出的修改意见</span><span data-testid="quote">{quote}</span></div>);
+    const row = {id:"r",thread_id:"t",filename:"合同.docx",skill:"通用合同审查",status:"completed",created_at:"t",updated_at:"t",opinion_count:0,party:"neutral",strictness:"normal",signature:"V",retrieval_enabled:false,opinions:[]};
+    api.list.mockResolvedValue([row]);api.get.mockResolvedValue(row);
+    renderView({thread:{id:'t',status:'idle'} as never,renderAssistant:assistant});
+    fireEvent.click(await screen.findByRole('button',{name:'选中测试文字'}));
+    expect(screen.getByTestId('quote').textContent).toBe('合同原文：\n乙丙\n丁戊');
+    const answer=screen.getByText('模型给出的修改意见');const range=document.createRange();range.setStart(answer.firstChild!,0);range.setEnd(answer.firstChild!,4);
+    const selection=window.getSelection()!;selection.removeAllRanges();selection.addRange(range);fireEvent.mouseUp(answer);
+    fireEvent.click(screen.getByRole('button',{name:'引用选中的回答'}));
+    expect(screen.getByTestId('quote').textContent).toBe('模型回答：\n模型给出');
+    selection.removeAllRanges();
+  });
+
+  it('未开始整份审查时引用选区，只创建合同协作会话',async()=>{
+    const start=vi.fn().mockResolvedValue(undefined);
+    renderView({onStartReview:start});
+    fireEvent.change(screen.getByLabelText('选择合同文件'),{target:{files:[new File(['fixture'],'合同.docx')]}});
+    fireEvent.click(await screen.findByRole('button',{name:'选中测试文字'}));
+    await waitFor(()=>expect(start).toHaveBeenCalledWith(expect.any(File),expect.objectContaining({discussionOnly:true,documentId:'wd',documentRevision:0})));
+  });
+
+  it('AI 提交修改后交给当前 Word 写入',async()=>{
+    const row={id:'r',thread_id:'t',filename:'合同.docx',skill:'通用合同审查',status:'completed',created_at:'t',updated_at:'t',opinion_count:0,party:'neutral',strictness:'normal',signature:'V',retrieval_enabled:false,opinions:[]};
+    api.list.mockResolvedValue([row]);api.get.mockResolvedValue(row);
+    const edit={id:'edit',review_id:'r',document_id:'wd',revision:0,selection:{texts:['原文'],start:0,end:0,from:0,to:2},before_text:'原文',after_text:'改后',reason:'',status:'pending'};
+    wordApi.aiEdits.mockResolvedValueOnce([edit]).mockResolvedValue([]);
+    renderView({thread:{id:'t',status:'idle'} as never});
+    await waitFor(()=>expect(applyAiEdit).toHaveBeenCalledWith(edit));
+    expect(await screen.findByText('AI 已将修改写入当前文档。')).toBeTruthy();
   });
 
 });

@@ -1,4 +1,5 @@
 """Read-only verification; never invokes a writer or trusts a global word whitelist."""
+import copy
 from collections import defaultdict
 from lxml import etree
 from verilex_runtime.documents.docx_package import W, SPACE, parts, xml, story_parts
@@ -45,6 +46,76 @@ def verify_structure(before,after,expected):
                 n.text=''; n.attrib.pop(SPACE,None)
         if etree.tostring(ar[name],method='c14n2')!=etree.tostring(br[name],method='c14n2'):
             raise RedactionError('redaction_residue')
+
+
+def _normalized_runs(root):
+    """Compare run content and properties independently of revision-induced splits."""
+    for parent in list(root.iter()):
+        for run in list(parent):
+            if run.tag != f'{{{W}}}r':
+                continue
+            children = [child for child in run if child.tag != f'{{{W}}}rPr']
+            if len(children) < 2:
+                continue
+            index = parent.index(run)
+            for child in children:
+                fragment = copy.deepcopy(run)
+                for item in list(fragment):
+                    if item.tag != f'{{{W}}}rPr':
+                        fragment.remove(item)
+                fragment.append(copy.deepcopy(child))
+                parent.insert(index, fragment)
+                index += 1
+            parent.remove(run)
+    for parent in root.iter():
+        previous = None
+        signature = None
+        for run in list(parent):
+            text = run.find(f'{{{W}}}t') if run.tag == f'{{{W}}}r' else None
+            if text is None or any(c.tag not in {f'{{{W}}}rPr', f'{{{W}}}t'} for c in run) or len(run.findall(f'{{{W}}}t')) != 1:
+                previous = signature = None
+                continue
+            if set(text.attrib) - {SPACE} or ((text.text or '') != (text.text or '').strip() and text.get(SPACE) != 'preserve'):
+                previous = signature = None
+                continue
+            clone = copy.deepcopy(run)
+            clone_text = clone.find(f'{{{W}}}t')
+            clone_text.text = None
+            clone_text.attrib.pop(SPACE, None)
+            current = etree.tostring(clone, method='c14n2')
+            if previous is not None and current == signature:
+                prior = previous.find(f'{{{W}}}t')
+                prior.text = (prior.text or '') + (text.text or '')
+                if prior.text != prior.text.strip():
+                    prior.set(SPACE, 'preserve')
+                else:
+                    prior.attrib.pop(SPACE, None)
+                parent.remove(run)
+            else:
+                if (text.text or '') == (text.text or '').strip():
+                    text.attrib.pop(SPACE, None)
+                previous, signature = run, current
+    return etree.tostring(root, method='c14n2')
+
+
+def verify_rejected_revisions(before, rejected):
+    """Reject export if discarding new revisions changes the source structure."""
+    original, result = parts(before), parts(rejected)
+    if set(original) != set(result):
+        raise RedactionError('redaction_format_changed')
+    stories = set(story_parts(original))
+    for name in original:
+        if name in stories:
+            equal = _normalized_runs(xml(original[name])) == _normalized_runs(xml(result[name]))
+        elif name == 'word/settings.xml':
+            a, b = xml(original[name]), xml(result[name])
+            for node in list(b.findall(f'{{{W}}}trackRevisions')):
+                b.remove(node)
+            equal = etree.tostring(a, method='c14n2') == etree.tostring(b, method='c14n2')
+        else:
+            equal = original[name] == result[name]
+        if not equal:
+            raise RedactionError('redaction_format_changed')
 
 
 def verify_residue(data,mapping,masks,detector,kinds,custom):

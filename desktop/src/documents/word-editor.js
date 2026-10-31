@@ -1,7 +1,7 @@
 /* Docxodus integration, pinned by renderer-lock.json. The engine remains MIT
  * licensed; see third_party/licenses/documents. No document HTML is executable. */
 'use strict';
-let editor, searchControls, layoutControls, contextControls, selectionControls, channel, author='VeriLex', tracking=true, batching=false, composing = false, queued = false, fatal = false;
+let editor, searchControls, layoutControls, contextControls, selectionControls, keyboardControls, channel, author='VeriLex', tracking=true, batching=false, composing = false, queued = false, fatal = false;
 let savedVersion, savedBytes, saveTimer;
 const paper = document.getElementById('paper');
 const scrollport=document.getElementById('workarea');
@@ -88,16 +88,17 @@ const zoomLevel=document.getElementById('zoom-level');
 const zoomCurrent=document.getElementById('zoom-current');
 const pageContentSizes=new WeakMap();
 function fitPageContents(){
-  // The editable renderer keeps each paragraph whole. Grow only an overflowing
-  // display sheet so long paragraphs remain editable and no text/anchor is clipped.
-  // These view dimensions never change the native document's page settings.
+  // Ordinary paragraphs paginate into visual fragments. Grow a sheet only for
+  // unsupported oversized content; empty grid leading may hang below the body.
+  // These view dimensions never change the saved document's page settings.
   for(const page of paper.querySelectorAll('.page-box')){
+    if(page.classList.contains('vl-spanning-page'))continue;
     const content=page.querySelector(':scope > .page-content');if(!content)continue;
     let size=pageContentSizes.get(page);
     if(!size){size={page:parseFloat(getComputedStyle(page).height),content:parseFloat(getComputedStyle(content).height)};pageContentSizes.set(page,size);}
     if(!Number.isFinite(size.page)||!Number.isFinite(size.content))continue;
     content.style.height=`${size.content}px`;
-    const extra=Math.max(0,content.scrollHeight-content.clientHeight);
+    const extra=Math.max(0,content.scrollHeight-content.clientHeight-wordGridTrailingSpacePx(content.lastElementChild));
     content.style.height=`${size.content+extra}px`;
     page.style.height=`${size.page+extra}px`;
   }
@@ -183,7 +184,10 @@ function safeCss(css) {
 function safeHtml(html) {
   if (typeof html !== 'string' || html.startsWith('{')) return html;
   const template = document.createElement('template');
-  template.innerHTML = html.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (_, css) => { cssRules.add(safeCss(css)); return ''; }).replace(/\sstyle=/gi,' data-vl-style=');
+  // XElement emits empty non-void elements as <span/>. HTML parsers keep those
+  // spans open, nesting later text under PAGE fields; substituting the page
+  // number would then erase the rest of the footer. Close them before parsing.
+  template.innerHTML = html.replace(/<(span|p|div|ins|del|a)(\s[^<>]*?)?\s*\/>/gi,'<$1$2></$1>').replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (_, css) => { cssRules.add(safeCss(css)); return ''; }).replace(/\sstyle=/gi,' data-vl-style=');
   const parsed = template.content;
   parsed.querySelectorAll('script,iframe,object,embed,link,meta,base,form,input,button,textarea,svg,math').forEach(n => n.remove());
   for (const style of parsed.querySelectorAll('style')) {
@@ -215,7 +219,7 @@ function exportsForEditor(exports) {
     if (/^RenderBlocksHtml/.test(key)) {
       const fn=bridge[key]; bridge[key]=(...args)=>{const values=JSON.parse(fn(...args)); if(values.error)return JSON.stringify(values); return JSON.stringify(Object.fromEntries(Object.entries(values).map(([id,html])=>[id,safeHtml(html)])));};
     } else if (/^Render.*Html/.test(key)) { const fn=bridge[key]; bridge[key]=(...args)=>safeHtml(fn(...args)); }
-    else if (/^(Replace|Split|Merge|Unmerge|Delete|Insert|Apply|Set|Move|Add|Remove|Accept|Reject)/.test(key)) {
+    else if (/^(Replace|Split|Merge|Unmerge|Delete|Insert|Apply|Set|Move|Add|Remove|Update|Accept|Reject)/.test(key)) {
       const fn=bridge[key]; bridge[key]=(...args)=>{
         // The pinned editor omits dates for newly authored comments. Stamp only
         // that new AddComment call; existing document metadata stays untouched.
@@ -248,6 +252,13 @@ function snapshot(requestId, markup) {
     // contract and flush before every snapshot, including immediately after input.
     flushFocused();
     const bytes=captureBytes();
+    if(editor.vlLayoutVersion!==bridge().GetVersion(editor.handle)){
+      const selection=layoutControls?.captureSelection(),position=captureReadingPosition(),focused=paper.contains(document.activeElement);
+      const replacing=editor.replacing;
+      try{editor.replacing=true;editor.reconcile();layoutControls?.restoreSelection(selection,focused);}
+      finally{editor.replacing=replacing;restoreReadingPosition(position);}
+    }
+    keyboardControls?.refreshDeletedEmpty();
     send('snapshot',{bytes,requestId,markup});refreshReview();return true;
   } catch (_) { fail(); if(requestId) send('snapshot-error',{requestId});return false; }
 }
@@ -270,12 +281,14 @@ window.addEventListener('message', async event => {
     document.getElementById('tracking').textContent=tracking?'修订：开':'修订：关';document.getElementById('tracking').setAttribute('aria-pressed',String(tracking));
     try {
       await Docxodus.initialize(new URL('./wasm/',location.href).href);
+      await document.fonts.load('16px "仿宋_GB2312"');
+      installWordPagination(Docxodus.DocxEditor,Docxodus.PaginationEngine);
       const exports=exportsForEditor(Docxodus.getWasmExports());
-      editor=Docxodus.DocxEditor.open(paper,new Uint8Array(data.bytes),exports,{paginated:true,fitToWidth:true,blockDrag:false,trackedChanges:tracking?1:0,revisionAuthor:author,onEdit:changed});
+      editor=Docxodus.DocxEditor.open(paper,new Uint8Array(data.bytes),exports,{paginated:true,fragmentParagraphs:true,fitToWidth:true,blockDrag:false,trackedChanges:tracking?1:0,revisionAuthor:author,onEdit:changed});
       if(typeof editor.syncBlock!=='function'||typeof editor.anchorIdOf!=='function'||typeof exports.DocxSessionBridge.ListRevisions!=='function'||typeof editor.reconcile!=='function'||typeof editor.viewport?.refresh!=='function'||!editor.viewport.options) throw new Error('word_editor_version_mismatch');
       selectionControls=installWordSelection(editor,paper);
-      if(data.selectionEvents)installDraftSelection();
-      const keyboardControls=installWordKeyboard(editor,paper,{flush:flushFocused,changed,composing:()=>composing,captureSelection:()=>layoutControls.captureSelection(),restoreSelection:value=>layoutControls.restoreSelection(value),runCommand:(action,details)=>runEditingCommand(action,details),save:()=>{if(snapshot())send('save');},error:error=>{status.textContent=error?.message==='clipboard_format_unsupported'?'这段内容包含暂不能完整保留的格式或对象，尚未粘贴。可用 Shift+⌘V（Mac）或 Ctrl+Shift+V（Windows）仅粘贴文字。':'这处操作暂未完成，已保留原内容，请重新选择位置后再试。';}});
+      if(data.selectionEvents)installDraftSelection(data.selectionActionLabel);
+      keyboardControls=installWordKeyboard(editor,paper,{flush:flushFocused,changed,composing:()=>composing,captureSelection:()=>layoutControls.captureSelection(),restoreSelection:value=>layoutControls.restoreSelection(value),runCommand:(action,details)=>runEditingCommand(action,details),save:()=>{if(snapshot())send('save');},error:error=>{if(error?.message==='clipboard_format_unsupported')status.textContent='这段内容包含暂不能完整保留的格式或对象，尚未粘贴。可用 Shift+⌘V（Mac）或 Ctrl+Shift+V（Windows）仅粘贴文字。';else status.textContent='';}});
       layoutControls=installWordLayout(editor,paper,{runCommand:action=>runEditingCommand(action),prepare:()=>{if(composing||fatal)return false;try{flushFocused();return true;}catch(_){fail();return false;}},tracking:()=>tracking,status});
       searchControls=installWordSearch(editor,paper,{runCommand:action=>runEditingCommand(action),prepare:()=>{if(composing||fatal||paper.inert)return false;try{flushFocused();return true;}catch(_){fail();return false;}},closePanels:()=>layoutControls.close({focusDocument:false})});
       contextControls=installWordContext(editor,paper,{captureSelection:layoutControls.captureSelection,restoreSelection:layoutControls.restoreSelection,native:Boolean(data.nativeContextMenu),request:position=>send('context-menu',position),closePanels:()=>layoutControls.close({restoreSelection:false,focusDocument:false}),notice:message=>{status.textContent=message;},paste:keyboardControls.pasteText,pasteRich:keyboardControls.pasteRich,action:command=>{
@@ -290,6 +303,7 @@ window.addEventListener('message', async event => {
   } else if(data?.channel===channel && data.type==='snapshot') snapshot(data.requestId);
   else if(data?.channel===channel && data.type==='draft-highlight') highlightDraftRange(data.range,data.locate);
   else if(data?.channel===channel && data.type==='apply-review') applyReview(data.plan,data.requestId);
+  else if(data?.channel===channel && data.type==='apply-ai-edit') applyAiEdit(data.plan,data.requestId);
   else if(data?.channel===channel && data.type==='close-controls'){layoutControls?.close({focusDocument:false});contextControls?.close();}
   else if(data?.channel===channel && data.type==='context-action'&&!fatal) contextControls?.action(data.command);
   else if(data?.channel===channel && data.type==='history-action'&&!fatal&&['undo','redo'].includes(data.command)){
@@ -692,6 +706,19 @@ function makeReviewRow(kind,value,index){
     summary.addEventListener('click',event=>{event.stopPropagation();selectReview(item,false);});
     menu.addEventListener('keydown',event=>{if(event.key==='Escape'){menu.open=false;summary.focus();event.stopPropagation();}});
     const actions=document.createElement('div');
+    addButton(actions,'编辑批注',()=>{
+      menu.open=false;
+      const form=document.createElement('form');form.className='review-comment-edit';
+      const input=document.createElement('textarea');input.value=value.text||'';input.maxLength=4000;input.rows=4;input.setAttribute('aria-label','编辑批注内容');
+      const save=document.createElement('button');save.type='submit';save.textContent='保存';
+      const cancel=document.createElement('button');cancel.type='button';cancel.textContent='取消';
+      cancel.addEventListener('click',event=>{event.stopPropagation();form.remove();text.hidden=false;summary.focus();});
+      form.addEventListener('click',event=>event.stopPropagation());
+      form.addEventListener('submit',event=>{event.preventDefault();event.stopPropagation();if(!input.value.trim())return;
+        if(reviewAction(()=>bridge().UpdateComment(editor.handle,value.anchorId,plainMarkdown(input.value)))){form.remove();text.hidden=false;}
+      });
+      form.append(input,save,cancel);text.hidden=true;text.after(form);input.focus();
+    });
     addButton(actions,value.resolved?'重新打开':'解决批注',()=>reviewAction(()=>editor.setCommentResolved(value.anchorId,!value.resolved)));
     addButton(actions,'删除批注',()=>reviewAction(()=>bridge().RemoveComment(editor.handle,value.anchorId)));
     menu.append(summary,actions);header.append(menu);
@@ -801,10 +828,15 @@ function applyReview(plan,requestId){
       try{
         let modified;
         if(opinion.replacement_text!=null&&opinion.replacement_text!==opinion.anchor_text){
-          if(/[\r\n\t]/.test(opinion.replacement_text))throw new Error('multiblock_replacement');
           const previous=new Set(listRevisions().map(r=>r.id));
-          const result=JSON.parse(b.ReplaceTextAtSpan(h,anchor,match.span.start,match.span.length,opinion.replacement_text));
+          const replacement=opinion.replacement_text.replace(/\r\n?/g,'\n');
+          const result=JSON.parse(b.ReplaceTextAtSpan(h,anchor,match.span.start,match.span.length,replacement.replace(/[\n\t]/g,'')));
           modified=result.modified?.find(r=>['p','h','li'].includes(r.kind));
+          let offset=match.span.start;
+          for(const char of replacement){
+            if(char==='\n'||char==='\t')b.InsertKeyboardControl(h,modified?.id||anchor,offset,char==='\n'?'br':'tab');
+            offset+=char.length;
+          }
           const fresh=listRevisions().filter(r=>!previous.has(r.id));const target=fresh.find(r=>r.type==='insert')||fresh[0];
           if(!target)throw new Error('missing_revision');
           b.AddCommentToRevision(h,target.id,plan.author,'',new Date().toISOString(),plainMarkdown(opinion.comment));
@@ -822,6 +854,42 @@ function applyReview(plan,requestId){
     batching=false;
   }
 }
+function applyAiEdit(plan,requestId){
+  if(!editor||composing||fatal){send('request-error',{requestId,message:'请先完成当前输入。'});return;}
+  batching=true;let transaction;
+  try{
+    flushFocused();const selection=plan.selection;
+    const blocks=[...paper.querySelectorAll('[data-anchor][contenteditable="true"]')].filter(n=>!n.closest('.page-header,.page-footer,.docx-header,.docx-footer'));
+    const clean=node=>{const clone=node.cloneNode(true);clone.querySelectorAll('del,[class$="para-mark-del"],[data-list-marker],a.footnote-ref,a.endnote-ref').forEach(n=>n.remove());clone.querySelectorAll('br').forEach(n=>n.replaceWith('\n'));clone.querySelectorAll('[data-docx-tab]').forEach(n=>n.replaceWith('\t'));return (clone.textContent||'').replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g,'');};
+    const texts=blocks.map(n=>n.dataset.vlEmptyPlaceholder==='true'&&clean(n)==='\u00a0'?'':clean(n));
+    const selected=texts.slice(selection.start,selection.end+1).map((t,i)=>t.slice(i===0?selection.from:0,i===selection.end-selection.start?selection.to:undefined)).join('\n');
+    if(texts.length!==selection.texts.length||texts.some((t,i)=>t!==selection.texts[i])||selected!==plan.before_text)throw new Error('文档或选中文字已改变，请重新选择后再试。');
+    const b=bridge(),h=editor.handle,anchor=editor.anchorIdOf(blocks[selection.start]);
+    if(selection.start!==selection.end){
+      const selectedBlocks=blocks.slice(selection.start,selection.end+1);
+      if(selectedBlocks.some(block=>block.closest('table'))||selectedBlocks.some((block,i)=>i>0&&block.previousElementSibling!==selectedBlocks[i-1]))throw new Error('跨表格或复杂结构的文字暂不能直接修改，请缩小选区。');
+      transaction=b.BeginTransaction(h);b.SetTrackedChanges(h,tracking?1:0);b.SetRevisionAuthor(h,author+' · AI');
+      const ids=selectedBlocks.map(block=>editor.anchorIdOf(block));
+      for(let i=ids.length-1;i>=0;i--){const text=texts[selection.start+i],from=i===0?selection.from:0,to=i===ids.length-1?selection.to:text.length;
+        const result=JSON.parse(b.SyncKeyboardText(h,ids[i],text.slice(0,from)+(i===0?plan.after_text.replace(/\r\n?/g,'\n'):'')+text.slice(to)));if(!result.success)throw new Error('所选内容暂不能安全修改，请缩小选区。');}
+      for(let i=ids.length-2;i>=0;i--)b.MergeParagraphs(h,ids[i],ids[i+1]);
+      b.CommitTransaction(transaction);transaction=null;editor.reconcile();showReview();
+      const bytes=captureBytes();send('snapshot',{bytes,requestId,aiEditId:plan.id});return;
+    }
+    const pattern=plan.before_text.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    const matches=JSON.parse(b.Grep(h,pattern,JSON.stringify({scope:1,contextChars:0})));
+    const match=matches.find(m=>m.enclosingAnchor.id===anchor&&m.span.start===selection.from&&m.span.length===plan.before_text.length);
+    if(!match)throw new Error('选中文字无法安全定位，请重新选择后再试。');
+    transaction=b.BeginTransaction(h);b.SetTrackedChanges(h,tracking?1:0);b.SetRevisionAuthor(h,author+' · AI');
+    const replacement=plan.after_text.replace(/\r\n?/g,'\n');
+    const result=JSON.parse(b.ReplaceTextAtSpan(h,anchor,match.span.start,match.span.length,replacement.replace(/[\n\t]/g,'')));
+    const target=result.modified?.find(r=>['p','h','li'].includes(r.kind))?.id||anchor;
+    let offset=match.span.start;for(const char of replacement){if(char==='\n'||char==='\t')b.InsertKeyboardControl(h,target,offset,char==='\n'?'br':'tab');offset+=char.length;}
+    b.CommitTransaction(transaction);transaction=null;editor.reconcile();showReview();
+    const bytes=captureBytes();send('snapshot',{bytes,requestId,aiEditId:plan.id});
+  }catch(error){if(transaction)bridge().RollbackTransaction(transaction);editor.reconcile();send('request-error',{requestId,message:error instanceof Error?error.message:'修改未写入，请重新选择后重试。'});}
+  finally{bridge().SetTrackedChanges(editor.handle,tracking?1:0);bridge().SetRevisionAuthor(editor.handle,author);batching=false;}
+}
 function highlightDraftRange(value,locate){
   if(!CSS.highlights)return;CSS.highlights.delete('draft-proposal');
   if(!value||!editor||fatal)return;
@@ -831,20 +899,27 @@ function highlightDraftRange(value,locate){
   const point=(block,at)=>{const walker=document.createTreeWalker(block,NodeFilter.SHOW_TEXT);let node;while(node=walker.nextNode()){if(node.parentElement.closest('del,[class$="para-mark-del"],[data-list-marker],a.footnote-ref,a.endnote-ref'))continue;if(at<=node.textContent.length)return [node,at];at-=node.textContent.length;}return [block,block.childNodes.length];};
   try{const first=blocks[value.start],last=blocks[value.end],range=document.createRange();range.setStart(...point(first,value.from));range.setEnd(...point(last,value.to));CSS.highlights.set('draft-proposal',new Highlight(range));if(locate)first.scrollIntoView({block:'center'});}catch(_){}
 }
-function installDraftSelection(){
+function installDraftSelection(actionLabel){
   const clean=node=>{const clone=node.cloneNode(true);clone.querySelectorAll?.('del,[class$="para-mark-del"],[data-list-marker],a.footnote-ref,a.endnote-ref').forEach(n=>n.remove());clone.querySelectorAll?.('br').forEach(n=>n.replaceWith('\n'));clone.querySelectorAll?.('[data-docx-tab]').forEach(n=>n.replaceWith('\t'));return (clone.textContent||'').replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g,'');};
   const blockOf=node=>(node?.nodeType===1?node:node?.parentElement)?.closest('[data-anchor][contenteditable="true"]');
+  let pending=null;
+  const action=actionLabel?document.createElement('button'):null;
+  if(action){action.type='button';action.className='word-selection-action';action.textContent=actionLabel;action.hidden=true;action.addEventListener('mousedown',event=>event.preventDefault());action.addEventListener('click',()=>{if(pending)send('draft-selection',{selection:pending});action.hidden=true;});document.body.append(action);scrollport.addEventListener('scroll',()=>{action.hidden=true;},{passive:true});}
   document.addEventListener('selectionchange',()=>{
     const selection=getSelection();
-    if(!selection?.rangeCount||selection.isCollapsed)return;
+    if(!selection?.rangeCount||selection.isCollapsed){if(action)action.hidden=true;return;}
     const range=selection.getRangeAt(0),first=blockOf(range.startContainer),last=blockOf(range.endContainer);
-    if(!first||!last||!paper.contains(first)||!paper.contains(last))return;
+    if(!first||!last||!paper.contains(first)||!paper.contains(last)){if(action)action.hidden=true;return;}
     const blocks=[...paper.querySelectorAll('[data-anchor][contenteditable="true"]')].filter(n=>!n.closest('.page-header,.page-footer,.docx-header,.docx-footer'));
     const start=blocks.indexOf(first),end=blocks.indexOf(last);if(start<0||end<start)return;
     const offset=(block,node,at)=>{const prefix=document.createRange();prefix.selectNodeContents(block);prefix.setEnd(node,at);return clean(prefix.cloneContents()).length;};
     const texts=blocks.map(n=>n.dataset.vlEmptyPlaceholder==='true'&&clean(n)==='\u00a0'?'':clean(n));
     if(texts.join('').length>500000)return;
-    send('draft-selection',{selection:{texts,start,end,from:offset(first,range.startContainer,range.startOffset),to:offset(last,range.endContainer,range.endOffset)}});
+    pending={texts,start,end,from:offset(first,range.startContainer,range.startOffset),to:offset(last,range.endContainer,range.endOffset)};
+    if(!action){send('draft-selection',{selection:pending});return;}
+    const rect=range.getBoundingClientRect();action.hidden=false;
+    action.style.left=`${Math.max(8,Math.min(rect.left,innerWidth-action.offsetWidth-8))}px`;
+    action.style.top=`${Math.max(8,rect.top-action.offsetHeight-8)}px`;
   });
 }
 parent.postMessage({type:'word-editor-loaded'},location.origin);

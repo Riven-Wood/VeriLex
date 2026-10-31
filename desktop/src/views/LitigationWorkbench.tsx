@@ -1,3 +1,4 @@
+import {StandaloneDraft} from '../components/editor/StandaloneDraft';
 import {editorClient} from '../components/editor/client';
 import {EditorProposals} from "../components/editor/EditorProposals";
 import {useMaterialCoverage} from '../components/preview/materialCoverageState';
@@ -13,22 +14,19 @@ import { LitigationWorkspaceView, type LitigationPage, type LitigationMaterialCo
 import './LitigationWorkbench.css';
 
 const PAGES: {id: LitigationPage; label: string}[] = [
-  {id: 'facts', label: '事实梳理'},
-  {id: 'evidence', label: '证据整理'},
   {id: 'documents', label: '文书起草'},
-  {id: 'discussion', label: '案件讨论'},
 ];
 interface DeskState { page: LitigationPage; paths: string[]; file: string | null; aiOpen: boolean }
 const deskKey = (id: string) => `verilex:litigation-desk:v1:${id}`;
 function readDesk(id: string): DeskState {
-  const fallback: DeskState = {page: 'facts', paths: [], file: null, aiOpen: false};
+  const fallback: DeskState = {page: 'documents', paths: [], file: null, aiOpen: true};
   try {
     const value = JSON.parse(localStorage.getItem(deskKey(id)) ?? 'null');
     if (!value) return fallback;
-    if (['overview','issues','strategy'].includes(value.page)) value.page = 'facts';
+    if (['overview','issues','strategy','facts','evidence','discussion'].includes(value.page)) value.page = 'documents';
     if (!PAGES.some(p => p.id === value.page)) return fallback;
     const paths = Array.isArray(value.paths) ? value.paths.filter((p: unknown): p is string => typeof p === 'string').slice(-12) : [];
-    return {page: value.page, paths, file: paths.includes(value.file) ? value.file : null, aiOpen: value.aiOpen === true};
+    return {page: value.page, paths, file: paths.includes(value.file) ? value.file : null, aiOpen: typeof value.aiOpen === 'boolean' ? value.aiOpen : true};
   } catch { return fallback; }
 }
 
@@ -95,8 +93,8 @@ function MaterialCheckbox({path,controls}:{path:string;controls:LitigationMateri
   const material=controls?.materials.find(m=>m.path===path);
   return material?<><input type="checkbox" aria-label={`选取材料 ${path}`} title={material.reason||(/\.pdf$/i.test(path)?'用于本次分析；PDF只读取文字层，扫描页需核对':'用于本次分析')} checked={controls!.selected.includes(path)} disabled={controls!.locked||!material.supported} onChange={()=>controls!.toggle(path)}/>{controls!.selected.includes(path)&&<span className="evidence-selection-number" aria-label={`选取顺序 ${controls!.selected.indexOf(path)+1}`}>{controls!.selected.indexOf(path)+1}</span>}</>:null;
 }
-function FileBranch({workspaceId, controls, path = '', revision, activePath, onOpen}: {
-  workspaceId: string; controls:LitigationMaterialControls|null; path?: string; revision: string; activePath: string | null; onOpen: (path: string) => void;
+export function FileBranch({workspaceId, controls, projectSelection, path = '', revision, activePath, onOpen}: {
+  workspaceId: string; controls:LitigationMaterialControls|null; projectSelection?:{selected:string[]; locked?:boolean; toggle:(path:string)=>void}; path?: string; revision: string; activePath: string | null; onOpen: (path: string) => void;
 }) {
   const [entries, setEntries] = useState<LitigationFile[]>([]);
   const [expanded, setExpanded] = useState<string[]>([]);
@@ -119,7 +117,7 @@ function FileBranch({workspaceId, controls, path = '', revision, activePath, onO
     {error && <li role="alert">{error} <button type="button" onClick={() => setRetry(v => v + 1)}>重试</button></li>}
     {!loading && !error && entries.length === 0 && <li className="litigation-file-note">文件夹为空</li>}
     {entries.map(entry => <li key={entry.path}>
-      <div className="litigation-file-entry">{!entry.directory&&<MaterialCheckbox path={entry.path} controls={controls}/>}
+      <div className="litigation-file-entry">{!entry.directory&&(projectSelection ? <input type="checkbox" aria-label={`选取材料 ${entry.path}`} checked={projectSelection.selected.includes(entry.path)} disabled={projectSelection.locked || (projectSelection.selected.length>=1000 && !projectSelection.selected.includes(entry.path))} onChange={()=>projectSelection.toggle(entry.path)}/> : <MaterialCheckbox path={entry.path} controls={controls}/>)}
       <button type="button" className="litigation-file-row" title={entry.path}
         aria-current={!entry.directory && activePath === entry.path ? 'page' : undefined}
         aria-expanded={entry.directory ? expanded.includes(entry.path) : undefined}
@@ -130,7 +128,7 @@ function FileBranch({workspaceId, controls, path = '', revision, activePath, onO
         <span>{entry.name}</span>
       </button>
       </div>
-      {entry.directory && expanded.includes(entry.path) && <FileBranch workspaceId={workspaceId} controls={controls} path={entry.path} revision={revision} activePath={activePath} onOpen={onOpen}/>}
+      {entry.directory && expanded.includes(entry.path) && <FileBranch workspaceId={workspaceId} controls={controls} projectSelection={projectSelection} path={entry.path} revision={revision} activePath={activePath} onOpen={onOpen}/>}
     </li>)}
     {truncated && <li className="litigation-file-note">本层文件较多，仅显示前 1000 项。</li>}
   </ul>;
@@ -247,12 +245,9 @@ export function LitigationWorkbench({workspace, workspaces, onSelectWorkspace, o
   const fullDiscussion=desk.page==='discussion'&&target===null;
   const assistantVisible=fullDiscussion||(desk.aiOpen&&!focused);
   const refreshKey = `${thread?.id ?? ''}:${thread?.updatedAt ?? ''}:${thread?.status ?? ''}:${revision}`;
-  return <section className="litigation-desk" aria-label="诉讼工作台" style={{'--litigation-files-width': `${widths.files}px`, '--litigation-assistant-width': `${widths.assistant}px`} as CSSProperties} data-files-collapsed={filesHidden} data-ai-open={assistantVisible} data-focused={focused} data-discussion-page={fullDiscussion}>
+  return <section className="litigation-desk" aria-label="文书起草" style={{'--litigation-files-width': `${widths.files}px`, '--litigation-assistant-width': `${widths.assistant}px`} as CSSProperties} data-files-collapsed={filesHidden} data-ai-open={assistantVisible} data-focused={focused} data-discussion-page={fullDiscussion}>
     <header className="litigation-desk-header">
-        <nav className="litigation-desk-pages" aria-label="案件工作">
-          {PAGES.map(page => <button key={page.id} type="button" disabled={!workspace} aria-current={!target && desk.page === page.id ? 'page' : undefined}
-            onClick={() => {closePreview(); setDesk(old => ({...old, page: page.id}));}}>{page.label}</button>)}
-        </nav>
+        <strong>文书起草</strong>
       {filesHidden&&<button type="button" aria-label="显示案件文件" onClick={()=>{setShowFiles(true);setFocused(false);}}><Folder size={15}/>文件</button>}
       <button type="button" aria-label={focused?'恢复两侧栏':'展开工作区'} title={focused?'恢复两侧栏':'展开工作区，收起两侧栏'} aria-pressed={focused} onClick={()=>setFocused(v=>!v)}>{focused?<Minimize2 size={15}/>:<Maximize2 size={15}/>}</button>
       <button type="button" hidden={fullDiscussion} aria-expanded={desk.aiOpen&&!focused} onClick={() => {setFocused(false);setDesk(old => ({...old, aiOpen: focused||!old.aiOpen}));}}>
@@ -264,7 +259,7 @@ export function LitigationWorkbench({workspace, workspaces, onSelectWorkspace, o
       <aside className="litigation-files" aria-label="当前工作区文件" hidden={filesHidden}>
         <div className="litigation-workspace-select">
           <label><span className="visually-hidden">案件工作区</span><select aria-label="案件工作区" value={workspace?.id ?? ''} disabled={busy} onChange={event=>{const id=event.target.value;void leaveEditor(()=>onSelectWorkspace(id));}}>
-            <option value="" disabled>选择工作区</option>
+            <option value="">{workspace ? "未归档文书" : "选择工作区"}</option>
             {workspaces.filter(item=>item.allow_read).map(item=><option key={item.id} value={item.id}>{item.display_name}</option>)}
           </select></label>
           <button type="button" aria-label="打开其他文件夹" title="打开其他文件夹" disabled={busy} onClick={()=>void leaveEditor(onChooseWorkspace)}><Folder size={14}/></button>
@@ -297,12 +292,8 @@ export function LitigationWorkbench({workspace, workspaces, onSelectWorkspace, o
           {workspace ? <LitigationWorkspaceView contentVisible={target===null&&!fullDiscussion} openDocumentRequest={openDocumentRequest} onMaterialsChange={setMaterialState} workspaces={workspaces} selectedWorkspaceId={workspace.id}
             onSelectWorkspace={() => undefined} onChooseWorkspace={() => undefined}
             onStartWorkflow={run} onStartWork={onStartWork} selectedSection={binding?.kind===desk.page?binding.section_id:null} focusKey={focusKey} busy={busy} awaitingApproval={awaitingApproval} refreshKey={refreshKey} onOpenSource={openFile}
-            page={desk.page} onNavigate={page => setDesk(old => ({...old, page}))}/> : <div className="litigation-no-case"><Folder size={32} strokeWidth={1.3}/><h2>打开一个案件文件夹</h2><p>合同、证据和文书集中在同一处，从这里开始处理案件。</p><button type="button" onClick={()=>void leaveEditor(onChooseWorkspace)}>选择案件文件夹</button><small>也可以在左侧选择已有工作区</small></div>}
+            page={desk.page} onNavigate={page => setDesk(old => ({...old, page}))}/> : <StandaloneDraft/>}
         </div>
-        {workspace && target?.source === 'workspace' && onStartWork && <div className="litigation-file-discussion"><button type="button" disabled={busy} onClick={()=>{
-          const path=target.path;
-          void litigationWorkClient.read(workspace.id,'facts').then(record=>{onStartWork({kind:'facts',section_id:null,source_path:path,materials:[path],expected_revision:record.revision,title:path.split('/').pop()??path});}).catch(()=>setFileError('无法建立文件讨论，请重试。'));
-        }}>讨论此文件</button></div>}
         {workspace && target && <PreviewRail key={`${revision}:${target.source === 'workspace' ? target.path : target.source}`} embedded open target={target}
           threadId={thread?.backendId ?? null} workspaceId={workspace.id} artifactsRevision={revision}
           onClose={closePreview} onOpenWorkspaceFile={(id, path) => openPreview({source: 'workspace', workspaceId: id, path})}
@@ -311,24 +302,24 @@ export function LitigationWorkbench({workspace, workspaces, onSelectWorkspace, o
       </div>
       <aside className="litigation-assistant" aria-label="案件 AI 助手" hidden={!assistantVisible}>
         {!fullDiscussion&&<PanelResizer panel="assistant" width={widths.assistant} onChange={value => resize('assistant', value)}/>}
-        <div className="litigation-assistant-heading">
+        {workspace && <div className="litigation-assistant-heading">
           {renaming?<form className="litigation-discussion-rename" onSubmit={event=>{event.preventDefault();void renameDiscussion();}}>
             <input autoFocus aria-label="会话名称" maxLength={100} value={discussionName} disabled={renameBusy} onChange={event=>setDiscussionName(event.target.value)} onKeyDown={event=>{if(event.key==='Escape'&&!renameBusy)setRenaming(false);}}/>
             <button type="submit" aria-label="保存会话名称" title="保存名称" disabled={renameBusy||!discussionName.trim()}><Check size={15}/></button><button type="button" aria-label="取消改名" title="取消" disabled={renameBusy} onClick={()=>setRenaming(false)}><X size={15}/></button>
           </form>:<>
-            <select className="litigation-discussion-picker" aria-label="当前会话" value={thread?.id??''} disabled={busy||renameBusy} onChange={event=>void leaveEditor(()=>onSelectThread(event.target.value))}>
-              <option value="" disabled>新讨论</option>{threads.map(item=><option key={item.id} value={item.id}>{item.title}</option>)}
+            <select className="litigation-discussion-picker" aria-label="历史会话" value={thread?.id??''} disabled={busy||renameBusy} onChange={event=>{const id=event.target.value;void leaveEditor(()=>onSelectThread(id));}}>
+              <option value="" disabled>历史会话</option>{threads.map(item=><option key={item.id} value={item.id}>{item.title}</option>)}
             </select>
             {thread&&onRenameThread&&<button type="button" aria-label="重命名当前会话" title="重命名当前会话" disabled={busy} onClick={()=>{setDiscussionName(thread.title);setRenameError('');setRenaming(true);}}><Pencil size={14}/></button>}
           </>}
           {!fullDiscussion&&(editorDiscussion?.target||(binding&&(binding.source_path||PAGES.some(p=>p.id===binding.kind))))&&<button type="button" aria-label="定位讨论对象" title={editorDiscussion?.target?`定位：${editorDiscussion.target.title}`:'定位讨论对象'} onClick={()=>{if(editorDiscussion?.target){closePreview();editorDiscussion.target.locate?.();setDesk(old=>({...old,page:PAGES.some(p=>p.id===editorDiscussion.target!.kind)?editorDiscussion.target!.kind as LitigationPage:'documents'}));}else if(binding)locateBinding(binding);}}><Crosshair size={15}/></button>}
-          <button type="button" disabled={busy||renameBusy||!workspace} onClick={()=>void leaveEditor(()=>{if(!thread)editorDiscussion?.setTarget(null);onNewDiscussion();})}>新讨论</button>
-        </div>
+          <button type="button" disabled={busy||renameBusy||!workspace} onClick={()=>void leaveEditor(()=>{if(!thread)editorDiscussion?.setTarget(null);onNewDiscussion();})}>新建会话</button>
+        </div>}
         {renameError&&<p role="alert" className="evidence-error">{renameError}</p>}
         {linkError&&<p role="alert">{linkError}</p>}
         {!fullDiscussion&&editorDiscussion?.target&&(editorDiscussion.reference&&editorDiscussion.reference!==editorDiscussion.target.path||editorDiscussion.selection)&&<div className="litigation-discussion-context">{editorDiscussion.reference&&editorDiscussion.reference!==editorDiscussion.target.path&&<span>参考：{editorDiscussion.reference.split('/').pop()}</span>}{editorDiscussion.selection&&<button type="button" onClick={()=>{editorDiscussion.target?.clearSelection();editorDiscussion.setSelection(null);}}>已选 {editorDiscussion.selection.text.length} 字 ×</button>}</div>}
         {!fullDiscussion&&workspace&&editorDiscussion?.target&&editorDiscussion.target.kind!=='documents'&&<EditorProposals workspaceId={workspace.id}/>}
-        <LitigationMaterialsContext.Provider value={workspace?{workspaceId:workspace.id,paths:materialControls?.selected??[]}:null}><OrdinaryDiscussion enabled={fullDiscussion}>{renderAssistant(openPreview,fullDiscussion)}</OrdinaryDiscussion></LitigationMaterialsContext.Provider>
+        <LitigationMaterialsContext.Provider value={workspace?{workspaceId:workspace.id,paths:materialControls?.selected??[]}:null}><OrdinaryDiscussion enabled={fullDiscussion||thread?.scene==='general'}>{renderAssistant(openPreview,fullDiscussion||thread?.scene==='general')}</OrdinaryDiscussion></LitigationMaterialsContext.Provider>
       </aside>
     </div>
   </section>;

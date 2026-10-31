@@ -34,6 +34,17 @@ test('search failure stays distinct from no matches', async () => {
   await screen.findByText('本次搜索未完成');
   expect(screen.queryByText('没有找到包含该关键词的资料。')).toBeNull();
 });
+test('a failed refresh retains the last list and can be retried', async () => {
+  const {api} = fixture(); render(<KnowledgeLibraryView api={api} />);
+  await screen.findByRole('button', {name:'sub/测试.md'});
+  vi.mocked(api.documents).mockRejectedValueOnce(new Error('资料列表加载超时，请重试。'));
+  fireEvent.click(screen.getByRole('button', {name:'立即同步'}));
+  await screen.findByText(/当前显示上次加载的资料/);
+  expect(screen.getByRole('button', {name:'sub/测试.md'})).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', {name:'重试'}));
+  await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+  expect(screen.getByRole('button', {name:'sub/测试.md'})).toBeTruthy();
+});
 test('changed source replaces preview with a truthful error', async () => {
   const {api} = fixture(); vi.mocked(api.read).mockRejectedValue(new Error('原文已变化，请刷新资料后重新打开。'));
   render(<KnowledgeLibraryView api={api} />);

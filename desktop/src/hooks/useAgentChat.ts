@@ -28,6 +28,7 @@ export interface ComposerSubmission {
   /** Replace this turn and its descendants only once the Runtime accepts. */
   replaceTurnId?: string;
   knowledgeLibraryIds?: string[];
+  searchSelection?: { channel: "web" | "plugin" | "knowledge"; serverIds: string[]; skills: string[] };
   attachmentUploadIds: string[];
   attachmentNames: string[];
   /** Preview metadata for the sent attachments, keyed by upload id. */
@@ -733,6 +734,7 @@ export function useAgentChat(
         ? { text: input, attachmentUploadIds: [], attachmentNames: [] }
         : {
             text: input.text,
+            ...(input.searchSelection ? {searchSelection: structuredClone(input.searchSelection)} : {}),
             ...(input.litigationMaterials?{litigationMaterials:structuredClone(input.litigationMaterials)}:{}),
             ...(input.editorContext?{editorContext:structuredClone(input.editorContext)}:{}),
             preserveDraft: input.preserveDraft,
@@ -811,6 +813,7 @@ export function useAgentChat(
       ws.send(
         JSON.stringify({
           type: "turn.start",
+          ...(submission.searchSelection ? {searchSelection: submission.searchSelection} : {}),
           threadId,
           content: submission.text,
           ...(submission.replaceTurnId ? {replaceTurnId: submission.replaceTurnId} : {}),

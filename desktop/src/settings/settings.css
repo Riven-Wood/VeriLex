@@ -135,3 +135,18 @@ body:has(.app-frame[data-view="settings"]){min-width:0}
 .provider-brand-logo{display:block;width:26px;height:26px;object-fit:contain}
 .model-brand-tile{background:#fff;border:1px solid #e6e8ec}
 .provider-preset-mark .provider-brand-logo{width:24px;height:24px}
+
+.conversation-settings{display:grid;gap:18px}
+.conversation-settings-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 20px;border-bottom:1px solid var(--vl-border)}
+.conversation-settings-row:last-child{border-bottom:0}
+.conversation-settings-row>span{min-width:0;overflow-wrap:anywhere;color:var(--vl-ink)}
+.conversation-settings-row>div{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+.conversation-settings-choice{display:flex;align-items:center;gap:12px;min-width:0;overflow-wrap:anywhere;color:var(--vl-ink)}
+.conversation-settings-choice input,.conversation-settings-select-all input{flex:none;accent-color:var(--vl-blue)}
+.conversation-settings-select-all label{display:flex;align-items:center;gap:8px}
+.conversation-settings-empty{margin:0;padding:16px 20px;color:var(--text-secondary)}
+@media(max-width:760px){.conversation-settings-row{align-items:flex-start;flex-direction:column}.conversation-settings-row>div{justify-content:flex-start}}
+.conversation-settings-row button{padding:6px 10px;border:1px solid var(--vl-border);border-radius:7px;background:var(--vl-canvas);color:var(--vl-ink);font:inherit;cursor:pointer}
+.conversation-settings-row button:hover:not(:disabled){background:var(--vl-sidebar)}
+.conversation-settings-row button:focus-visible{outline:2px solid var(--vl-blue);outline-offset:2px}
+.conversation-settings-row button:disabled{opacity:.5;cursor:default}

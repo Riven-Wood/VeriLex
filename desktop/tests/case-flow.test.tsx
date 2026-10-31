@@ -83,7 +83,7 @@ beforeEach(() => {
     }
     if (url.endsWith("/v1/threads") && init?.method === "POST") {
       return Promise.resolve(
-        new Response(JSON.stringify(legalThread), { status: 201 }),
+        new Response(JSON.stringify({...legalThread, id: "case-new", is_draft: true}), { status: 201 }),
       );
     }
     if (url.includes("/v1/threads?scene=case-retrieval")) {
@@ -94,7 +94,7 @@ beforeEach(() => {
     if (url.includes("/v1/threads?")) {
       return Promise.resolve(new Response("[]", { status: 200 }));
     }
-    if (url.includes("/v1/threads/case-1/")) {
+    if (url.includes("/v1/threads/case-1/") || url.includes("/v1/threads/case-new/")) {
       return Promise.resolve(new Response("[]", { status: 200 }));
     }
     return Promise.resolve(new Response("[]", { status: 200 }));
@@ -131,13 +131,22 @@ test("检索会把案例会话接入内嵌结果视图（历史加载即接线�
 
   fireEvent.click(screen.getByRole("button", { name: "案例检索" }));
 
-  const input = await screen.findByPlaceholderText(
-    "输入问题或案情，例如：竞业限制违约金过高，法院一般会怎么判？",
-  );
+  const input = await screen.findByRole("textbox", {name:"向智能体提问"});
+  const composer = screen.getByTestId("agent-composer");
+  expect(within(composer).getByRole("group", {name:"检索渠道"})).toBeTruthy();
+  expect(within(composer).getByRole("combobox", {name:"检索技能"})).toBeTruthy();
+  expect(document.querySelector(".legal-search-view .legal-search-channel-row")).toBeNull();
+  fireEvent.click(within(composer).getByRole("button", {name:"更多选项"}));
+  expect(screen.queryByRole("menuitem", {name:"全部技能"})).toBeNull();
+  expect(screen.queryByRole("menuitem", {name:"插件"})).toBeNull();
+  expect(screen.getByRole("menuitem", {name:"添加附件"})).toBeTruthy();
+  fireEvent.click(within(composer).getByRole("button", {name:"更多选项"}));
+
   fireEvent.click(within(screen.getByRole("group", {name:"检索渠道"})).getByRole("button", { name: "插件" }));
   fireEvent.click(screen.getByRole("menuitemradio", { name: "示例插件" }));
   fireEvent.change(input, { target: { value: "示例合同案件" } });
-  fireEvent.submit(input.closest("form")!);
+  await waitFor(() => expect(screen.getByRole("button", {name:"发送"}).hasAttribute("disabled")).toBe(false));
+  fireEvent.click(screen.getByRole("button", {name:"发送"}));
 
   await waitFor(() => {
     const createCall = fetchMock.mock.calls.find(
@@ -145,9 +154,8 @@ test("检索会把案例会话接入内嵌结果视图（历史加载即接线�
         `${url}`.endsWith("/v1/threads") && (init as RequestInit).method === "POST",
     );
     expect(createCall).toBeTruthy();
-    expect(fetchMock.mock.calls.some(([url, init]) => `${url}`.endsWith("/v1/threads/case-1/mcp/plugin-1") && (init as RequestInit)?.method === "PUT")).toBe(true);
+    expect(fetchMock.mock.calls.some(([url, init]) => `${url}`.endsWith("/v1/threads/case-new/mcp/plugin-1") && (init as RequestInit)?.method === "PUT")).toBe(true);
     expect(JSON.parse((createCall![1] as RequestInit).body as string)).toMatchObject({
-      title: "示例合同案件",
       scene: "case-retrieval",
       legal_channel: "plugin",
       legal_skills: [],
@@ -159,7 +167,7 @@ test("检索会把案例会话接入内嵌结果视图（历史加载即接线�
   // requests never fired.
   await waitFor(() => {
     const historyCall = fetchMock.mock.calls.find(
-      ([url]) => `${url}`.includes("/v1/threads/case-1/messages"),
+      ([url]) => `${url}`.includes("/v1/threads/case-new/messages"),
     );
     expect(historyCall).toBeTruthy();
   });
@@ -174,7 +182,7 @@ test("检索记录点击同样接回内嵌视图", async () => {
 
   fireEvent.click(screen.getByRole("button", { name: "案例检索" }));
 
-  const chip = await screen.findByRole("button", { name: "示例合同案件" });
+  const chip = await screen.findByRole("button", { name: /示例合同案件/ });
   fireEvent.click(chip);
 
   await waitFor(() => {
@@ -185,19 +193,27 @@ test("检索记录点击同样接回内嵌视图", async () => {
   });
 });
 
+test("未选择具体渠道时保留输入且不能发送", async () => {
+  render(<App initialHealth={oneModelHealth} updaterClient={upToDateUpdater()} />);
+  fireEvent.click(screen.getByRole("button", {name:"案例检索"}));
+  const input = await screen.findByRole("textbox", {name:"向智能体提问"});
+  fireEvent.change(input, {target:{value:"保留案件问题"}});
+  await waitFor(() => expect(screen.getByRole("button", {name:"发送"}).hasAttribute("disabled")).toBe(true));
+  expect((input as HTMLTextAreaElement).value).toBe("保留案件问题");
+  expect(fetchMock.mock.calls.some(([url, init]) => String(url).endsWith("/v1/threads") && init?.method === "POST")).toBe(false);
+});
 
-test("追问默认收起，离开案例页释放检索会话", async () => {
+
+test("输入框始终显示，离开案例页释放检索会话", async () => {
   render(<App initialHealth={oneModelHealth} updaterClient={upToDateUpdater()} />);
   fireEvent.click(screen.getByRole("button", { name: "案例检索" }));
-  fireEvent.click(await screen.findByRole("button", { name: "示例合同案件" }));
-  expect(screen.queryByRole("textbox", { name: "向智能体提问" })).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "继续追问" }));
+  fireEvent.click(await screen.findByRole("button", { name: /示例合同案件/ }));
   expect(screen.getByRole("textbox", { name: "向智能体提问" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "后退" }));
-  await waitFor(() => expect(screen.queryByText("示例合同案件")).toBeNull());
+  await waitFor(() => expect(screen.getByRole("button", {name: /示例合同案件/}).getAttribute("aria-current")).toBeNull());
   expect(screen.queryByRole("button", { name: "继续追问" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "案例检索" }));
-  expect(await screen.findByRole("button", { name: "示例合同案件" })).toBeTruthy();
+  expect(await screen.findByRole("button", { name: /示例合同案件/ })).toBeTruthy();
 });
 
 test("知识库导航在未配置模型时也能进入资料管理", async () => {
@@ -233,15 +249,77 @@ test("知识库首次检索无需 MCP，所选库进入实际 turn.start 请求"
   });
   render(<App initialHealth={oneModelHealth} updaterClient={upToDateUpdater()} />);
   fireEvent.click(screen.getByRole("button", {name: "案例检索"}));
-  const input = await screen.findByPlaceholderText("输入问题或案情，例如：竞业限制违约金过高，法院一般会怎么判？");
+  const input = await screen.findByRole("textbox", {name:"向智能体提问"});
   fireEvent.click(within(screen.getByRole("group", {name:"检索渠道"})).getByRole("button", {name:"知识库"}));
   fireEvent.click(await screen.findByRole("checkbox", {name:"自有资料"}));
   fireEvent.change(input, {target:{value:"检索自有资料"}});
-  fireEvent.submit(input.closest("form")!);
+  await waitFor(() => expect(screen.getByRole("button", {name:"发送"}).hasAttribute("disabled")).toBe(false));
+  fireEvent.click(screen.getByRole("button", {name:"发送"}));
   await waitFor(() => {
     const start = Socket.sent.map(value => JSON.parse(value)).find(value => value.type === "turn.start");
     expect(start).toMatchObject({content:"检索自有资料", knowledgeLibraryIds:["library-1"]});
   });
   const create = fetchMock.mock.calls.find(([url,init]) => url.endsWith('/v1/threads') && init?.method === 'POST');
   expect(JSON.parse(create![1].body)).not.toHaveProperty('legal_channel');
+});
+
+
+test("choosing Yuan Dian enables its saved services for a case search", async () => {
+  const originalFetch = fetchMock.getMockImplementation()!;
+  const services = ["law", "case", "company", "securities"].map(name => ({
+    id: `yuan-${name}`, displayName: `元典-${name}`, transport: "http",
+    url: `https://open.chineselaw.com/mcp/${name}/stream`, args: [], env: {}, headers: {}, secretHeaderKeys: [], secretEnvKeys: [],
+  }));
+  fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+    if (url.endsWith("/v1/mcp/servers")) return Promise.resolve(new Response(JSON.stringify(services), { status: 200 }));
+    return originalFetch(url, init);
+  });
+  render(<App initialHealth={oneModelHealth} updaterClient={upToDateUpdater()} />);
+  fireEvent.click(screen.getByRole("button", { name: "案例检索" }));
+  const input = await screen.findByRole("textbox", {name:"向智能体提问"});
+  fireEvent.click(screen.getByRole("button", { name: "插件" }));
+  fireEvent.click(await screen.findByRole("menuitemradio", { name: "元典智库" }));
+  fireEvent.change(input, { target: { value: "示例案件" } });
+  await waitFor(() => expect(screen.getByRole("button", {name:"发送"}).hasAttribute("disabled")).toBe(false));
+  fireEvent.click(screen.getByRole("button", {name:"发送"}));
+  await waitFor(() => {
+    for (const item of services) expect(fetchMock.mock.calls.some(([url, init]) => `${url}`.endsWith(`/v1/threads/case-new/mcp/${item.id}`) && (init as RequestInit)?.method === "PUT")).toBe(true);
+  });
+});
+
+test("已有检索会话更换插件和技能后，下一次提问发送新的选择", async () => {
+  class Socket {
+    static OPEN = 1;
+    static sent: string[] = [];
+    readyState = 1;
+    onopen: (() => void) | null = null;
+    onmessage: ((event: {data: string}) => void) | null = null;
+    onclose: (() => void) | null = null;
+    onerror: (() => void) | null = null;
+    constructor() { queueMicrotask(() => this.onopen?.()); }
+    send(value: string) { Socket.sent.push(value); }
+    close() { this.readyState = 3; }
+  }
+  vi.stubGlobal("WebSocket", Socket);
+  vi.stubGlobal("__VERILEX_API_TOKEN__", "synthetic-test-token");
+  const original = fetchMock.getMockImplementation()!;
+  fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+    if (url.endsWith("/v1/mcp/servers")) return Promise.resolve(new Response(JSON.stringify([{id:"server-new",displayName:"新插件",transport:"stdio"}]),{status:200}));
+    if (url.endsWith("/v1/skills")) return Promise.resolve(new Response(JSON.stringify([{name:"新技能",category:"case-retrieval",description:"检索方法",valid:true,enabled:true,path:"/skill"}]),{status:200}));
+    return original(url, init);
+  });
+  render(<App initialHealth={oneModelHealth} updaterClient={upToDateUpdater()} />);
+  fireEvent.click(screen.getByRole("button", {name:"案例检索"}));
+  fireEvent.click(await screen.findByRole("button", {name:/示例合同案件/}));
+  fireEvent.click(screen.getByRole("button", {name:"插件"}));
+  fireEvent.click(await screen.findByRole("menuitemradio", {name:"新插件"}));
+  fireEvent.click(screen.getByRole("combobox", {name:"检索技能"}));
+  fireEvent.click(await screen.findByRole("option", {name:/新技能/}));
+  fireEvent.keyDown(screen.getByRole("combobox", {name:"检索技能"}), {key:"Escape"});
+  fireEvent.change(screen.getByRole("textbox", {name:"向智能体提问"}), {target:{value:"继续检索"}});
+  await waitFor(() => expect(screen.getByRole("button", {name:"发送"}).hasAttribute("disabled")).toBe(false));
+  fireEvent.click(screen.getByRole("button", {name:"发送"}));
+  await waitFor(() => expect(Socket.sent.map(value => JSON.parse(value)).find(value => value.type === "turn.start")).toMatchObject({
+    threadId:"case-1", content:"继续检索", searchSelection:{channel:"plugin",serverIds:["server-new"],skills:["新技能"]},
+  }));
 });

@@ -1,0 +1,22 @@
+.project-relations {min-width:0}
+.project-relations-actions {display:flex; align-items:center; justify-content:flex-end; gap:8px; padding:8px 0; color:var(--vl-muted,#6b7280); font-size:12px}
+.project-relations-actions > span:first-child {flex:1}
+.project-relations-actions button {min-width:30px; height:30px; border:1px solid var(--vl-border,#dce2ec); border-radius:6px; background:var(--vl-surface,#fff); color:var(--vl-ink,#263247)}
+.project-relations-canvas {max-height:64vh; overflow:auto; border:1px solid var(--vl-border,#dce2ec); border-radius:10px; background:var(--vl-surface,#fff)}
+.project-relations-canvas svg {display:block; max-width:none; margin-inline:auto; color:var(--vl-blue,#3479e7)}
+.project-relations-edge {opacity:.85}
+.project-relations-edge[data-dimmed] {opacity:.14}
+.project-relations-edge path {fill:none; stroke:currentColor; stroke-width:2}
+.project-relations-edge circle {fill:var(--vl-surface,#fff); stroke:currentColor; stroke-width:1.5}
+.project-relations-edge text {fill:currentColor; font-size:12px; font-weight:600}
+.project-relations-node {cursor:pointer}
+.project-relations-node rect {fill:var(--vl-surface,#fff); stroke:var(--vl-border,#dce2ec); stroke-width:1.5}
+.project-relations-node[data-active] rect,.project-relations-node:focus-visible rect {fill:var(--vl-selected,#e9f2ff); stroke:var(--vl-blue,#3479e7); stroke-width:2}
+.project-relations-node text {fill:var(--vl-ink,#263247); font-size:14px; font-weight:600; pointer-events:none}
+.project-relations-list {list-style:none; display:grid; gap:10px; margin:16px 0; padding:0}
+.project-relations-list li {border:1px solid var(--vl-border,#dce2ec); border-radius:8px; padding:12px; overflow-wrap:anywhere; background:var(--vl-surface,#fff)}
+.project-relations-list li[data-dimmed] {opacity:.55}
+.project-relations-list p {white-space:pre-wrap; line-height:1.65; margin:8px 0}
+.project-relations-number {display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; margin-right:8px; border-radius:50%; background:var(--vl-selected,#e9f2ff); color:var(--vl-blue,#3479e7); font-size:12px}
+.project-relations-list button {display:block; border:0; background:transparent; color:var(--vl-blue,#3479e7); text-align:left; padding:4px 0}
+.project-relations-note {color:var(--vl-muted,#6b7280)}

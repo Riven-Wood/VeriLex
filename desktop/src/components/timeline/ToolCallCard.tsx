@@ -83,6 +83,8 @@ export const ToolCallCard = memo(function ToolCallCard({
     {cases.cases.length === 0 && <p>所选渠道未返回匹配案例。</p>}
     {cases.truncated && <p>当前仅展示部分案例，可缩小检索范围后继续查找。</p>}
   </div>;
+  // 插件的原始响应留在后台供模型处理，界面只展示整理后的案例及必要的失败信息。
+  if (item.name.startsWith("mcp__") && item.status === "succeeded" && item.resultSummary?.kind !== "case_unparsed") return null;
   const hasResult = item.resultPreview !== undefined && item.resultPreview !== "";
   const webTool = isWebTool(item);
   const presentation = toolPresentation(item);
@@ -132,7 +134,7 @@ export const ToolCallCard = memo(function ToolCallCard({
           </button>
         </div>
       )}
-      {hasResult && !webTool && (
+      {hasResult && !webTool && !item.name.startsWith("mcp__") && (
         <div className="tool-result">
           <button
             type="button"

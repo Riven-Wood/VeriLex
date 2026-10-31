@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 _MESSAGES = {
+    "contract_storage_busy": "本机数据正在忙，请稍后重新打开合同；原合同没有被改动。",
     "contract_requirements_invalid": "审查要求格式不正确，请输入不超过4000字的文字。",
     "contract_markup_changed": "当前文档已在本次审查后改动，未写入修订和批注。请按当前文档重新审查。",
     "contract_editor_conflict": "正文已有更新，未应用这次修改；请重新读取并核对后重试。",

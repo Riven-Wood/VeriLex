@@ -92,7 +92,7 @@ test("filters categories, explains an empty result, and clears search with Escap
 
   fireEvent.keyDown(search, { key: "Escape" });
   expect((screen.getByRole("searchbox", { name: "搜索设置" }) as HTMLInputElement).value).toBe("");
-  expect(screen.getAllByRole("button")).toHaveLength(7);
+  expect(screen.getAllByRole("button")).toHaveLength(8);
 });
 
 test("moves focus with arrow keys without selecting until activation", () => {

@@ -5,6 +5,7 @@ import { knowledgeApi, type KnowledgeLibrary } from '../runtime/knowledgeClient'
 import { listWorkspaces } from '../runtime/api';
 import type { WorkspaceRecord } from '../runtime/contracts';
 import { DetailDialog } from '../components/DetailDialog';
+import { LoadingState } from '../components/LoadingState';
 import './ScheduledTasksView.css';
 const weekdays = ['周一','周二','周三','周四','周五','周六','周日'];
 const statusText: Record<string,string> = {running:'运行中', succeeded:'成功', failed:'失败', interrupted:'中断'};
@@ -90,7 +91,7 @@ export function ScheduledTasksView({api=scheduledApi, defaultProvider, defaultMo
       <p className="scheduled-note">使用所选模型的额度。仅执行只读操作，不运行命令、写入文件或调用插件。</p>
       <footer><button type="button" disabled={busy} onClick={()=>setForm(null)}>取消</button><button className="scheduled-primary" disabled={busy || !form.providerId || !form.model || !form.instruction.trim()} type="submit">{busy?'正在保存…':'保存任务'}</button></footer>
     </form></DetailDialog>}
-    {loading ? <p role="status">正在加载…</p> : tasks.length===0 && !error ? <div className="scheduled-empty"><CalendarClock size={32}/><h2>把重复的工作交给定时任务</h2><p>写下要整理的内容，选择每天、每周或单次运行。<br/>结果会保存在任务的运行记录中。</p><div className="scheduled-empty-steps"><span>写下任务指令</span><span>设定运行时间</span><span>查看运行结果</span></div></div> : <><div className="scheduled-toolbar"><span><CalendarClock size={16}/> 全部任务 · {tasks.length}</span><input aria-label="搜索定时任务" placeholder="搜索定时任务" value={query} onChange={e=>setQuery(e.target.value)}/></div><div className={`scheduled-layout ${task ? 'has-detail' : ''}`}><div className="scheduled-list">{groups.map(group=>{
+    {loading ? <LoadingState>正在加载定时任务…</LoadingState> : tasks.length===0 && !error ? <div className="scheduled-empty"><CalendarClock size={32}/><h2>把重复的工作交给定时任务</h2><p>写下要整理的内容，选择每天、每周或单次运行。<br/>结果会保存在任务的运行记录中。</p><div className="scheduled-empty-steps"><span>写下任务指令</span><span>设定运行时间</span><span>查看运行结果</span></div></div> : <><div className="scheduled-toolbar"><span><CalendarClock size={16}/> 全部任务 · {tasks.length}</span><input aria-label="搜索定时任务" placeholder="搜索定时任务" value={query} onChange={e=>setQuery(e.target.value)}/></div><div className={`scheduled-layout ${task ? 'has-detail' : ''}`}><div className="scheduled-list">{groups.map(group=>{
         const items=group.items.filter(item=>item.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
         return items.length ? <section className="scheduled-group" key={group.label}><h2>{group.label}<span>{items.length}</span></h2>{items.map(item=><button key={item.id} className={`scheduled-item ${selected===item.id?'is-selected':''}`} onClick={()=>setSelected(item.id)} aria-pressed={selected===item.id}><div className="scheduled-item-name"><strong>{item.name}</strong><small>{statusText[item.lastStatus ?? ''] ?? '尚未运行'} · 共 {item.runCount} 次</small></div><span>{timeLabel(item)}</span><span className="scheduled-next">{completed(item)?'已完成，不再运行':!item.enabled?'已停用':`下次：${when(item.nextRun)}`}</span></button>)}</section> : null;
       })}{query.trim() && !tasks.some(item=>item.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())) && <p className="scheduled-no-results">没有找到匹配的任务</p>}</div>

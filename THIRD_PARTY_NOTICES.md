@@ -707,3 +707,25 @@ including cell splitting. Font-family writes also set the OOXML East Asian font
 slot so Chinese pasted text retains its selected font. The upstream
 revision and license remain unchanged; the patch and rebuilt renderer have
 separate integrity hashes in the source and renderer locks.
+
+## Offline legacy Word layout metadata reader
+
+The macOS ARM runtime uses unmodified Apache POI / POI Scratchpad 6.0.0
+(Apache-2.0) in a separate, network-disabled process to read original binary
+Word paragraph metadata before repairing conversion omissions. VeriLex's small
+`LegacyLayout.java` adapter is maintained in `runtime/tools/legacy_doc_reader/`.
+Pinned dependency URLs, versions and hashes are recorded in
+`third_party/legacy_doc_reader/sources.lock.json`; Apache's license and notices
+are retained alongside that lock and inside the bundled JAR files.
+
+The reader includes a reduced Eclipse Temurin OpenJDK 21.0.13+9 runtime,
+licensed under GPL-2.0 with the Classpath Exception and the additional notices
+retained in its `legal/` directory. It is invoked as a separate executable.
+The lock also records the official corresponding source archive and checksum.
+JAR dependencies retain their own META-INF licenses/notices: Apache Commons
+Codec, Collections, Math and IO; SparseBitSet; and Log4j API. The build script
+copies these unmodified JARs and the Java runtime's complete retained notices.
+No document content is sent to these projects or downloaded at import time.
+
+- Apache POI: https://poi.apache.org/components/document/
+- Eclipse Temurin: https://github.com/adoptium/temurin21-binaries/releases/tag/jdk-21.0.13%2B9

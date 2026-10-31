@@ -43,7 +43,6 @@ interface Props {
   testing: boolean;
   onBack: () => void;
   onOpen: (server: McpServerRecord) => void;
-  onOpenYuandian: () => void;
   onAdd: () => void;
   onEdit: (server: McpServerRecord) => void;
   onYuandian: () => void;
@@ -60,6 +59,8 @@ export function PluginsToolsSection(props: Props) {
   const name = builtin ? "元典智库" : selected[0]?.displayName;
   const count = (records: McpServerRecord[]) => records.length === 0 ? "" : records.every(s => props.counts[s.id] !== undefined)
     ? `${records.reduce((sum, s) => sum + props.counts[s.id], 0)} 个工具` : "工具数量待读取";
+  const pending = (records: McpServerRecord[]) => records.reduce((sum, server) =>
+    sum + (tools[server.id] ?? []).filter(tool => tool.reviewState !== "known").length, 0);
   if (expandedId && name) return <div className="plugin-detail">
     <button type="button" className="mcp-secondary-button" disabled={busy} onClick={props.onBack}>返回列表</button>
     <div className="plugin-detail-heading"><h2>{name}</h2><span className="plugin-card-badge">{builtin ? "内置" : "自定义"}</span></div>
@@ -99,15 +100,17 @@ export function PluginsToolsSection(props: Props) {
         <p>{yuandianServers.length && !complete ? "尚未完整添加" : statusCopy(yuandianServers)}</p>
         <p>网络服务{count(yuandianServers) ? ` · ${count(yuandianServers)}` : ""}</p>
         <p>{lastTestCopy(yuandianServers)}</p>
+        {pending(yuandianServers) > 0 && <p role="status">{pending(yuandianServers)} 项工具更新待确认，请打开弹窗同步工具。</p>}
         <button ref={props.yuandianActionRef} className="mcp-secondary-button plugin-card-action" type="button"
-          aria-label={yuandianServers.length ? "查看 元典智库" : "添加元典智库"}
-          onClick={yuandianServers.length ? props.onOpenYuandian : props.onYuandian}>{yuandianServers.length ? "查看详情" : "连接元典"}</button>
+          aria-label={yuandianServers.length ? "更新元典智库密钥" : "添加元典智库"}
+          onClick={props.onYuandian}>{yuandianServers.length ? "更新密钥" : "连接元典"}</button>
       </article>}
-      <McpPresetCards servers={servers} query={query} disabled={busy} onOpen={props.onPreset} />
+      <McpPresetCards servers={servers} tools={tools} query={query} disabled={busy} onOpen={props.onPreset} />
       {filtered.map(server => <article className="plugin-card" key={server.id} aria-label={server.displayName}>
         <div className="plugin-card-title"><h3>{server.displayName}</h3><span className="plugin-card-badge">自定义</span></div>
         <p>{statusCopy([server])}</p><p>{server.transport === "stdio" ? "本机工具" : "网络服务"} · {count([server])}</p>
         <p>{lastTestCopy([server])}</p>
+        {pending([server]) > 0 && <p role="status">{pending([server])} 项工具更新待确认</p>}
         <button className="mcp-secondary-button plugin-card-action" type="button" aria-label={`查看 ${server.displayName}`} onClick={() => props.onOpen(server)}>查看详情</button>
       </article>)}
     </div>

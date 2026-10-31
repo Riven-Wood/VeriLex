@@ -1304,6 +1304,69 @@ fn write_conversation_atomic(path: &std::path::Path, content: &[u8]) -> std::io:
 #[derive(Default)]
 struct RedactionExportGrants(Mutex<std::collections::HashSet<PathBuf>>);
 
+#[derive(Default)]
+struct RedactionHistoryLock(Mutex<()>);
+
+fn redaction_history_file(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let dir = app.path().app_data_dir().map_err(|_| "无法访问脱敏历史。".to_string())?;
+    std::fs::create_dir_all(&dir).map_err(|_| "无法访问脱敏历史。".to_string())?;
+    Ok(dir.join("redaction-export-history.json"))
+}
+
+fn read_redaction_history(path: &Path) -> Result<Vec<serde_json::Value>, String> {
+    match std::fs::read(path) {
+        Ok(bytes) => serde_json::from_slice(&bytes).map_err(|_| "脱敏历史无法读取。".to_string()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(Vec::new()),
+        Err(_) => Err("脱敏历史无法读取。".to_string()),
+    }
+}
+
+#[tauri::command]
+fn list_redaction_exports(app: tauri::AppHandle) -> Result<Vec<serde_json::Value>, String> {
+    let state = app.state::<RedactionHistoryLock>();
+    let _guard = state.0.lock().map_err(|_| "脱敏历史无法读取。".to_string())?;
+    read_redaction_history(&redaction_history_file(&app)?)
+}
+
+fn remove_redaction_history_entry(file: &Path, path: &str) -> Result<(), String> {
+    let mut entries = read_redaction_history(file)?;
+    entries.retain(|entry| entry.get("path").and_then(|value| value.as_str()) != Some(path));
+    let bytes = serde_json::to_vec(&entries).map_err(|_| "无法删除脱敏历史，请重试。".to_string())?;
+    write_conversation_atomic(file, &bytes).map_err(|_| "无法删除脱敏历史，请重试。".to_string())
+}
+
+#[tauri::command]
+fn delete_redaction_export(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    let state = app.state::<RedactionHistoryLock>();
+    let _guard = state.0.lock().map_err(|_| "无法删除脱敏历史，请重试。".to_string())?;
+    remove_redaction_history_entry(&redaction_history_file(&app)?, &path)
+}
+
+fn record_redaction_export(app: &tauri::AppHandle, saved: &str) -> Result<(), String> {
+    let state = app.state::<RedactionHistoryLock>();
+    let _guard = state.0.lock().map_err(|_| "文件已保存，但无法记录脱敏历史。".to_string())?;
+    let file = redaction_history_file(app)?;
+    let mut entries = read_redaction_history(&file)?;
+    let path = Path::new(saved);
+    let filename = path.file_name().and_then(|v| v.to_str()).ok_or("文件已保存，但无法记录脱敏历史。")?.to_owned();
+    let saved_at = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_err(|_| "文件已保存，但无法记录脱敏历史。")?.as_millis() as u64;
+    entries.retain(|entry| entry.get("path").and_then(|p| p.as_str()) != Some(saved));
+    entries.insert(0, serde_json::json!({"path":saved,"filename":filename,"saved_at":saved_at}));
+    entries.truncate(100);
+    let bytes = serde_json::to_vec(&entries).map_err(|_| "文件已保存，但无法记录脱敏历史。")?;
+    let temp = file.with_file_name(format!(".redaction-history-{}.tmp", Uuid::new_v4()));
+    let write = (|| -> std::io::Result<()> {
+        use std::io::Write;
+        let mut output = OpenOptions::new().write(true).create_new(true).open(&temp)?;
+        output.write_all(&bytes)?;
+        output.sync_all()?;
+        std::fs::rename(&temp, &file)
+    })();
+    if write.is_err() { let _ = std::fs::remove_file(&temp); }
+    write.map_err(|_| format!("文件已保存到 {}，但无法记录脱敏历史。", saved))
+}
+
+
 #[tauri::command]
 async fn save_redaction(
     app: tauri::AppHandle,
@@ -1311,19 +1374,12 @@ async fn save_redaction(
     content: Vec<u8>,
     directory: Option<String>,
 ) -> Result<Option<String>, String> {
-    if content.len() > 25 * 1024 * 1024
-        || ![
-            "脱敏版.docx",
-            "永久抹除版.docx",
-            "文字还原版.docx",
-            "脱敏版.md",
-        ]
-        .contains(&default_name.as_str())
-    {
-        return Err("无法保存此文件。".to_string());
+    if content.len() > 25 * 1024 * 1024 || !valid_redaction_filename(&default_name) {
+        return Err("无法保存此文件：文件名无效或文件超过 25 MiB。".to_string());
     }
-    if let Some(directory) = directory {
-        return tauri::async_runtime::spawn_blocking(move || {
+    let result = if let Some(directory) = directory {
+        let app = app.clone();
+        tauri::async_runtime::spawn_blocking(move || {
             let selected = app
                 .state::<RedactionDirectoryGrant>()
                 .0
@@ -1341,13 +1397,36 @@ async fn save_redaction(
             Ok(Some(path.to_string_lossy().to_string()))
         })
         .await
-        .map_err(|_| "无法保存文件。".to_string())?;
+        .map_err(|_| "无法保存文件。".to_string())?
+    } else {
+        save_document_copy(app.clone(), default_name, content).await
+    }?;
+    if let Some(path) = &result {
+        record_redaction_export(&app, path).map_err(|_| format!("文件已保存到 {}，但无法记录脱敏历史。", path))?;
     }
-    save_document_copy(app, default_name, content).await
+    Ok(result)
+}
+
+fn valid_redaction_filename(name: &str) -> bool {
+    let stem = name.strip_suffix(".docx").or_else(|| name.strip_suffix(".md"));
+    name.len() <= 240
+        && name.trim() == name
+        && !name.starts_with('.')
+        && stem.is_some_and(|stem| !stem.trim().is_empty())
+        && !name.chars().any(|c| c.is_control() || "\\/:*?\"<>|".contains(c))
 }
 
 #[derive(Default)]
 struct RedactionDirectoryGrant(Mutex<Option<PathBuf>>);
+
+#[tauri::command]
+fn default_redaction_directory(app: tauri::AppHandle) -> Result<String, String> {
+    let path = app.path().desktop_dir().map_err(|_| "无法找到桌面，请选择输出目录。".to_string())?;
+    let canonical = std::fs::canonicalize(path).map_err(|_| "无法找到桌面，请选择输出目录。".to_string())?;
+    if !canonical.is_dir() { return Err("无法找到桌面，请选择输出目录。".to_string()); }
+    *app.state::<RedactionDirectoryGrant>().0.lock().map_err(|_| "无法设置输出目录。".to_string())? = Some(canonical.clone());
+    Ok(canonical.to_string_lossy().to_string())
+}
 
 #[tauri::command]
 async fn choose_redaction_directory(app: tauri::AppHandle) -> Result<Option<String>, String> {
@@ -1583,13 +1662,9 @@ async fn open_redaction_export(
     reveal: bool,
 ) -> Result<(), String> {
     let canonical = std::fs::canonicalize(&path).map_err(|_| "文件已移动或不存在。".to_string())?;
-    if !app
-        .state::<RedactionExportGrants>()
-        .0
-        .lock()
-        .map_err(|_| "无法打开文件。".to_string())?
-        .contains(&canonical)
-    {
+    let granted = app.state::<RedactionExportGrants>().0.lock()
+        .map_err(|_| "无法打开文件。".to_string())?.contains(&canonical);
+    if !granted && !list_redaction_exports(app.clone())?.iter().any(|entry| entry.get("path").and_then(|p| p.as_str()).is_some_and(|p| Path::new(p) == canonical)) {
         return Err("请先保存文件。".to_string());
     }
     tauri::async_runtime::spawn_blocking(move || {
@@ -1621,6 +1696,36 @@ async fn open_redaction_export(
 
 #[cfg(test)]
 mod redaction_export_tests {
+    #[test]
+    fn deleting_history_keeps_exported_files_and_other_entries() {
+        let dir = std::env::temp_dir().join(format!("verilex-redaction-history-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir(&dir).unwrap();
+        let output = dir.join("output.docx");
+        let history = dir.join("history.json");
+        std::fs::write(&output, b"document").unwrap();
+        let target = output.to_str().unwrap();
+        std::fs::write(&history, serde_json::to_vec(&serde_json::json!([
+            {"path":target,"filename":"output.docx","saved_at":1},
+            {"path":"other","filename":"other","saved_at":2}
+        ])).unwrap()).unwrap();
+        super::remove_redaction_history_entry(&history, target).unwrap();
+        assert_eq!(std::fs::read(&output).unwrap(), b"document");
+        let entries = super::read_redaction_history(&history).unwrap();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0]["path"], "other");
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+    #[test]
+    fn custom_names_stay_within_the_selected_directory() {
+        for name in ["对外材料.docx", "项目材料.md", "永久抹除版.docx"] {
+            assert!(super::valid_redaction_filename(name));
+        }
+        for name in ["../原件.docx", "dir/原件.docx", "dir\\原件.docx", ".docx", "材料.pdf", "材料\n.docx"] {
+            assert!(!super::valid_redaction_filename(name));
+        }
+        assert!(!super::valid_redaction_filename(&format!("{}.docx", "长".repeat(100))));
+    }
+
     use super::*;
     #[test]
     fn selected_directory_is_required_and_duplicates_get_new_names() {
@@ -1637,10 +1742,10 @@ mod redaction_export_tests {
             root
         );
         std::fs::write(root.join("脱敏版.docx"), b"existing").unwrap();
-        let first = write_redaction_in_directory(&root, "脱敏版.docx", b"first").unwrap();
-        let second = write_redaction_in_directory(&root, "脱敏版.docx", b"second").unwrap();
-        assert_eq!(first.file_name().unwrap(), "脱敏版（1）.docx");
-        assert_eq!(second.file_name().unwrap(), "脱敏版（2）.docx");
+        let first = write_redaction_in_directory(&root, "自定交付.docx", b"first").unwrap();
+        let second = write_redaction_in_directory(&root, "自定交付.docx", b"second").unwrap();
+        assert_eq!(first.file_name().unwrap(), "自定交付.docx");
+        assert_eq!(second.file_name().unwrap(), "自定交付（1）.docx");
         assert_eq!(
             std::fs::read(root.join("脱敏版.docx")).unwrap(),
             b"existing"
@@ -1695,6 +1800,7 @@ pub fn run() {
         .manage(desktop_preferences::DesktopState::default())
         .manage(browser_panel::BrowserState::default())
         .manage(RedactionExportGrants::default())
+        .manage(RedactionHistoryLock::default())
         .manage(RedactionDirectoryGrant::default())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
@@ -1708,6 +1814,9 @@ pub fn run() {
                 read_dropped_file,
                 save_conversation,
                 save_redaction,
+                list_redaction_exports,
+                delete_redaction_export,
+                default_redaction_directory,
                 choose_redaction_directory,
                 save_contract_review,
                 diagram_export::save_litigation_diagram,
@@ -1743,15 +1852,12 @@ pub fn run() {
             };
             let webview_token = if launch.is_some() { token.as_str() } else { "" };
             let injection = initialization_script(&endpoint, webview_token);
-            let window =
+            let builder =
                 WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
                     .title("VeriLex")
                     .inner_size(1360.0, 900.0)
                     .min_inner_size(920.0, 640.0)
-                    // macOS overlay traffic lights and native title text: the
-                    // web app draws its own top toolbar (sidebar toggle,
-                    // back/forward) to the right of both — the toolbar's
-                    // leading spacer reserves their native positions.
+                    // Keep native window controls while the web toolbar provides navigation.
                     .title_bar_style(TitleBarStyle::Overlay)
                     .initialization_script(&injection)
                     .on_navigation(|url| {
@@ -1762,8 +1868,12 @@ pub fn run() {
                             || (cfg!(debug_assertions)
                                 && url.host_str() == Some("localhost")
                                 && url.port() == Some(1420))
-                    })
-                    .build();
+                    });
+            #[cfg(target_os = "macos")]
+            let builder = builder.hidden_title(true);
+            #[cfg(not(target_os = "macos"))]
+            let builder = builder.title("");
+            let window = builder.build();
             if let Err(error) = window {
                 if let Some(mut runtime) = launch.take() {
                     stop_runtime(&mut runtime.child);

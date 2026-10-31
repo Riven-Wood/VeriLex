@@ -130,6 +130,16 @@ class WorkspaceService:
         )
         return updated
 
+    def rename(self, workspace_id: str, display_name: str) -> WorkspaceRecord:
+        name = display_name.strip()
+        if not name:
+            raise ValueError("项目名称不能为空")
+        if not self._workspaces.rename(workspace_id, name):
+            raise session_error("workspace_not_found")
+        updated = self.get(workspace_id)
+        self._audit_workspace(updated.id, "renamed", {})
+        return updated
+
     def revoke(self, workspace_id: str) -> None:
         if self._terminal_active and self._terminal_active(workspace_id):
             raise session_error("workspace_busy")

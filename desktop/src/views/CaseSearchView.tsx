@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from "react";
-import { ExternalLink, Gavel, Search } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ExternalLink, Gavel } from "lucide-react";
+import { getThreadMcpSnapshot } from "../runtime/api";
+import type { SearchSettings } from "./searchSettings";
 
 import {
   CaseChannelPicker,
@@ -17,12 +19,16 @@ export interface CaseHistoryEntry {
 }
 
 interface CaseSearchViewProps {
+  renderWorkspace?: (controls: ReactNode) => ReactNode;
   mcpServers: readonly McpServerRecord[];
   /** 本页专属检索记录（查询词），来自 scene=case-retrieval 会话。 */
   history: readonly CaseHistoryEntry[];
   starting: boolean;
   activeSearch?: { id: string; channel?: "plugin" | null; skills?: string[] };
-  onStartSearch: (question: string, serverId: string | null, skills: string[], knowledgeLibraryIds?: string[]) => void;
+  locked?: boolean;
+  draftSearchId?: string;
+  onSettingsChange: (settings: SearchSettings) => void;
+  onNewSearch: () => void;
   onSelectHistory: (threadId: string) => void;
   onDeleteHistory: (threadId: string) => void;
   onOpenMcpSettings: () => void;
@@ -30,32 +36,42 @@ interface CaseSearchViewProps {
 
 /** 案例检索入口与本页历史；官方案例网站只通过系统浏览器手动打开。 */
 export function CaseSearchView({
+  renderWorkspace,
   mcpServers,
-  history,
   starting,
   activeSearch,
-  onStartSearch,
-  onSelectHistory,
-  onDeleteHistory,
+  draftSearchId,
+  locked = false,
+  onSettingsChange,
   onOpenMcpSettings,
 }: CaseSearchViewProps) {
   const availableServers = mcpServers;
   const [skills, setSkills] = useState<string[]>([]);
   const [knowledgeIds, setKnowledgeIds] = useState<string[]>([]);
-  const [question, setQuestion] = useState("");
   const [channel, setChannel] = useState<CaseChannel>(() =>
     defaultCaseChannel(availableServers),
   );
   const [menu, setMenu] = useState<CaseMenu>(null);
   const [windowError, setWindowError] = useState("");
   const touchedChannelRef = useRef(false);
+  const previousDraftId = useRef<string | undefined>(undefined);
+  if (draftSearchId) previousDraftId.current = draftSearchId;
   useEffect(() => {
     if (!activeSearch) return;
     setSkills(activeSearch.skills ?? []);
-    if (activeSearch.channel) {
-      touchedChannelRef.current = true;
+    if (previousDraftId.current !== activeSearch.id) setKnowledgeIds([]);
+    previousDraftId.current = undefined;
+    touchedChannelRef.current = true;
+    if (activeSearch.channel === "plugin") {
       setChannel({ kind: "plugin", serverId: null });
+      let cancelled = false;
+      getThreadMcpSnapshot(activeSearch.id).then(snapshot => {
+        if (!cancelled) setChannel(current => current.kind === "plugin" && current.serverId === null
+          ? {kind: "plugin", serverId: snapshot.servers.find(server => server.selected)?.serverId ?? null} : current);
+      }).catch(() => undefined);
+      return () => { cancelled = true; };
     }
+    setChannel({ kind: "knowledge" });
   }, [activeSearch?.id]);
 
   useEffect(() => {
@@ -63,18 +79,32 @@ export function CaseSearchView({
     setChannel(defaultCaseChannel(availableServers));
   }, [mcpServers]);
 
-  const submit = () => {
-    const trimmed = question.trim();
-    if (!trimmed || starting) return;
-    if (channel.kind === "plugin" && !availableServers.some((server) => server.id === channel.serverId)) {
-      setMenu("plugin");
-      return;
-    }
-    if (channel.kind === "knowledge" && !knowledgeIds.length) { setMenu("knowledge"); return; }
-    onStartSearch(trimmed, channel.kind === "plugin" ? channel.serverId : null, skills, channel.kind === "knowledge" ? [...knowledgeIds] : []);
-  };
+  useEffect(() => {
+    onSettingsChange({kind: channel.kind, serverId: channel.kind === "plugin" ? channel.serverId : null,
+      skills, knowledgeIds, valid: channel.kind === "knowledge" ? knowledgeIds.length > 0 : availableServers.some(server => server.id === channel.serverId)});
+  }, [channel, skills, knowledgeIds, availableServers, onSettingsChange]);
+
+  const controls = (
+    <fieldset className="legal-search-channel-row" disabled={starting || locked} aria-label="检索设置">
+        <span className="legal-search-channel-label">渠道：</span>
+        <CaseChannelPicker
+          knowledgeSelection={{selected: knowledgeIds, onChange: setKnowledgeIds, disabled: starting}}
+          mcpServers={availableServers}
+          value={channel}
+          onChange={(next) => {
+            touchedChannelRef.current = true;
+            setChannel(next);
+          }}
+          onOpenMcpSettings={onOpenMcpSettings}
+          menu={menu}
+          onMenuChange={setMenu}
+        />
+        <CaseSkillSuggestions disabled={starting || locked} value={skills} onChange={setSkills} />
+      </fieldset>
+  );
 
   return (
+    <>
     <section className="legal-search-view">
       <header className="legal-search-header">
         <Gavel aria-hidden="true" size={28} />
@@ -110,73 +140,15 @@ export function CaseSearchView({
         </div>
       </header>
 
-      <div className="legal-search-channel-row">
-        <span className="legal-search-channel-label">渠道：</span>
-        <CaseChannelPicker
-          knowledgeSelection={{selected: knowledgeIds, onChange: setKnowledgeIds, disabled: starting}}
-          mcpServers={availableServers}
-          value={channel}
-          onChange={(next) => {
-            touchedChannelRef.current = true;
-            setChannel(next);
-          }}
-          onOpenMcpSettings={onOpenMcpSettings}
-          menu={menu}
-          onMenuChange={setMenu}
-        />
-        <CaseSkillSuggestions value={skills} onChange={setSkills} />
-      </div>
 
-      <form
-        className="legal-search-form"
-        onSubmit={(event) => {
-          event.preventDefault();
-          submit();
-        }}
-      >
-        <div className="legal-search-capsule">
-          <Search aria-hidden="true" size={16} />
-          <input
-            type="text"
-            value={question}
-            onChange={(event) => setQuestion(event.target.value)}
-            placeholder="输入问题或案情，例如：竞业限制违约金过高，法院一般会怎么判？"
-            aria-label="案例检索问题"
-          />
-          <button type="submit" disabled={starting}>
-            {starting ? "创建中…" : "开始调研"}
-          </button>
-        </div>
-      </form>
 
       {windowError ? (
         <p className="legal-search-error" role="alert">{windowError}</p>
       ) : null}
 
-      {history.length > 0 ? (
-        <div className="legal-search-history" aria-label="检索记录">
-          <span className="legal-search-history-label">检索记录：</span>
-          {history.map((item) => (
-            <span key={item.id} className="legal-search-history-item">
-              <button
-                type="button"
-                className="legal-search-history-chip"
-                onClick={() => onSelectHistory(item.id)}
-              >
-                {item.keyword}
-              </button>
-              <button
-                type="button"
-                className="legal-search-history-remove"
-                aria-label={`删除检索记录 ${item.keyword}`}
-                onClick={() => onDeleteHistory(item.id)}
-              >
-                ×
-              </button>
-            </span>
-          ))}
-        </div>
-      ) : null}
+
     </section>
+    {renderWorkspace ? renderWorkspace(controls) : controls}
+    </>
   );
 }

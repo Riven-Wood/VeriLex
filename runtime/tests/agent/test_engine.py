@@ -67,6 +67,48 @@ from agent_fakes import (
 )
 
 
+@pytest.mark.parametrize("path", ["律师函/通知.docx", r"C:\案件\律师函\通知.docx"])
+def test_read_file_event_summary_displays_filename_without_directory(path):
+    definition = SimpleNamespace(name="read_file", authorization_owner=None, approval_behavior=None)
+    summary = AgentEngine._tool_arguments_summary(definition, {"path": path, "offset": 12})
+    assert summary == {"path": "通知.docx", "offset": 12}
+
+
+def test_other_tool_event_summary_still_hides_private_path():
+    definition = SimpleNamespace(name="write_file", authorization_owner=None, approval_behavior=None)
+    assert AgentEngine._tool_arguments_summary(definition, {"path": "/private/通知.docx"}) == {"path": "[内容已脱敏]"}
+
+
+@pytest.mark.asyncio
+async def test_read_file_event_persists_filename(env):
+    threads, turns, thread = env
+    received = []
+
+    async def read(_context, arguments):
+        received.append(arguments["path"])
+        return ToolResult(ok=True, output="合成内容")
+
+    registry = ToolRegistry()
+    registry.register(ToolDefinition(
+        name="read_file", description="read synthetic file",
+        parameters={"type": "object", "properties": {"path": {"type": "string"}}, "required": ["path"]},
+        risk_level=RiskLevel.LOW, execute=read, requires_workspace=False,
+    ))
+    engine = AgentEngine(threads, turns, scripted_factory([
+        [tool_call_delta("read-1", "read_file", '{"path":"律师函/通知.docx"}')],
+        [text_delta("完成")],
+    ]), tool_registry=registry)
+    records = []
+    turn = engine.start(thread.id, "读取文件")
+    result = await engine.run(turn.id, await emit_into(records))
+    assert result.status is TurnStatus.COMPLETED
+    assert received == ["律师函/通知.docx"]
+    started = [payload_of(record) for record in records if record.type == "tool_call_started"]
+    assert started[0]["argumentsSummary"]["path"] == "通知.docx"
+    persisted = [record.payload for record in turns.list_events(turn.id) if record.type == "tool_call_started"]
+    assert persisted[0]["argumentsSummary"]["path"] == "通知.docx"
+
+
 @pytest.fixture
 def env(tmp_path):
     database = Database(tmp_path / "verilex.sqlite3")

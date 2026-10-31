@@ -7,10 +7,24 @@ import {editorExtensions} from '../src/components/editor/schema';
 import {LitigationDocumentEditor} from '../src/components/editor/LitigationDocumentEditor';
 import {EditableProducts} from '../src/components/editor/EditableProducts';
 import {editorClient,type EditableProduct} from '../src/components/editor/client';
-vi.mock('../src/components/editor/client',()=>({editorClient:{list:vi.fn(),read:vi.fn(),create:vi.fn(),save:vi.fn(),draft:vi.fn(),history:vi.fn(),proposals:vi.fn(),decide:vi.fn()}}));
+vi.mock('../src/components/editor/client',()=>({editorClient:{list:vi.fn(),read:vi.fn(),create:vi.fn(),copy:vi.fn(),save:vi.fn(),draft:vi.fn(),history:vi.fn(),proposals:vi.fn(),decide:vi.fn()}}));
 afterEach(()=>{cleanup();vi.clearAllMocks();localStorage.clear();});
 const doc={type:'doc',content:[{type:'paragraph',content:[{type:'text',text:'中文正文'}]}]};
 const product:EditableProduct={id:'a'.repeat(32),title:'答辩状',kind:'documents',document:doc,file_hash:'a'.repeat(64),revision:1,updated_at:'now',external_update:false,path:'文书起草/答辩状.docx'};
+
+test('另存为使用原文件创建副本并提交当前正文',async()=>{
+ const native={...product,native_word:true};
+ vi.mocked(editorClient.list).mockResolvedValue({products:[native],errors:[]});
+ vi.mocked(editorClient.read).mockResolvedValue(native);
+ vi.mocked(editorClient.copy).mockResolvedValue({...native,id:'b'.repeat(32),title:'答辩状（副本）'});
+ localStorage.setItem('verilex:editor-product:w:documents',native.id);
+ render(<EditableProducts workspaceId="w" kind="documents" visible canWrite onActive={()=>{}}/>);
+ await screen.findByRole('textbox',{name:'文书正文'});
+ fireEvent.click(screen.getByText('更多',{selector:'summary'}));
+ fireEvent.click(screen.getByRole('button',{name:'另存为'}));
+ await waitFor(()=>expect(editorClient.copy).toHaveBeenCalledWith('w',native.id,native.file_hash,doc,'答辩状（副本）'));
+ expect(editorClient.create).not.toHaveBeenCalled();
+});
 
 test('real editor transactions preserve Chinese table text and support undo/redo',()=>{
  const editor=new Editor({extensions:editorExtensions(),content:doc});

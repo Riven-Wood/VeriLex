@@ -21,6 +21,12 @@ if (!existsSync(python)) {
   );
 }
 
+const legacyReaderBuild = spawnSync(python, [resolve(repositoryRoot, "scripts/documents/build_legacy_doc_reader.py")], {stdio: "inherit"});
+if (legacyReaderBuild.status !== 0) throw new Error("Legacy DOC reader build failed");
+const legacyReaderArgs = process.platform === "darwin" && process.arch === "arm64"
+  ? ["--add-data", `${resolve(desktopRoot, "src-tauri/generated/legacy-reader-macos-arm64")}:verilex_runtime/attachments/legacy_reader`]
+  : [];
+
 // Build the actual upstream-based MCP, never require npm/node installation by end users.
 const imaBuild = spawnSync(process.execPath, [resolve(desktopRoot, "scripts/build-ima-mcp.mjs")], {stdio: "inherit"});
 if (imaBuild.status !== 0) throw new Error("ima MCP bundle failed");
@@ -85,6 +91,7 @@ const result = spawnSync(
     "--specpath",
     pyinstallerRoot,
     "--add-data", `${resolve(repositoryRoot, "third_party/file_redaction")}:third_party/file_redaction`,
+    ...legacyReaderArgs,
     // Offline redaction: include the installed pinned model and tokenizer assets.
     "--collect-all", "zh_core_web_sm",
     "--collect-all", "spacy",

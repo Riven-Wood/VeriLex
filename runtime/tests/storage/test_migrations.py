@@ -60,6 +60,9 @@ def test_migrations_create_provider_schema_and_are_idempotent(tmp_path):
         (34, "contract review requirements"),
         (35, "contract reference tool call receipts"),
         (36, "registered litigation internal files"),
+        (37, "contract review custom party"),
+        (38, "contract Word collaboration"),
+        (39, "skill categories"),
     ]
     assert columns == {
         "id",
@@ -427,7 +430,7 @@ def test_migration_v7_upgrades_existing_threads_and_enforces_boolean_drafts(
             )
 
     assert versions == [
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
     ]
     assert upgraded["is_draft"] == 0
     assert "threads_is_draft_idx" in indexes

@@ -1,4 +1,7 @@
+import json
 from typing import Any, Literal
+from urllib.parse import urlsplit
+import ipaddress
 
 from fastapi import APIRouter, Response, status, Query, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, StrictBool
@@ -12,7 +15,53 @@ from verilex_runtime.storage.models import (
     ReasoningEffort,
     ThreadStatus,
     TurnStatus,
+    ToolCallStatus,
 )
+
+
+def _plugin_source_links(output: str) -> list[dict[str, str]]:
+    """Collect named web documents without guessing which one a call-level citation means."""
+    found: list[dict[str, str]] = []
+    seen: set[str] = set()
+    def visit(value: Any, depth: int) -> None:
+        if depth > 12 or len(found) >= 100:
+            return
+        if isinstance(value, str):
+            value = value.removeprefix("⟦UNTRUSTED_MCP_RESULT_START⟧\n").removesuffix("\n⟦UNTRUSTED_MCP_RESULT_END⟧")
+            try:
+                value = json.loads(value)
+            except (ValueError, RecursionError):
+                return
+        if isinstance(value, list):
+            for child in value[:500]:
+                visit(child, depth + 1)
+        elif isinstance(value, dict):
+            url = value.get("url")
+            title = value.get("title")
+            if isinstance(url, str) and isinstance(title, str) and title.strip() and len(url) <= 2048:
+                try:
+                    parsed = urlsplit(url)
+                    host = parsed.hostname or ""
+                    try:
+                        is_public = ipaddress.ip_address(host).is_global
+                    except ValueError:
+                        is_public = bool(host and "." in host and host.lower() != "localhost" and not host.lower().endswith(".local"))
+                    if parsed.scheme == "https" and is_public and not parsed.username and not parsed.password and not parsed.query and not parsed.fragment and url not in seen:
+                        seen.add(url)
+                        found.append({"title": title.strip()[:300], "url": url})
+                except ValueError:
+                    pass
+            for child in value.values():
+                if isinstance(child, (dict, list, str)):
+                    visit(child, depth + 1)
+    try:
+        envelope = json.loads(output)
+    except (ValueError, RecursionError):
+        envelope = None
+    if isinstance(envelope, dict) and (envelope.get("truncated") is True or (isinstance(envelope.get("omittedBytes"), int) and envelope["omittedBytes"] > 0)):
+        return []
+    visit(output, 0)
+    return found
 
 
 class StrictSchema(BaseModel):
@@ -258,6 +307,47 @@ def build_threads_router(
     @router.get("/{thread_id}/turns", response_model=list[TurnResponse])
     async def list_turns(thread_id: str) -> list[TurnResponse]:
         return [_turn_response(record) for record in turns.list(thread_id)]
+
+    if tool_calls_repo is not None:
+        @router.get("/{thread_id}/sources/{call_id}")
+        async def read_tool_source(thread_id: str, call_id: str):
+            threads.get(thread_id)
+            record = next(
+                (row for row in tool_calls_repo.list_by_thread(thread_id) if row.id == call_id),
+                None,
+            )
+            if (
+                record is None
+                or record.status is not ToolCallStatus.SUCCEEDED
+                or not (
+                    record.name in {'law_read', 'read_file', 'knowledge_read', 'litigation_material_inspect'}
+                    or record.name.startswith('mcp__')
+                )
+            ):
+                raise HTTPException(status_code=404, detail='来源不可用')
+            try:
+                payload = json.loads(record.result_json or '')
+            except (TypeError, ValueError):
+                raise HTTPException(status_code=404, detail='来源不可用') from None
+            if (not isinstance(payload, dict) or payload.get('ok') is not True
+                or not isinstance(payload.get('output'), str) or not payload['output']):
+                raise HTTPException(status_code=404, detail='来源不可用')
+            output = payload['output']
+            if record.name.startswith('mcp__'):
+                return {'name': record.name, 'links': _plugin_source_links(output)}
+            if record.name == 'law_read':
+                from verilex_runtime.legal.service import statute_url
+                try:
+                    law = json.loads(output)
+                except (ValueError, RecursionError):
+                    law = None
+                if isinstance(law, dict) and isinstance(law.get('title'), str):
+                    url = statute_url(law.get('bbbs'))
+                    if url:
+                        return {'name': record.name, 'links': [{'title': law['title'], 'url': url}]}
+                return {'name': record.name, 'links': []}
+            limit = 50000
+            return {'name': record.name, 'text': output[:limit], 'truncated': len(output) > limit}
 
     @router.get("/{thread_id}/turns/{turn_id}", response_model=TurnResponse)
     async def get_turn(thread_id: str, turn_id: str) -> TurnResponse:

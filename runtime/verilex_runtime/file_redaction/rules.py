@@ -11,7 +11,7 @@ LABELS = {'person':'人名','address':'地址','phone':'电话','email':'邮箱'
           'identity':'身份证','bank':'银行账号','plate':'车牌','health':'健康状况',
           'certificate':'证书','credit':'信用代码','case':'案号','money':'金额','date':'日期',
           'organization':'机构','custom':'自定义'}
-DEFAULT_KINDS = [k for k in LABELS if k not in {'case','money','date','organization','custom'}]
+DEFAULT_KINDS = [k for k in LABELS if k not in {'case','money','date','custom'}]
 
 
 def identity(value):
@@ -34,6 +34,24 @@ _NUMBER_TRANSLATION = str.maketrans(
 _ACCOUNT = re.compile(
     r'(?:银行账号|银行账户|收款账号|付款账号|收款账户|账号|账户)[ \t]*:[ \t]*'
     r'(?P<value>[0-9](?:[ -]?[0-9]){7,29})(?![0-9]|[ -][0-9])'
+)
+_OPENING_BANK = re.compile(
+    r'(?:开户银行|开户行)[ \t]*:[ \t]*'
+    r'(?P<value>[^\n\r，,；;。]{2,80}?)'
+    r'(?=$|[\n\r，,；;。]|[ \t]*(?:账号|账户|开户名称|联系电话)[ \t]*:)'
+)
+_COMPANY = re.compile(
+    r'[\u4e00-\u9fffA-Za-z0-9（）()·&]{2,80}?'
+    r'(?:股份有限公司|有限责任公司|有限公司|集团公司|合伙企业|律师事务所)'
+)
+_COMPANY_LEADING = re.compile(
+    r'^(?:(?:本合同|本协议|甲方|乙方|双方|当事人)'
+    r'(?:由|委托|受托|签订|签署|联系|通知|同意|是|为|系|向|与)'
+    r'|未经|经由|根据|由该|与该)+'
+)
+_REPRESENTATIVE = re.compile(
+    r'(?:授权代表|法定代表人|委托代理人|联系人|经办人)[ \t]*[:：][ \t]*'
+    r'(?P<value>[\u4e00-\u9fff]{2,4})(?=$|[\s，。；;、（(])'
 )
 
 PATTERNS = {
@@ -73,6 +91,24 @@ def detect_rules(text, kinds, custom):
             lo,hi=m.span('value')
             if len(found)>=5000: raise RedactionError('redaction_limit')
             found.append(dict(kind='bank',start=lo,end=hi,old=text[lo:hi],priority=1))
+    if 'organization' in kinds:
+        for m in _OPENING_BANK.finditer(normalized):
+            lo,hi=m.span('value')
+            hi=lo+len(text[lo:hi].rstrip())
+            if hi>lo:
+                if len(found)>=5000: raise RedactionError('redaction_limit')
+                found.append(dict(kind='organization',start=lo,end=hi,old=text[lo:hi],priority=1))
+        for m in _COMPANY.finditer(text):
+            value=m.group(); leading=None if m.start() and text[m.start()-1] in ':：' else _COMPANY_LEADING.match(value)
+            lo=m.start()+(leading.end() if leading else 0); hi=m.end()
+            if hi-lo>=4:
+                if len(found)>=5000: raise RedactionError('redaction_limit')
+                found.append(dict(kind='organization',start=lo,end=hi,old=text[lo:hi],priority=1))
+    if 'person' in kinds:
+        for m in _REPRESENTATIVE.finditer(text):
+            lo,hi=m.span('value')
+            if len(found)>=5000: raise RedactionError('redaction_limit')
+            found.append(dict(kind='person',start=lo,end=hi,old=text[lo:hi],priority=1))
     for word in custom:
         for m in re.finditer(re.escape(word),text):
             if len(found)>=5000: raise RedactionError('redaction_limit')

@@ -260,6 +260,25 @@
   vertical-align: super;
 }
 
+button.citation-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--vl-blue);
+  cursor: pointer;
+}
+
+.tool-source-view {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--vl-border);
+  border-radius: 8px;
+}
+
+.tool-source-view > button {
+  float: right;
+}
+
 .sources-block {
   min-width: 0;
   max-width: 680px;
@@ -389,10 +408,11 @@
 
 /* Tool cards, notices and the thinking indicator are assistant actions:
    they share the same left spine as assistant replies. */
-.message-list .timeline-notice,
-.message-list .thinking-indicator {
+.message-list .timeline-notice {
   margin-left: 40px;
 }
+
+.message-list .thinking-indicator { margin-left: 0; }
 
 .message-list .tool-card {
   margin-left: 40px;
@@ -2220,6 +2240,12 @@
 .yuandian-picker-row[aria-pressed="true"] .mcp-picker-check { color: white; }
 .yuandian-built-in { padding: 3px 7px; color: var(--accent-strong); background: color-mix(in srgb, var(--accent-strong) 9%, transparent); border-radius: 999px; font-size: calc(9px * var(--vl-font-scale, 1)); font-weight: 750; white-space: nowrap; }
 .yuandian-setup { display: grid; gap: 14px; }
+.yuandian-setup.yuandian-setup-review { grid-template-columns: minmax(0, 1fr); }
+.yuandian-setup.yuandian-setup-review .mcp-editor-actions { grid-column: 1; grid-row: auto; }
+.yuandian-tool-updates { max-height: 40vh; overflow-y: auto; display: grid; gap: 12px; }
+.yuandian-tool-updates label { display: flex; align-items: flex-start; gap: 10px; }
+.yuandian-tool-updates span { min-width: 0; overflow-wrap: anywhere; }
+.yuandian-tool-updates small { display: block; color: var(--text-secondary); line-height: 1.5; white-space: pre-wrap; }
 .yuandian-setup-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .yuandian-setup-heading h3 { margin: 0; font-size: calc(15px * var(--vl-font-scale, 1)); }
 .yuandian-setup-heading p { margin: 4px 0 0; color: var(--text-muted); font-size: calc(11px * var(--vl-font-scale, 1)); line-height: 1.5; }
@@ -3494,6 +3520,11 @@ body.provider-dialog-open { overscroll-behavior: contain; }
   min-width: 0;
 }
 
+/* Invisible tool and reasoning entries must not leave gaps in the flex log. */
+.timeline-tool-entry:empty,
+.turn-narrative:empty,
+.turn-group:empty { display: none; }
+
 /* Codex-style elapsed-time header ("用时 4 分 11 秒"). */
 .turn-duration-toggle {
   display: inline-flex;
@@ -3534,6 +3565,20 @@ body.provider-dialog-open { overscroll-behavior: contain; }
   color: var(--text-primary);
   min-width: 0;
 }
+
+.turn-narrative-process {
+  margin: 2px 0;
+  padding-left: 12px;
+  border-left: 2px solid var(--border-color, #e1e5eb);
+}
+
+.turn-narrative-process .turn-narrative-text {
+  color: var(--text-secondary);
+  font-size: calc(13px * var(--vl-font-scale, 1));
+  line-height: 1.6;
+}
+
+.turn-narrative-process .markdown-body p { margin: 2px 0; }
 
 /* Quiet single-line tool steps inside the log. */
 .tool-step-line {
@@ -3725,6 +3770,12 @@ body.provider-dialog-open { overscroll-behavior: contain; }
   gap: 10px;
 }
 
+.composer-search-controls { min-width: 0; padding: 4px 20px 12px; }
+.composer-search-controls .legal-search-channel-row { align-items: center; flex-wrap: wrap; gap: 8px; }
+.composer-search-controls .contract-skill-menu { margin-left: auto; max-width: 240px; }
+.composer-search-controls .legal-channel-menu { top: auto; bottom: calc(100% + 8px); max-height: min(360px, 50vh); max-width: calc(100vw - 80px); overflow-y: auto; }
+.composer-search-controls .legal-channel-button:disabled { cursor: default; opacity: .65; }
+
 .legal-search-channel-label {
   font-size: calc(13px * var(--vl-font-scale, 1));
   color: var(--text-secondary);
@@ -3809,55 +3860,6 @@ body.provider-dialog-open { overscroll-behavior: contain; }
 .legal-channel-menu-item:hover,
 .legal-channel-menu-action:hover {
   background: color-mix(in srgb, var(--accent-strong) 6%, transparent);
-}
-
-.legal-search-form {
-  margin: 0;
-}
-
-.legal-search-capsule {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 48px;
-  padding: 0 6px 0 16px;
-  border-radius: 24px;
-  border: 1px solid var(--border-subtle);
-  background: var(--surface-primary);
-}
-
-.legal-search-capsule:focus-within {
-  border-color: var(--accent-strong);
-}
-
-.legal-search-capsule input {
-  flex: 1;
-  min-width: 0;
-  height: 100%;
-  border: none;
-  background: transparent;
-  font-size: calc(14px * var(--vl-font-scale, 1));
-  color: var(--text-primary);
-}
-
-.legal-search-capsule input:focus {
-  outline: none;
-}
-
-.legal-search-capsule button {
-  height: 36px;
-  padding: 0 18px;
-  border: none;
-  border-radius: 18px;
-  background: var(--accent-strong);
-  color: #fff;
-  font-size: calc(13px * var(--vl-font-scale, 1));
-  cursor: pointer;
-}
-
-.legal-search-capsule button:disabled {
-  opacity: 0.6;
-  cursor: default;
 }
 
 .legal-search-note {
@@ -4299,6 +4301,7 @@ body.provider-dialog-open { overscroll-behavior: contain; }
   flex: 1;
   min-height: 0;
 }
+.legal-search-channel-row { min-width:0; border:0; padding:0; margin:0; }
 
 .legal-search-database-button {
   margin-left: auto;
@@ -4361,7 +4364,7 @@ body.provider-dialog-open { overscroll-behavior: contain; }
 .legal-skill-menu { position: absolute; z-index: 30; right: 0; top: 100%; width: min(360px, 80vw); padding: 12px; background: var(--surface, #fff); border: 1px solid var(--border-color, var(--vl-border)); border-radius: 12px; box-shadow: 0 8px 24px #0001; }
 .legal-skill-menu label { display: flex; align-items: flex-start; gap: 8px; padding: 8px; }
 .legal-skill-menu small { display: block; color: var(--text-secondary, #667085); margin-top: 4px; }
-.legal-followup-toggle { display: block; margin: 8px auto; padding: 8px 18px; border-radius: 18px; background: var(--surface, #fff); border: 1px solid var(--border-color, var(--vl-border)); cursor: pointer; }
+.legal-new-search { align-self:flex-start; padding:6px 12px; border-radius:16px; background:var(--surface-primary); border:1px solid var(--border-subtle); color:var(--text-secondary); cursor:pointer; }
 .legal-statute-text p { white-space: pre-wrap; }
 
 /* Message actions occupy the existing gap and remain keyboard reachable. */

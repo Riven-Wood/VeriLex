@@ -1,3 +1,6 @@
+/* Match a common legacy Word font name to an installed equivalent when the
+   original name is unavailable. This only affects display, never the file. */
+@font-face{font-family:"仿宋_GB2312";src:local("仿宋_GB2312"),local("FangSong"),local("仿宋");font-weight:400}
 html,body{margin:0;height:100%;overflow:hidden;font:13px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#222936;background:#edf0f5}body{display:flex;flex-direction:column}#tools{flex:none;display:flex;align-items:center;gap:6px;padding:4px 10px;border-bottom:1px solid #dce1e8;background:#fff;min-width:0}#format-tools{display:flex;align-items:center;gap:3px;min-width:0;flex:1;overflow-x:auto;scrollbar-width:thin}#format-tools>*{flex-shrink:0;white-space:nowrap}#review-tools{display:flex;align-items:center;gap:3px;flex-shrink:0;border-left:1px solid #dce1e8;padding-left:6px;white-space:nowrap}button,select{font:inherit;color:inherit;border:1px solid transparent;background:#fff;border-radius:4px;padding:5px 7px;cursor:pointer}button:hover,select:hover{background:#edf3fd}button:focus-visible,select:focus-visible{outline:2px solid #1677ff}.divider{height:18px;border-left:1px solid #dce1e8;margin:0 5px}#status{margin:0;padding:8px 16px;color:#687387;background:#fff}#status:empty{display:none}#paper{flex:1;align-self:flex-start;min-height:0;padding:14px 16px;box-sizing:border-box}#paper .page-container{min-height:0;min-width:0;width:max-content;margin:0 auto;background:#edf0f5;padding:0}#paper .page-box{box-shadow:0 1px 5px #25385724}#paper [contenteditable=true]{outline:none;cursor:text}#paper [contenteditable=true]:focus{outline:none}#paper a{cursor:text}#paper .page-number{color:#687387}#paper .docx-body-flow{background:white;margin:24px auto;padding:48px;box-shadow:0 1px 5px #25385724}
 #workarea{position:relative;flex:1;min-height:0;overflow:auto;overflow-anchor:none;scrollbar-gutter:stable}#review-surface{position:relative;display:flex;min-width:100%;width:max-content;min-height:100%}#paper{min-width:0}
 #review-pane{position:sticky;right:0;width:min(300px,42vw);flex-shrink:0;display:flex;flex-direction:column;min-height:0;border-left:1px solid #dce1e8;background:#f8fafb;box-sizing:border-box}
@@ -27,6 +30,8 @@ html,body{margin:0;height:100%;overflow:hidden;font:13px -apple-system,BlinkMacS
 .review-comment-menu>summary:focus-visible{outline:2px solid #168b88}.review-comment-menu>summary:hover{background:#eaf6f4}
 .review-comment-menu>div{position:absolute;right:0;top:calc(100% + 3px);z-index:5;display:flex;flex-direction:column;min-width:114px;padding:5px;background:#fff;border:1px solid #d9e2e5;border-radius:6px;box-shadow:0 5px 18px #273f4024}
 .review-comment-menu button{text-align:left;white-space:nowrap;padding:6px 8px;font-size:12px}.review-comment-menu button:last-child{color:#b94b4b}
+.review-comment-edit{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.review-comment-edit textarea{box-sizing:border-box;width:100%;resize:vertical;padding:6px;font:inherit;border:1px solid #bfcfd1;border-radius:5px}.review-comment-edit button{font:inherit;padding:4px 8px}
+.word-selection-action{position:fixed;z-index:1000;padding:6px 10px;border:1px solid #c8d3e0;border-radius:6px;background:#fff;color:#1c477c;box-shadow:0 4px 14px #25385733;font:13px system-ui;cursor:pointer}.word-selection-action[hidden]{display:none}
 .review-position-note,.review-empty{font-size:11px;color:#84909b}.review-position-note{display:block;margin-top:5px}.review-empty{margin:14px 2px;line-height:1.7}
 #review-connectors{position:absolute;left:0;top:0;pointer-events:none;z-index:2;overflow:hidden}
 #review-connectors path{fill:none;stroke:#169e9a;stroke-width:1;stroke-dasharray:2 3;opacity:.7}#review-connectors path.is-selected{opacity:1;stroke-dasharray:none}
@@ -50,7 +55,9 @@ html,body{margin:0;height:100%;overflow:hidden;font:13px -apple-system,BlinkMacS
 #size {min-width:105px;}
 /* Deleted line breaks remain in the review data without adding a second visual line. */
 /* Deleted content stays in the Word revision, but is shown only in the rail. */
-#paper del.rev-del, #paper .rev-para-mark-del {display:none!important}
+#paper del.rev-del, #paper .rev-para-mark-del, #paper .vl-deleted-empty {display:none!important}
+/* A one-paragraph border wrapper belongs to that paragraph and must not leave an orphaned line. */
+#paper .page-content > div:has(> p.vl-deleted-empty:only-child) {display:none!important}
 
 /* Panels live outside the scrolling toolbar, so all fields stay reachable. */
 .layout-panel{position:absolute;top:44px;right:12px;z-index:30;box-sizing:border-box;width:368px;max-width:calc(100% - 24px);max-height:calc(100% - 100px);overflow:auto;padding:16px;background:#fff;border:1px solid #dce3ec;border-radius:10px;box-shadow:0 8px 32px #18253a26;font-size:13px}
@@ -99,3 +106,6 @@ html,body{margin:0;height:100%;overflow:hidden;font:13px -apple-system,BlinkMacS
 #word-editing-guides text{fill:#969ba3;font-family:Arial,sans-serif}
 #show-formatting-marks{margin-right:12px}
 @media print{#word-editing-guides{display:none}}
+
+/* A generated space collapses at a wrap and never enters the document text. */
+.vl-word-autospace::before{content:" ";font:1px monospace;word-spacing:calc(var(--vl-auto-gap) - 1ch);white-space:normal}

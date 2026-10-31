@@ -257,6 +257,7 @@ async def _handle_start(
     upload_ids = message.get("attachmentUploadIds", [])
     replace_turn_id = message.get("replaceTurnId")
     knowledge_ids = message.get("knowledgeLibraryIds", [])
+    search_selection = message.get("searchSelection")
     litigation_materials = message.get("litigationMaterials")
     editor_context = message.get("editorContext")
     contract_editor_context = message.get("contractEditorContext")
@@ -268,6 +269,7 @@ async def _handle_start(
     if (
         not isinstance(thread_id, str)
         or not isinstance(content, str)
+        or (search_selection is not None and not isinstance(search_selection, dict))
         or not isinstance(knowledge_ids, list)
         or len(knowledge_ids) > 10
         or any(not isinstance(i, str) or not i for i in knowledge_ids)
@@ -295,6 +297,7 @@ async def _handle_start(
             **({"editor_context": editor_context} if editor_context is not None else {}),
             **({"contract_editor_context": contract_editor_context} if contract_editor_context is not None else {}),
             **({"knowledge_library_ids": knowledge_ids} if knowledge_ids else {}),
+            **({"search_selection": search_selection} if search_selection is not None else {}),
             approval_mode=approval_mode,
             reasoning_effort=reasoning_effort,
         )

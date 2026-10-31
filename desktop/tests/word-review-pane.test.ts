@@ -28,7 +28,7 @@ function harness(revisions:any[]=[],comments:any[]=[]){
     'p:body:first':`<w:p xmlns:w="${namespace}"><w:r><w:t>相同条款</w:t></w:r></w:p>`,
     'p:body:second':`<w:p xmlns:w="${namespace}"><w:r><w:t>相</w:t></w:r><w:commentRangeStart w:id="0"/><w:r><w:t>同条</w:t></w:r><w:commentRangeEnd w:id="0"/><w:r><w:t>款</w:t><w:commentReference w:id="0"/></w:r></w:p>`,
   };
-  const bridge={GetVersion:vi.fn(()=>'0'),RawGetXml:vi.fn((_:number,anchor:string)=>xml[anchor]),ListRevisions:vi.fn(()=>JSON.stringify(revisions)),AcceptRevision:vi.fn(),RejectRevision:vi.fn(),RemoveComment:vi.fn()};
+  const bridge={GetVersion:vi.fn(()=>'0'),RawGetXml:vi.fn((_:number,anchor:string)=>xml[anchor]),ListRevisions:vi.fn(()=>JSON.stringify(revisions)),AcceptRevision:vi.fn(),RejectRevision:vi.fn(),RemoveComment:vi.fn(),UpdateComment:vi.fn()};
   const editor={handle:7,exports:{DocxSessionBridge:bridge},listComments:()=>comments,anchorIdOf:(element:HTMLElement)=>element.getAttribute('data-source-anchor-id'),setCommentResolved:vi.fn(),reconcile:vi.fn()};
   const snapshot=vi.fn(()=>true),flush=vi.fn();
   const ui=new Function('editor','paper','status','snapshot','flushFocused','scheduleZoom','refreshZoom',`let composing=false,fatal=false;const scrollport=document.getElementById('workarea'),reviewSurface=document.getElementById('review-surface');${viewportSource}
@@ -42,6 +42,15 @@ ${reviewSource};return {reviewAction,reviewSourceRect,refreshReview,layoutReview
 afterEach(()=>{document.body.innerHTML='';vi.restoreAllMocks();vi.unstubAllGlobals();});
 
 describe('Word 修订与批注旁注',()=>{
+  it('修改现有批注并保存，取消时不改动',()=>{
+    const {bridge,snapshot}=harness([],[{anchorId:'cmt:cmt:known',text:'原批注'}]);
+    const edit=()=>[...document.querySelectorAll('button')].find(b=>b.textContent==='编辑批注')!.click();
+    edit();let input=document.querySelector<HTMLTextAreaElement>('[aria-label="编辑批注内容"]')!;
+    expect(input.value).toBe('原批注');input.value='新批注';input.form!.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+    expect(bridge.UpdateComment).toHaveBeenCalledWith(7,'cmt:cmt:known','新批注');expect(snapshot).toHaveBeenCalled();
+    edit();input=document.querySelector<HTMLTextAreaElement>('[aria-label="编辑批注内容"]')!;input.value='不要保存';[...document.querySelectorAll('button')].find(b=>b.textContent==='取消')!.click();
+    expect(bridge.UpdateComment).toHaveBeenCalledTimes(1);
+  });
   it('处理批注后即使纸张重建也保持阅读位置',()=>{
     const {ui,editor,scrollport}=harness();scrollport.scrollTop=150;scrollport.scrollLeft=40;
     editor.reconcile.mockImplementation(()=>{scrollport.scrollTop=0;scrollport.scrollLeft=0;});

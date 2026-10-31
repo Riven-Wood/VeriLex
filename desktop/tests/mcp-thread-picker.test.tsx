@@ -24,6 +24,7 @@ import type { ThreadApi } from "../src/runtime/threadClient";
 import type { UpdaterClient } from "../src/updater/contracts";
 import { YUANDIAN_SERVICES } from "../src/mcp/yuandian";
 import { openYuandianConsole } from "../src/platform/yuandianConsole";
+import { RuntimeApiError } from "../src/runtime/api";
 
 const nativeDrop = vi.hoisted(() => ({ listen: vi.fn(), unlisten: vi.fn() }));
 const nativeBridge = vi.hoisted(() => ({ invoke: vi.fn() }));
@@ -1441,4 +1442,13 @@ test("late atomic success is discarded and never inherited by the new task", asy
   fireEvent.click(screen.getByRole("menuitem", { name: "插件" }));
   const fresh = await screen.findByRole("dialog", { name: "当前对话的插件" });
   expect(fresh.querySelector('[aria-pressed="true"]')).toBeNull();
+});
+
+
+test("Yuan Dian setup reports a tool catalog error without blaming the key", async () => {
+  const probe = vi.fn().mockRejectedValue(new RuntimeApiError("invalid", { code: "mcp_tool_catalog_invalid", retryable: false, status: 422 }));
+  render(<YuandianSetup placement="settings" onAddServer={vi.fn()} onCancel={vi.fn()} onComplete={vi.fn()} probe={probe} />);
+  fireEvent.change(screen.getByLabelText("元典 API Key"), { target: { value: "test-key" } });
+  fireEvent.click(screen.getByRole("button", { name: "确认添加" }));
+  expect((await screen.findByRole("alert")).textContent).toContain("服务器返回的工具列表无法使用");
 });

@@ -4,9 +4,9 @@
 
 VeriLex 将对话、文件、合同审查、诉讼材料和文书编辑放在同一个工作区中。可以连接兼容 OpenAI 接口的模型服务或本机 Ollama，通过所选模型和工具完成工作；不需要 VeriLex 账号。
 
-**首版 v1.0.0 · 源码公开，仅限非商业用途 · 当前安装包支持 Apple Silicon Mac**
+**最新版 v1.1.0 · 源码公开，仅限非商业用途 · 本版安装包支持 Apple Silicon Mac**
 
-[下载首版](https://github.com/Riven-Wood/VeriLex/releases/tag/v1.0.0) · [安装说明](docs/install-macos.md) · [开发说明](docs/DEVELOPMENT.md) · [报告问题](https://github.com/Riven-Wood/VeriLex/issues)
+[下载最新版](https://github.com/Riven-Wood/VeriLex/releases/tag/v1.1.0) · [安装说明](docs/install-macos.md) · [开发说明](docs/DEVELOPMENT.md) · [报告问题](https://github.com/Riven-Wood/VeriLex/issues)
 
 ## 主要功能
 
@@ -22,14 +22,14 @@ VeriLex 将对话、文件、合同审查、诉讼材料和文书编辑放在同
 
 ## 安装与使用
 
-1. 在[发布页](https://github.com/Riven-Wood/VeriLex/releases/tag/v1.0.0)下载 `VeriLex-1.0.0-macos-arm64.zip`。
+1. 在[发布页](https://github.com/Riven-Wood/VeriLex/releases/tag/v1.1.0)下载 `VeriLex-1.1.0-macos-arm64.zip`。
 2. 解压后将 `VeriLex.app` 拖入“应用程序”，再双击打开。
 3. 在“设置 → 模型”添加模型连接，填写自己的密钥并测试连接。
 4. 选择工作目录或相应法律工作入口，添加材料后开始使用。
 
-安装包面向 Apple Silicon（M 系列芯片）Mac，声明最低系统版本为 macOS 12。当前验证环境不代表所有旧系统均已实测。应用未作 Apple Developer ID 签名与公证，首次打开的系统提示请参照[安装说明](docs/install-macos.md)。首版通过发布页手动下载安装，未提供应用内自动更新包。
+安装包面向 Apple Silicon（M 系列芯片）Mac，声明最低系统版本为 macOS 12。当前验证环境不代表所有旧系统均已实测。应用未作 Apple Developer ID 签名与公证，首次打开的系统提示请参照[安装说明](docs/install-macos.md)。本版通过发布页手动下载安装，未提供应用内自动更新包。
 
-Windows 源码适配仍需继续验证；本次不提供 Windows、Intel Mac 或 Linux 安装包。不要将 GitHub 的 Source code 压缩包当作可直接安装的应用。
+本版后续更新尚未在 Windows 实机整合验证，本次不提供新版 Windows、Intel Mac 或 Linux 安装包；Windows 用户可在 v1.0.0 发布页获取旧版。不要将 GitHub 的 Source code 压缩包当作可直接安装的应用。
 
 ## 数据与权限
 
@@ -41,7 +41,7 @@ Windows 源码适配仍需继续验证；本次不提供 Windows、Intel Mac 或
 
 前端使用 React、TypeScript 和 Tauri 2；本机后台使用 Python、FastAPI 与 SQLite。依赖版本由 `package-lock.json`、`runtime/uv.lock` 和 `desktop/src-tauri/Cargo.lock` 锁定。
 
-源码构建需要额外准备浏览器 Word 引擎资源；完整起步步骤、验证命令和平台限制见[开发说明](docs/DEVELOPMENT.md)。本次发布的检查结果及已知问题见[首版验证记录](docs/RELEASE_VALIDATION.md)。
+源码构建需要额外准备浏览器 Word 引擎资源；完整起步步骤、验证命令和平台限制见[开发说明](docs/DEVELOPMENT.md)。本次发布的检查结果及已知问题见[版本验证记录](docs/RELEASE_VALIDATION.md)。
 
 ## 许可证
 

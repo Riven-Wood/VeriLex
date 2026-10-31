@@ -674,6 +674,7 @@ export interface McpDeleteResult {
 
 export interface SkillSummary {
   category?: string;
+  categoryOverride?: string | null;
   name: string;
   description: string;
   instructions: string;
@@ -682,6 +683,8 @@ export interface SkillSummary {
   error: string | null;
   path: string;
 }
+
+export interface SkillCategory { id: string; name: string }
 
 export interface SkillDeleteResult {
   trashedPath: string;

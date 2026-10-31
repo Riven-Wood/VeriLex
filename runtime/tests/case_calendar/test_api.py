@@ -92,3 +92,35 @@ def test_all_calendar_routes_require_launch_token(client):
         ("POST", "/reminders/claim", None), ("POST", "/reminders/absent/ack", {"revision": 1}),
     ]:
         assert client.request(method, BASE + path, json=payload).status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_reminder_database_wait_does_not_block_health():
+    import asyncio
+    import threading
+    import httpx
+    from fastapi import FastAPI
+    from verilex_runtime.api.case_calendar import build_case_calendar_router
+
+    started, release = threading.Event(), threading.Event()
+    class BlockingStore:
+        def claim(self):
+            started.set()
+            release.wait(timeout=3)
+            return 0
+
+    app = FastAPI()
+    app.include_router(build_case_calendar_router(BlockingStore()))
+    @app.get('/health')
+    async def health():
+        return {'ok': True}
+
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://test') as client:
+        claim = asyncio.create_task(client.post(BASE + '/reminders/claim'))
+        try:
+            assert await asyncio.to_thread(started.wait, 1)
+            result = await asyncio.wait_for(client.get('/health'), timeout=0.5)
+            assert result.json() == {'ok': True}
+        finally:
+            release.set()
+            await claim

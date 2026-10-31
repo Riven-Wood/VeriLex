@@ -1,4 +1,5 @@
 import {useEffect,useId,useRef,useState} from 'react';
+import {LoadingState} from '../components/LoadingState';
 import {CalendarDays,GitBranch,GitCompareArrows,History,RefreshCw,Plus,MoreHorizontal,Download} from 'lucide-react';
 import {runtimeRequest} from '../runtime/api';
 import {DiagramSources} from '../components/preview/DiagramSources';
@@ -103,7 +104,7 @@ export function LitigationVisualizations({workspaceId,visible,busy,canWrite,read
   return <section className="litigation-visualizations" aria-label="诉讼可视化">
     {!diagram&&<header className="litigation-visual-heading"><h2>选择图表类型</h2><button type="button" aria-label="刷新图表" onClick={()=>setReload(v=>v+1)}><RefreshCw size={14}/></button></header>}
     {error&&<p role="alert">{error}<button type="button" onClick={()=>setReload(v=>v+1)}>重试</button></p>}
-    {!listing&&!error&&<p role="status">正在读取图表…</p>}
+    {!listing&&!error&&<LoadingState inline>正在读取图表…</LoadingState>}
     {(!diagram||creating)&&<div className="litigation-visual-create">
       {!redrawing&&<div className="litigation-visual-types" role="group" aria-label="图表类型"
         onMouseLeave={()=>setDescribedKind(null)} onBlur={()=>setDescribedKind(null)}>
@@ -142,7 +143,7 @@ export function LitigationVisualizations({workspaceId,visible,busy,canWrite,read
       </div>
       {diagram.pages.length>1&&<div className="litigation-visual-pages"><button type="button" disabled={page===0} onClick={()=>setPage(p=>p-1)}>上一页</button><span>{page+1} / {diagram.pages.length} 页</span><button type="button" disabled={page>=diagram.pages.length-1} onClick={()=>setPage(p=>p+1)}>下一页</button></div>}
       {exporting&&<p role="status">正在导出…</p>}{notice&&<p role="status" className="litigation-visual-notice">{notice}</p>}{exportError&&<p role="alert">{exportError}</p>}
-      {previewError?<p role="alert">{previewError}<button type="button" onClick={()=>setReload(v=>v+1)}>重试</button></p>:preview?<div ref={canvas} className="litigation-visual-canvas" tabIndex={0} aria-label="图表预览，可滚动查看"><img alt={diagram.title} src={`data:image/svg+xml;base64,${preview.viewport!.content}`} style={{width:preview.viewport!.width*scale,height:preview.viewport!.height*scale}}/></div>:<p role="status">正在打开图表…</p>}
+      {previewError?<p role="alert">{previewError}<button type="button" onClick={()=>setReload(v=>v+1)}>重试</button></p>:preview?<div ref={canvas} className="litigation-visual-canvas" tabIndex={0} aria-label="图表预览，可滚动查看"><img alt={diagram.title} src={`data:image/svg+xml;base64,${preview.viewport!.content}`} style={{width:preview.viewport!.width*scale,height:preview.viewport!.height*scale}}/></div>:<LoadingState>正在打开图表…</LoadingState>}
       {path&&<DiagramSources workspaceId={workspaceId} path={path} onPage={next=>{const i=diagram.pages.indexOf(next);if(i>=0)setPage(i);}} onOpen={source=>onOpenSource?.(source.path,source.page??undefined,source)}/>}
     </>}
   </section>;

@@ -834,3 +834,19 @@ def test_ws_edit_switches_history_and_rejects_stale_repeat(ws_fixture):
         ws.send_json({'type': 'turn.start', 'threadId': thread.id,
                       'content': 'duplicate', 'replaceTurnId': source.id})
         assert ws.receive_json()['code'] == 'edit_source_unavailable'
+
+
+def test_ws_passes_search_selection_to_each_turn(ws_fixture):
+    client, threads, _, _ = ws_fixture
+    thread = threads.create("检索", "model-1", provider_id="provider-1", scene="legal-retrieval")
+    with _ws(client, subprotocols=[TOKEN]) as ws:
+        for skill in ("原技能", "新技能"):
+            ws.send_json({"type":"turn.start", "threadId":thread.id, "content":"检索",
+                          "searchSelection":{"channel":"web", "serverIds":[], "skills":[skill]}})
+            assert ws.receive_json()["type"] == "ack"
+            while True:
+                event = ws.receive_json()
+                if event.get("type") == "event" and event.get("event", {}).get("type") in {"turn_completed", "turn_failed"}:
+                    assert event["event"]["type"] == "turn_completed"
+                    break
+            assert threads.get(thread.id).legal_skills == (skill,)

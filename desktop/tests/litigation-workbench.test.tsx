@@ -1,4 +1,3 @@
-import {useLitigationMaterials} from '../src/components/editor/DiscussionContext';
 vi.mock('../src/views/LitigationVisualizations',()=>({LitigationVisualizations:()=>null}));
 import {editorClient} from '../src/components/editor/client';
 vi.mock('../src/components/editor/client',()=>({editorClient:{templates:vi.fn().mockResolvedValue({templates:[]}),list:vi.fn().mockResolvedValue({products:[],errors:[]}),create:vi.fn(),draft:vi.fn(),read:vi.fn(),openWord:vi.fn()}}));
@@ -32,35 +31,24 @@ beforeEach(() => {
 });
 afterEach(() => {cleanup();vi.resetAllMocks();localStorage.clear();});
 
-test('a saved work citation opens the central PDF at its physical page', async()=>{
- vi.mocked(litigationWorkClient.read).mockResolvedValue({revision:1,data:{title:'审计梳理',sections:[{id:'audit',title:'审计意见',body:'金额待核对',pending:[],sources:[{path:'案卷.pdf',page:45,quote:'审计意见'}]}]}});
- vi.mocked(getWorkspaceFilePreview).mockResolvedValue({path:'案卷.pdf',name:'案卷.pdf',size_bytes:100,kind:'pdf',data_url:'data:application/pdf;base64,JVBERg==',truncated:false});
- render(<LitigationWorkbench {...props} onStartWork={vi.fn()}/>);
- fireEvent.click(screen.getByRole('button',{name:'事实梳理'}));
- fireEvent.click(screen.getByRole('tab',{name:'事实底稿'}));
- fireEvent.click(await screen.findByText('材料出处 · 1 处'));
- fireEvent.click(screen.getByRole('button',{name:'案卷.pdf · 第45页'}));
- expect(await screen.findByTestId('pdf-source-page')).toHaveProperty('textContent','45');
- expect(getWorkspaceFilePreview).toHaveBeenCalledWith('w1','案卷.pdf');
+test('drafting-only entry restores old page preference to documents and keeps case discussions', async()=>{
+ localStorage.setItem('verilex:litigation-desk:v1:w1',JSON.stringify({page:'facts',paths:[],file:null,aiOpen:true}));
+ const oldThread={id:'old',backendId:'old',title:'旧案件讨论',scene:'litigation-work',workspaceId:'w1',status:'idle'} as any;
+ render(<LitigationWorkbench {...props} thread={oldThread} threads={[oldThread]} onStartWork={vi.fn()} renderAssistant={()=> <p>历史讨论内容</p>}/>);
+ expect(screen.getByRole('region',{name:'文书起草'})).toBeTruthy();
+ expect(screen.queryByRole('button',{name:'事实梳理'})).toBeNull();
+ expect(screen.queryByRole('button',{name:'证据整理'})).toBeNull();
+ expect(await screen.findByRole('region',{name:'文书起草工作区'})).toBeTruthy();
+ expect(screen.getByText('历史讨论内容')).toBeTruthy();
+ expect(screen.getByRole('combobox',{name:'历史会话'})).toHaveProperty('value','old');
 });
 
-test('opens a single center preview, keeps unsent work request, restores last file on reopening', async () => {
- const view=render(<LitigationWorkbench {...props} onStartWork={vi.fn()}/>);
- fireEvent.click(screen.getByRole('tab',{name:'事实底稿'}));
- const theory=await screen.findByRole('textbox',{name:'本次要求'});
- fireEvent.change(theory,{target:{value:'尚未保存的分析'}});
- fireEvent.click(await within(screen.getByRole('complementary',{name:'当前工作区文件'})).findByRole('button',{name:'合同.txt'}));
- expect(await screen.findByText('原始合同内容')).toBeTruthy();
- expect(screen.getAllByRole('complementary',{name:'文件预览'})).toHaveLength(1);
- expect(screen.queryByRole('separator',{name:'调整预览栏宽度'})).toBeNull();
- fireEvent.click(screen.getByRole('button',{name:'事实梳理'}));
- expect(screen.getByRole('textbox',{name:'本次要求'})).toHaveProperty('value','尚未保存的分析');
- expect(screen.queryByLabelText('已打开文件')).toBeNull();
- fireEvent.click(within(screen.getByRole('complementary',{name:'当前工作区文件'})).getByRole('button',{name:'合同.txt'}));
- view.unmount();
- render(<LitigationWorkbench {...props}/>);
- expect(await screen.findByText('原始合同内容')).toBeTruthy();
- expect(getWorkspaceFilePreview).toHaveBeenLastCalledWith('w1','合同.txt');
+test('selects the requested history after the editor is flushed', async () => {
+ const selected=vi.fn();
+ const historical={id:'project-history',backendId:'project-history',title:'项目历史',scene:'general',workspaceId:'w1',status:'idle'} as any;
+ render(<LitigationWorkbench {...props} threads={[historical]} onSelectThread={selected}/>);
+ fireEvent.change(screen.getByRole('combobox',{name:'历史会话'}),{target:{value:'project-history'}});
+ await waitFor(()=>expect(selected).toHaveBeenCalledWith('project-history'));
 });
 
 test('lists generated folders, opens Word through system action, refreshes external edits', async () => {
@@ -83,7 +71,7 @@ test('read failure offers retry and AI can collapse without replacing the case p
  expect(await within(screen.getByRole('complementary',{name:'当前工作区文件'})).findByRole('button',{name:'合同.txt'})).toBeTruthy();
  fireEvent.click(screen.getByRole('button',{name:'收起讨论'}));
  expect(screen.queryByRole('complementary',{name:'案件 AI 助手'})).toBeNull();
- expect(screen.getByRole('button',{name:'事实梳理'}).getAttribute('aria-current')).toBe('page');
+ expect(screen.getByRole('region',{name:'文书起草'})).toBeTruthy();
  fireEvent.click(screen.getByRole('button',{name:'展开讨论'}));
  expect(screen.getByRole('complementary',{name:'案件 AI 助手'})).toBeTruthy();
 });
@@ -96,6 +84,8 @@ test('unselected workspace keeps the desk and sidebar picker without reading cas
  expect(litigationClient.snapshot).not.toHaveBeenCalled();
  expect(props.renderAssistant).toHaveBeenCalled();
  expect(screen.queryByRole('button',{name:'开始讨论'})).toBeNull();
+ expect(screen.queryByRole('combobox',{name:'历史会话'})).toBeNull();
+ expect(screen.queryByRole('button',{name:'新建会话'})).toBeNull();
  fireEvent.change(within(sidebar).getByRole('combobox',{name:'案件工作区'}),{target:{value:'w1'}});
  expect(props.onSelectWorkspace).toHaveBeenCalledWith('w1');
  fireEvent.click(within(sidebar).getByRole('button',{name:'打开其他文件夹'}));
@@ -128,45 +118,6 @@ test('panel widths resize in opposite directions, persist and reset', () => {
  expect(screen.queryByRole('separator',{name:'调整讨论栏宽度'})).toBeNull();
 });
 
-
-test('new desk keeps discussion closed even when starting work', async()=>{
- localStorage.clear();
- render(<LitigationWorkbench {...props}/>);
- expect(screen.getByRole('button',{name:'事实梳理'}).getAttribute('aria-current')).toBe('page');
- expect(screen.queryByRole('button',{name:'案件首页'})).toBeNull();
- expect(screen.queryByRole('complementary',{name:'案件 AI 助手'})).toBeNull();
- fireEvent.click(screen.getByRole('button',{name:'事实梳理'}));
- expect(screen.getByRole('heading',{name:'梳理案件经过'})).toBeTruthy();
- fireEvent.change(screen.getByRole('textbox',{name:'本次要求'}),{target:{value:'只看付款争议'}});
- await waitFor(()=>expect(screen.getByRole('button',{name:'开始事实梳理'})).toHaveProperty('disabled',false));
- fireEvent.click(screen.getByRole('button',{name:'开始事实梳理'}));
- expect(props.onStartWorkflow).toHaveBeenCalledWith(expect.stringContaining('只看付款争议'));
- expect(screen.queryByRole('complementary',{name:'案件 AI 助手'})).toBeNull();
-});
-
-
-test('switching work pages keeps discussion target fixed; switching discussion preserves the central reading position',async()=>{
- const factThread={id:'fact-thread',backendId:'fact-thread',title:'签约日期',updatedAt:'now'} as any;
- const strategyThread={id:'strategy-thread',backendId:'strategy-thread',title:'策略讨论',updatedAt:'now'} as any;
- vi.mocked(litigationWorkClient.links).mockResolvedValue({links:{'fact-thread':{kind:'facts',section_id:'signed',materials:['合同.txt'],expected_revision:1},'strategy-thread':{kind:'strategy',section_id:null,materials:['合同.txt'],expected_revision:0}}});
- vi.mocked(litigationWorkClient.read).mockImplementation(async(_id,kind)=>kind==='facts'?{revision:1,data:{title:'案件经过',sections:[{id:'signed',title:'签约日期',body:'需要核实签字日期',sources:[],pending:[]}]}}:{revision:0,data:null});
- const start=vi.fn();
- render(<LitigationWorkbench {...props} thread={factThread} threads={[factThread,strategyThread]} onStartWork={start} renderAssistant={()=> <p>已关联的讨论内容</p>}/>);
- expect(await screen.findByRole('combobox',{name:'当前会话'})).toHaveProperty('value','fact-thread');
- fireEvent.click(screen.getByRole('button',{name:'文书起草',exact:true}));
- expect(await screen.findByRole('tab',{name:'新建文书'})).toBeTruthy();
- expect(screen.getByRole('combobox',{name:'当前会话'})).toHaveProperty('value','fact-thread');
- expect(screen.queryByText(/正在讨论：/)).toBeNull();
- fireEvent.click(screen.getByRole('button',{name:'定位讨论对象'}));
- expect(await screen.findByText('需要核实签字日期')).toBeTruthy();
- fireEvent.click(screen.getByRole('button',{name:'讨论此项'}));
- expect(start).toHaveBeenCalledWith(expect.objectContaining({section_id:'signed',kind:'facts',expected_revision:1}));
- expect(start.mock.calls[0][0].message).toBeUndefined();
- fireEvent.change(screen.getByRole('combobox',{name:'当前会话'}),{target:{value:'strategy-thread'}});
- expect(props.onSelectThread).toHaveBeenCalledWith('strategy-thread');
- expect(screen.getByText('需要核实签字日期')).toBeTruthy();
-});
-
 test('a pending approval remains discoverable when discussion is collapsed and a file is open', async()=>{
  localStorage.setItem('verilex:litigation-desk:v1:w1',JSON.stringify({page:'facts',paths:['合同.txt'],file:'合同.txt',aiOpen:false}));
  const thread={id:'approval-thread',backendId:'approval-thread',title:'事实讨论',status:'awaiting_approval',updatedAt:'now'} as any;
@@ -175,8 +126,6 @@ test('a pending approval remains discoverable when discussion is collapsed and a
  expect(screen.queryByRole('complementary',{name:'案件 AI 助手'})).toBeNull();
  fireEvent.click(screen.getByRole('button',{name:'查看待确认操作'}));
  expect(screen.getByRole('complementary',{name:'案件 AI 助手'}).textContent).toContain('待确认的内容');
- fireEvent.click(screen.getByRole('button',{name:'事实梳理'}));
- expect(within(screen.getByRole('region',{name:'梳理案件经过成果'})).queryByText(/案件讨论有操作等待确认/)).toBeNull();
  view.rerender(<LitigationWorkbench {...props} thread={{...thread,status:'idle'}} onStartWork={vi.fn()}/>);
  expect(screen.queryByText(/案件讨论有操作等待确认/)).toBeNull();
  fireEvent.click(screen.getByRole('button',{name:'收起讨论'}));
@@ -201,7 +150,6 @@ test('left file selection is passed to drafting and survives refresh without ope
  const start=vi.fn();render(<LitigationWorkbench {...props} onStartWork={start}/>);
  const selection=await screen.findByRole('checkbox',{name:'选取材料 合同.txt'});
  expect(selection).toHaveProperty('checked',false);
- fireEvent.click(screen.getByRole('button',{name:'文书起草'}));
  await waitFor(()=>expect(screen.getByRole('checkbox',{name:'选取材料 合同.txt'})).toHaveProperty('checked',false));
  fireEvent.click(screen.getByRole('checkbox',{name:'选取材料 合同.txt'}));
  fireEvent.change(await screen.findByRole('textbox',{name:'起草或修改要求'}),{target:{value:'起草答辩状'}});
@@ -223,13 +171,13 @@ test.each(['issues','strategy'])('retired %s page preserves open files and histo
  vi.mocked(litigationWorkClient.links).mockResolvedValue({links:{legacy:{kind:page as any,section_id:null,materials:[],expected_revision:1}}});
  render(<LitigationWorkbench {...props} thread={thread} threads={[thread]} onStartWork={vi.fn()} renderAssistant={()=> <p>保留历史消息</p>}/>);
  expect(await screen.findByText('原始合同内容')).toBeTruthy();
- expect(await screen.findByRole('combobox',{name:'当前会话'})).toHaveProperty('value','legacy');
+ expect(await screen.findByRole('combobox',{name:'历史会话'})).toHaveProperty('value','legacy');
  expect(screen.queryByRole('button',{name:'定位讨论对象'})).toBeNull();
  expect(screen.queryByRole('button',{name:'争议焦点',exact:true})).toBeNull();
  expect(screen.queryByRole('button',{name:'策略备忘',exact:true})).toBeNull();
  expect(screen.getByText('保留历史消息')).toBeTruthy();
- fireEvent.click(screen.getByRole('button',{name:'事实梳理',exact:true}));
- expect(screen.getByRole('button',{name:'事实梳理',exact:true}).getAttribute('aria-current')).toBe('page');
+ fireEvent.click(screen.getByRole('button',{name:'关闭 合同.txt'}));
+ expect(screen.getByRole('region',{name:'文书起草工作区'})).toBeTruthy();
 });
 
 
@@ -238,23 +186,8 @@ test('header keeps work navigation without duplicating the workspace picker or b
  expect(screen.queryByRole('button',{name:'返回主页面'})).toBeNull();
  expect(screen.getByRole('combobox',{name:'案件工作区'})).toBeTruthy();
  expect(document.querySelector('.litigation-desk-header h1')).toBeNull();
- expect(screen.getByRole('navigation',{name:'案件工作'})).toBeTruthy();
-});
-
-
-test('dedicated discussion expands existing conversation without replacing it or clearing the draft',async()=>{
- const thread={id:'talk',backendId:'talk',title:'已有案件讨论',updatedAt:'now'} as any;
- render(<LitigationWorkbench {...props} thread={thread} threads={[thread]} renderAssistant={()=> <textarea aria-label="测试讨论输入" defaultValue="未发送的内容"/>}/>);
- fireEvent.click(screen.getByRole('button',{name:'案件讨论',exact:true}));
- const desk=screen.getByRole('region',{name:'诉讼工作台'});
- expect(desk.getAttribute('data-discussion-page')).toBe('true');
- expect(screen.getByRole('combobox',{name:'当前会话'})).toHaveProperty('value','talk');
- expect(screen.queryByRole('separator',{name:'调整讨论栏宽度'})).toBeNull();
- expect(screen.queryByRole('checkbox',{name:'选取材料 合同.txt'})).toBeNull();
- expect(screen.getByRole('textbox',{name:'测试讨论输入'})).toHaveProperty('value','未发送的内容');
- fireEvent.click(screen.getByRole('button',{name:'事实梳理',exact:true}));
- expect(desk.getAttribute('data-discussion-page')).toBe('false');
- expect(screen.getByRole('textbox',{name:'测试讨论输入'})).toHaveProperty('value','未发送的内容');
+ expect(screen.queryByRole('navigation',{name:'案件工作'})).toBeNull();
+ expect(screen.getByText('文书起草',{selector:'strong'})).toBeTruthy();
 });
 
 
@@ -268,35 +201,11 @@ test('discussion heading renames the current conversation and retains input on f
  await screen.findByText('暂时无法保存名称');
  expect(screen.getByRole('textbox',{name:'会话名称'})).toHaveProperty('value','  庭前准备讨论  ');
  fireEvent.click(screen.getByRole('button',{name:'保存会话名称'}));
- await screen.findByRole('combobox',{name:'当前会话'});
+ await screen.findByRole('combobox',{name:'历史会话'});
  expect(rename).toHaveBeenLastCalledWith('talk','庭前准备讨论');
  view.rerender(<LitigationWorkbench {...props} thread={{...thread,title:'庭前准备讨论'}} threads={[{...thread,title:'庭前准备讨论'}]} onRenameThread={rename}/>);
  expect(screen.getByRole('option',{name:'庭前准备讨论'})).toHaveProperty('selected',true);
  expect(screen.queryByText(/正在讨论：/)).toBeNull();
-});
-
-test('dedicated discussion does not change the collapsed preference on return to work pages',async()=>{
- localStorage.setItem('verilex:litigation-desk:v1:w1',JSON.stringify({page:'facts',paths:[],file:null,aiOpen:false}));
- render(<LitigationWorkbench {...props}/>);
- fireEvent.click(screen.getByRole('button',{name:'案件讨论',exact:true}));
- expect(screen.getByRole('complementary',{name:'案件 AI 助手'})).toBeTruthy();
- for(const name of ['事实梳理','证据整理','文书起草']){
-  fireEvent.click(screen.getByRole('button',{name,exact:true}));
-  expect(screen.queryByRole('complementary',{name:'案件 AI 助手'})).toBeNull();
- }
-});
-
-
-test('new discussion uses the regular conversation renderer and hides work-object controls',async()=>{
- const assistant=vi.fn((_preview:unknown,ordinary?:boolean)=><p>{ordinary?'普通会话输入框':'辅助会话输入框'}</p>);
- render(<LitigationWorkbench {...props} renderAssistant={assistant}/>);
- fireEvent.click(screen.getByRole('button',{name:'案件讨论',exact:true}));
- expect(screen.getByText('普通会话输入框')).toBeTruthy();
- expect(screen.queryByRole('textbox',{name:'案件讨论内容'})).toBeNull();
- expect(screen.queryByRole('button',{name:'定位讨论对象'})).toBeNull();
- expect(assistant).toHaveBeenLastCalledWith(expect.any(Function),true);
- fireEvent.click(screen.getByRole('button',{name:'事实梳理',exact:true}));
- expect(assistant).toHaveBeenLastCalledWith(expect.any(Function),false);
 });
 
 
@@ -327,7 +236,7 @@ test('registered draft from the file tree goes to editing; an ordinary docx stil
  fireEvent.click(await screen.findByRole('button',{name:'文书'}));
  fireEvent.click(await screen.findByRole('button',{name:'起诉状.docx'}));
  await waitFor(()=>expect(editorClient.openWord).toHaveBeenCalledWith('w1','doc','h'));
- expect(screen.getByRole('button',{name:'文书起草'}).getAttribute('aria-current')).toBe('page');
+ expect(screen.getByRole('region',{name:'文书起草工作区'})).toBeTruthy();
  expect(getWorkspaceFilePreview).not.toHaveBeenCalled();
  expect(screen.queryByRole('combobox',{name:'打开已关闭文书'})).toBeNull();
  vi.mocked(editorClient.list).mockResolvedValue({products:[],errors:[]});
@@ -346,24 +255,4 @@ test('a slow document lookup cannot replace a later material preview',async()=>{
  finish({products:[{id:'late',path:'文书/起诉状.docx'}],errors:[]});
  await waitFor(()=>expect(getWorkspaceFilePreview).toHaveBeenLastCalledWith('w1','合同.txt'));
  expect(editorClient.openWord).not.toHaveBeenCalled();
-});
-
-
-test('all four pages offer file selection and switching functions preserves collapsed discussion',async()=>{
- vi.mocked(runtimeRequest).mockImplementation(async(path)=>String(path).includes('/evidence-directory')?{revision:0,data:{title:'目录',entries:[],groups:[]}}:{status:'text_available',gaps:[],notice:''});
- localStorage.setItem('verilex:litigation-desk:v1:w1',JSON.stringify({page:'facts',paths:[]}));
- function Focus(){const value=useLitigationMaterials();return <output data-testid="material-focus">{JSON.stringify(value)}</output>;}
- render(<LitigationWorkbench {...props} onStartWork={vi.fn()} renderAssistant={()=> <Focus/>}/>);
- for(const page of ['事实梳理','证据整理','文书起草','案件讨论']){
-  fireEvent.click(screen.getByRole('button',{name:page}));
-  const choice=await screen.findByRole('checkbox',{name:'选取材料 合同.txt'});
-  await waitFor(()=>expect(choice).toHaveProperty('disabled',false));
-  if(!(choice as HTMLInputElement).checked)fireEvent.click(choice);
-  await waitFor(()=>expect(screen.getByTestId('material-focus').textContent).toContain('合同.txt'));
-  if(page!=='案件讨论')expect(screen.getByRole('region',{name:'诉讼工作台'}).getAttribute('data-ai-open')).toBe('false');
- }
- fireEvent.click(screen.getByRole('button',{name:'清空'}));
- await waitFor(()=>expect(screen.getByTestId('material-focus').textContent).toContain('"paths":[]'));
- fireEvent.click(screen.getByRole('button',{name:'事实梳理'}));
- expect(screen.getByRole('region',{name:'诉讼工作台'}).getAttribute('data-ai-open')).toBe('false');
 });

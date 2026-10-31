@@ -271,6 +271,10 @@ export function ComposerContextMenus({
         </>
       ) : (
         <div className="composer-context-options">
+          <button type="button" aria-label="选择新文件夹" onClick={() => void chooseNewDirectory()}>
+            <FolderPlus aria-hidden="true" size={14} />
+            <span>选择新文件夹</span>
+          </button>
           <button type="button" onClick={() => { onSelectWorkspace(null); onClose(); }}>
             <span>不使用工作区</span>
             {context.workspaceId === null && <Check aria-hidden="true" size={14} />}
@@ -285,10 +289,6 @@ export function ComposerContextMenus({
               {workspace.id === context.workspaceId && <Check aria-hidden="true" size={14} />}
             </button>
           ))}
-          <button type="button" aria-label="选择新文件夹" onClick={() => void chooseNewDirectory()}>
-            <FolderPlus aria-hidden="true" size={14} />
-            <span>选择新文件夹</span>
-          </button>
         </div>
       )}
       {loading && <p className="composer-context-note">正在加载…</p>}

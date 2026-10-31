@@ -1,5 +1,6 @@
 import { KnowledgeHighlight, KnowledgeMatches } from '../components/KnowledgeMatches';
 import { KnowledgeCreateMenu } from '../components/KnowledgeCreateMenu';
+import { LoadingState } from '../components/LoadingState';
 import { ImaConnection } from '../components/ImaConnection';
 import { openIma } from '../platform/ima';
 import { useEffect, useRef, useState } from 'react';
@@ -32,6 +33,7 @@ export function KnowledgeLibraryView({api = knowledgeApi, chooseFolder = pickWor
   const [previousOffsets, setPreviousOffsets] = useState<number[]>([]);
   const [nextOffset, setNextOffset] = useState(100);
   const [documents, setDocuments] = useState<KnowledgeDocument[]>([]);
+  const loadedListKey = useRef('');
   const [more, setMore] = useState(false);
   const [listError, setListError] = useState('');
   const [listLoading, setListLoading] = useState(false);
@@ -64,11 +66,13 @@ export function KnowledgeLibraryView({api = knowledgeApi, chooseFolder = pickWor
   useEffect(() => {
     let active = true;
     if (!selected) {setDocuments([]); return;}
+    const listKey = JSON.stringify([selected, search, offset, folderId]);
+    if (loadedListKey.current !== listKey) setDocuments([]);
     setListLoading(true);
     (folderId ? api.documents(selected, search, offset, folderId) : api.documents(selected, search, offset)).then(result => {
       if (!active) return;
-      setDocuments(result.items); setMore(result.has_more); setNextOffset(result.next_offset ?? offset + 100); setListError('');
-    }).catch(e => {if (active) {setDocuments([]); setListError(errorText(e));}})
+      loadedListKey.current = listKey; setDocuments(result.items); setMore(result.has_more); setNextOffset(result.next_offset ?? offset + 100); setListError('');
+    }).catch(e => {if (active) {if (loadedListKey.current !== listKey) setDocuments([]); setListError(errorText(e));}})
       .finally(() => {if (active) setListLoading(false);});
     return () => {active = false;};
   }, [api, selected, search, offset, revision, folderId]);
@@ -117,7 +121,7 @@ export function KnowledgeLibraryView({api = knowledgeApi, chooseFolder = pickWor
     </header>
     {error && <p role="alert">{error}</p>}
     {libraryError && <p role="alert">{libraryError}</p>}
-    {!loaded ? <p role="status">正在读取知识库…</p> : libraries.length === 0 ? <p className="knowledge-empty">点击“建立知识库”，关联本机文件夹或接入外部知识库。这里只读取资料，不修改原文件。</p> :
+    {!loaded ? <LoadingState>正在读取知识库…</LoadingState> : libraries.length === 0 ? <p className="knowledge-empty">点击“建立知识库”，关联本机文件夹或接入外部知识库。这里只读取资料，不修改原文件。</p> :
       <div className="knowledge-layout"><nav aria-label="已关联知识库"><div className="knowledge-nav-label">资料来源 <span>{libraries.length}</span></div>{libraries.map(item => <button key={item.id} aria-pressed={item.id === selected} onClick={() => setSelected(item.id)} disabled={busy}>
         <FolderOpen size={17} aria-hidden="true" /><span><strong>{item.name}</strong><small>{item.kind === 'ima' ? 'ima · 按需读取' : `${item.count} 篇${item.status === 'ready' || item.status === 'partial' ? '可用' : '已登记'}`}</small></span>
       </button>)}</nav>
@@ -125,7 +129,7 @@ export function KnowledgeLibraryView({api = knowledgeApi, chooseFolder = pickWor
         {library.error && <p className="knowledge-library-error" role="status">{library.error}</p>}
         {library.kind === 'ima' && <nav className="knowledge-breadcrumbs" aria-label="知识库文件夹路径"><button onClick={() => navigateFolder([])}>知识库根目录</button>{folders.map((folder, index) => <button key={folder.id} onClick={() => navigateFolder(folders.slice(0, index + 1))}>{folder.name}</button>)}</nav>}
         <div className={`knowledge-documents ${document ? "has-reader" : "is-browsing"}`}><div className="knowledge-list"><div className="knowledge-list-heading"><span>{search ? '搜索结果' : '全部资料'}</span><span>{offset + (documents.length ? 1 : 0)}–{offset + documents.length} {more ? '· 还有更多' : ''}</span></div><div className="knowledge-list-scroll" aria-label="资料列表" aria-busy={listLoading}>
-          {listError ? <p role="alert">{listError}</p> : !listLoading && !documents.length ? <p>{search ? '没有找到包含该关键词的资料。' : library.kind === 'ima' ? '当前目录没有资料，可输入关键词搜索库内子文件夹。' : '暂无可浏览的 Markdown 资料。'}</p> : null}
+          {listError ? <p role="alert">{listError}{documents.length > 0 && ' 当前显示上次加载的资料。'} <button onClick={() => setRevision(n => n + 1)}>重试</button></p> : !listLoading && !documents.length ? <p>{search ? '没有找到包含该关键词的资料。' : library.kind === 'ima' ? '当前目录没有资料，可输入关键词搜索库内子文件夹。' : '暂无可浏览的 Markdown 资料。'}</p> : null}
           {documents.map(doc => <button className="knowledge-document" aria-label={doc.path} key={doc.id} disabled={doc.status !== 'ready'} aria-pressed={document?.id === doc.id} onClick={() => {if (doc.kind === 'folder') {navigateFolder([...folders, {id: doc.id, name: doc.path}]); return;} setDocument(doc); setStart(doc.read_start ?? 0); setFocusMatch(doc.match_start ?? null);}}>{doc.kind === 'folder' ? <FolderOpen size={16} aria-hidden="true" /> : <FileText size={16} aria-hidden="true" />}<span><strong title={doc.path}>{doc.path.split('/').pop()}</strong>{doc.path.includes('/') && <span className="knowledge-document-path">{doc.path.slice(0, doc.path.lastIndexOf('/'))}</span>}<small>{doc.error || (doc.status === 'pending' ? '等待重新核对' : doc.snippet.startsWith('---') ? 'Markdown 资料' : doc.snippet)}</small></span></button>)}
           </div><div className="knowledge-pagination"><button disabled={!previousOffsets.length || listLoading} onClick={() => {setOffset(previousOffsets[previousOffsets.length - 1]); setPreviousOffsets(previous => previous.slice(0, -1));}}>上一页资料</button><button disabled={!more || !!listError || listLoading} onClick={() => {setPreviousOffsets(previous => [...previous, offset]); setOffset(nextOffset);}}>下一页资料</button></div>
         </div><aside className="knowledge-reader" aria-label="原文预览" hidden={!document}>{document ? <><div className="knowledge-reader-heading"><span className="knowledge-reader-label"><BookOpen size={15} aria-hidden="true" />原文预览<button className="knowledge-close-reader" onClick={() => setDocument(null)}>收起原文</button></span><h3>{document.path.split('/').pop()}</h3><small title={document.path}>{document.path}</small></div>{search && library.kind !== 'ima' && document.match_start != null && <KnowledgeMatches api={api} libraryId={selected} document={document} query={search} onNavigate={(position, match) => {setStart(position); setFocusMatch(match); setFocusRevision(n => n + 1);}} />}{readError ? <div className="knowledge-reader-message"><p role="alert">{readError}</p>{library.kind === 'ima' && <button onClick={() => void act(() => openIma())}>在 ima 查看</button>}{latestDocument && <button onClick={() => {setPage(null); setReadError(''); setDocument(latestDocument); setStart(latestDocument.read_start ?? 0); setRevision(n => n + 1);}}>重新读取原文</button>}</div> : page ? <>{page.external && <div className="knowledge-reader-message"><p>{page.notice}</p><button onClick={() => void act(() => openIma())}>打开 ima 官网查看</button></div>}<pre ref={reader} key={`${document.id}:${start}`} tabIndex={0} aria-label="原文内容"><KnowledgeHighlight text={page.text} query={page.external ? '' : search} focus={focusMatch === null || focusMatch < page.start ? undefined : focusMatch - page.start} /></pre><div className="knowledge-reader-footer"><span>字符 {page.start.toLocaleString()}–{page.end.toLocaleString()} / {page.total_chars.toLocaleString()}</span><div><button disabled={start === 0} onClick={() => setStart(n => Math.max(0, n - 20000))}>上一段原文</button><button disabled={!page.has_more} onClick={() => setStart(page.end)}>下一段原文</button></div></div></> : <p className="knowledge-reader-message" role="status">正在核对并读取原文…</p>}</> : <div className="knowledge-reader-empty"><BookOpen size={32} strokeWidth={1.3} aria-hidden="true" /><h3>在这里阅读原文</h3><p>选择资料查看原文。</p></div>}</aside></div>

@@ -27,3 +27,12 @@ it('applies spacing correction to the inline styles emitted by the real Word eng
  const html=render('<p style="--docx-auto-line-spacing:1.5"><span style="line-height:calc(1lh * var(--docx-auto-line-spacing))">正文</span></p>');
  expect(html).toContain('正文');expect([...rules].join('')).toContain('var(--verilex-lh-zoom, 1)');
 });
+
+it('keeps text following empty XML spans outside dynamic page fields',()=>{
+ const render=new Function('document','cssRules','inlineClasses','sheet', 'let appliedCssRuleCount=0;'+source.slice(source.indexOf('function safeCss('),source.indexOf('function exportsForEditor('))+';return safeHtml;')(document,new Set(),new Map(),{replaceSync:()=>{}});
+ const div=document.createElement('div');
+ div.innerHTML=render('<p>第 <span data-field="PAGE"><span style="font-size:9pt"/><span>7</span><span/></span> 页 共 <span data-field="NUMPAGES"><span/><span>7</span><span/></span> 页</p>');
+ div.querySelector('[data-field="PAGE"]')!.textContent='2';
+ div.querySelector('[data-field="NUMPAGES"]')!.textContent='8';
+ expect(div.textContent).toBe('第 2 页 共 8 页');
+});

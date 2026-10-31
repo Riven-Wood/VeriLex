@@ -21,3 +21,10 @@
   .litigation-skill-content { grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(100px, .8fr) minmax(160px, 1fr); height:min(480px, 65dvh); }
   .litigation-skill-detail { border-left:0; border-top:1px solid var(--vl-border); padding:16px; gap:12px; }
 }
+
+.litigation-skill-list .litigation-skill-category { display:flex; align-items:center; justify-content:space-between; gap:8px; font-weight:600; }
+.litigation-skill-category-meta { display:inline-flex; align-items:center; gap:8px; color:var(--text-secondary); font-size:12px; }
+.litigation-skill-category[aria-expanded=true] .litigation-skill-category-meta svg { transform:rotate(180deg); }
+.litigation-skill-category-items { padding-left:12px; }
+.litigation-skill-list .litigation-skill-category-items button { font-weight:400; }
+.litigation-skill-placeholder { margin:0; color:var(--text-secondary); font-size:13px; line-height:1.7; }

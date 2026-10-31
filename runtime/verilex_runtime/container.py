@@ -356,7 +356,10 @@ def build_services(settings: RuntimeSettings) -> RuntimeServices:
     litigation_service = LitigationService(workspace_service, law_cache=law_cache_service, law_reads=tool_calls, messages=messages, threads=threads)
     litigation_exporter = LitigationExporter(artifact_publisher,
         temporary_root=settings.state_dir / "litigation-temp", now=_utc_now)
-    register_litigation_tools(tool_registry, litigation_service, litigation_exporter)
+    async def review_project_sources(context, candidate, evidence):
+        from verilex_runtime.litigation.source_review import review_source_attribution
+        return await review_source_attribution(provider_service, threads_service, context, candidate, evidence)
+    register_litigation_tools(tool_registry, litigation_service, litigation_exporter, source_reviewer=review_project_sources)
     register_law_tools(
         tool_registry,
         OfficialLawClient(),

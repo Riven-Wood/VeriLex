@@ -5,15 +5,15 @@
   "version": "b1457bbd78b14177e3e71c739911f1772a6b1b22",
   "source_sha256": "b04e0e4b471425aa8895c297e5cf9448012571e3",
   "asset_file_count": 88,
-  "asset_tree_sha256": "d1cf010aecbca305a78c76ada60b7c58ae82e133a2db6e86657e375c1fb7bad8",
+  "asset_tree_sha256": "b09541d92c8ab13beab0c9cbcec03e02f0dd0a905bfd9c32b7fa10e81d80b82f",
   "assets": [
     {
       "path": "renderer/docxodus.bundle.js",
-      "sha256": "a40414d45216c21890e435de63b5c5b0d829c802fc9134b4607596477dfce2e0"
+      "sha256": "138d8f645fcde8a16f5bd7cdb399dd808e36b9b89c27f6643e5b15cf8770269f"
     },
     {
       "path": "renderer/wasm/_framework/dotnet.native.wasm",
-      "sha256": "e24e9963f0cf58d2d0a6065460dc6d4b95c1e5a37b7657b3375330269813edd5"
+      "sha256": "f7df42722bb13f905cbba79acecd7a7e20fe787947b96d5c844b14799b356f96"
     },
     {
       "path": "renderer/docxodus.worker.js",
@@ -29,5 +29,5 @@
     "worker-self",
     "style-blob"
   ],
-  "local_patch_sha256": "d8883467f21480c5930c66fa169f100c8afbc015dca1a2fa4605458e3a9fae17"
+  "local_patch_sha256": "9a5f7827d20a8c44e960036ea8350b31abce3a6ce89c9ed2a588b0bdc9066b9b"
 }

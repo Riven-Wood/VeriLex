@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Bell, CalendarDays, ChevronLeft, ChevronRight, Clock3, MapPin, Plus, RefreshCw, Search, X } from 'lucide-react';
 import { DetailDialog } from '../components/DetailDialog';
+import { LoadingState } from '../components/LoadingState';
 import { RuntimeApiError } from '../runtime/api';
 import { caseCalendarApi, type CaseCalendarApi, type CaseCalendarEvent, type CaseCalendarInput, type CaseCalendarKind, type CaseCalendarReminder } from '../runtime/caseCalendarClient';
 import './CaseCalendarView.css';
@@ -29,6 +30,7 @@ export function CaseCalendarView({ api = caseCalendarApi, initialDate, onEventsC
   const [view, setView] = useState<CalendarView>('month');
   const [kind, setKind] = useState<CaseCalendarKind | 'all'>('all');
   const [query, setQuery] = useState('');
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [today, setToday] = useState(() => beijingToday());
   const [items, setItems] = useState<CaseCalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,7 +40,6 @@ export function CaseCalendarView({ api = caseCalendarApi, initialDate, onEventsC
   const [detailId, setDetailId] = useState<string | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
   const [busy, setBusy] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [discardAction, setDiscardAction] = useState<'close' | 'reload' | null>(null);
   const [conflict, setConflict] = useState(false);
   const actionLock = useRef(false);
@@ -79,7 +80,8 @@ export function CaseCalendarView({ api = caseCalendarApi, initialDate, onEventsC
   const inPeriod = (item: CaseCalendarEvent) => view === 'week' ? days.includes(item.date) : item.date.slice(0, 7) === selectedDate.slice(0, 7);
   const periodItems = filtered.filter(inPeriod);
   const periodCount = items.filter(inPeriod).length;
-  const listDays = [...new Set(periodItems.map(item => item.date))];
+  const searching = Boolean(query.trim());
+  const listDays = [...new Set((searching ? filtered : periodItems).map(item => item.date))];
   const dayItems = byDate.get(selectedDate) ?? [];
   const detail = items.find(item => item.id === detailId);
   const period = view === 'week' ? '本周' : '本月';
@@ -88,7 +90,7 @@ export function CaseCalendarView({ api = caseCalendarApi, initialDate, onEventsC
   function clearFilters() { setKind('all'); setQuery(''); }
   function showDetail(item: CaseCalendarEvent, source: HTMLElement) {
     trigger.current = source; setSelectedDate(item.date); setDetailId(item.id);
-    setActionError(''); setConflict(false); setConfirmDelete(false);
+    setActionError(''); setConflict(false);
   }
   function createOnDate(day: string, source: HTMLElement) {
     trigger.current = source; openEditor(undefined, day);
@@ -97,7 +99,7 @@ export function CaseCalendarView({ api = caseCalendarApi, initialDate, onEventsC
   function openEditor(record?: CaseCalendarEvent, day = selectedDate) {
     const value = record ? inputFrom(record) : { title: '', kind: kind === 'all' ? 'hearing' as const : kind, customKind: '', date: day, time: '09:00', timeZone: BEIJING_TIME_ZONE, caseName: '', location: '', notes: '', reminderMinutes: null };
     setEditor({ record: record ?? null, value, original: JSON.stringify(value) });
-    setActionError(''); setDiscardAction(null); setConflict(false); setConfirmDelete(false);
+    setActionError(''); setDiscardAction(null); setConflict(false);
   }
   function change<K extends keyof CaseCalendarInput>(key: K, value: CaseCalendarInput[K]) {
     setEditor(current => current ? { ...current, value: { ...current.value, [key]: value } } : null);
@@ -106,7 +108,7 @@ export function CaseCalendarView({ api = caseCalendarApi, initialDate, onEventsC
   function closeDialog() {
     if (actionLock.current) return;
     if (editor && JSON.stringify(editor.value) !== editor.original) { setDiscardAction('close'); return; }
-    setEditor(null); setDetailId(null); setActionError(''); setConfirmDelete(false); setDiscardAction(null);
+    setEditor(null); setDetailId(null); setActionError(''); setDiscardAction(null);
   }
   function abandon() { setEditor(null); setDetailId(null); setActionError(''); setDiscardAction(null); }
   function changed() { onEventsChanged?.(); }
@@ -133,7 +135,7 @@ export function CaseCalendarView({ api = caseCalendarApi, initialDate, onEventsC
     try {
       await api.remove(item.id, item.revision);
       if (!mounted.current) return;
-      setItems(current => current.filter(row => row.id !== item.id)); setDetailId(null); setConfirmDelete(false); setStatus('日程已删除'); changed();
+      setItems(current => current.filter(row => row.id !== item.id)); setDetailId(null); setStatus('日程已删除'); changed();
     } catch (error) { if (mounted.current) { setActionError(failure(error)); setConflict(isConflict(error)); } }
     finally { actionLock.current = false; if (mounted.current) { setBusy(false); setLoading(false); } }
   }
@@ -147,7 +149,7 @@ export function CaseCalendarView({ api = caseCalendarApi, initialDate, onEventsC
       const record = next.find(item => item.id === (editor?.record?.id ?? detailId));
       if (!record) { abandon(); setStatus('这条日程已删除，列表已更新'); }
       else if (editor) openEditor(record);
-      else { setConflict(false); setConfirmDelete(false); }
+      else { setConflict(false); }
     } catch { if (mounted.current) setActionError('重新载入失败，原有填写内容仍保留，请重试。'); }
     finally { actionLock.current = false; if (mounted.current) setBusy(false); }
   }
@@ -158,29 +160,32 @@ export function CaseCalendarView({ api = caseCalendarApi, initialDate, onEventsC
     <div className="case-calendar-toolbar">
       <div className="case-calendar-navigation">
         <button aria-label={view === 'week' ? '上一周' : '上个月'} disabled={view === 'week' ? days[0] <= '1900-01-01' : selectedDate.slice(0, 7) === '1900-01'} onClick={() => setSelectedDate(navigateCalendar(selectedDate, view, -1))}><ChevronLeft size={17} /></button>
-        <h2>{title}</h2>
+        <div className="case-calendar-date-navigation">
+          <h2><button className="case-calendar-date-title" aria-label={`跳转日期，当前${title}`} title="选择日期" aria-expanded={datePickerOpen} onClick={() => setDatePickerOpen(open => !open)}>{title} <CalendarDays size={14} aria-hidden="true" /></button></h2>
+          {datePickerOpen && <input autoFocus aria-label="跳转日期" type="date" min="1900-01-01" max="9999-12-31" value={selectedDate} onChange={event => { if (validDay(event.target.value)) { setSelectedDate(event.target.value); setDatePickerOpen(false); } }} />}
+        </div>
         <button aria-label={view === 'week' ? '下一周' : '下个月'} disabled={view === 'week' ? days.some(day => !validDay(day) && parseDay(day) > parseDay(selectedDate)) || days[6] === '9999-12-31' : selectedDate.slice(0, 7) === '9999-12'} onClick={() => setSelectedDate(navigateCalendar(selectedDate, view, 1))}><ChevronRight size={17} /></button>
         <button onClick={() => setSelectedDate(beijingToday())}>今天</button>
       </div>
       <div className="case-calendar-view-switch" role="group" aria-label="日历视图">
-        {([['month', '月视图'], ['week', '周视图'], ['list', '列表']] as const).map(([value, label]) => <button key={value} aria-pressed={view === value} onClick={() => setView(value)}>{label}</button>)}
+        {([['month', '月视图'], ['week', '周视图'], ['list', '任务列表']] as const).map(([value, label]) => <button key={value} aria-pressed={view === value} onClick={() => setView(value)}>{label}</button>)}
       </div>
     </div>
     <div className="case-calendar-filters">
       <label className="case-calendar-type-filter">筛选<select aria-label="按类型筛选" value={kind} onChange={event => setKind(event.target.value as CaseCalendarKind | 'all')}><option value="all">全部类型</option>{Object.entries(CASE_CALENDAR_KINDS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-      <div className="case-calendar-search"><Search size={14} aria-hidden="true" /><input type="search" aria-label="搜索日程" placeholder={`搜索${period}标题、案件、地点`} value={query} onChange={event => setQuery(event.target.value)} />{query && <button aria-label="清空搜索" onClick={() => setQuery('')}><X size={13} /></button>}</div>
+      <div className="case-calendar-search"><Search size={14} aria-hidden="true" /><input type="search" aria-label="搜索日程" placeholder="搜索日程、案件、地点" value={query} onChange={event => setQuery(event.target.value)} />{query && <button aria-label="清空搜索" onClick={() => setQuery('')}><X size={13} /></button>}</div>
     </div>
     <div className="case-calendar-range-info">
-      <span aria-live="polite">{loading ? '正在读取…' : loadError ? '日程读取失败' : isFiltered ? `${period}匹配 ${periodItems.length} / ${periodCount} 项` : `${period} ${periodCount} 项日程`}{isFiltered && <button onClick={clearFilters}>清除筛选</button>}</span>
-      <div><label className="case-calendar-jump">跳转日期<input aria-label="跳转日期" type="date" min="1900-01-01" max="9999-12-31" value={selectedDate} onChange={event => { if (validDay(event.target.value)) setSelectedDate(event.target.value); }} /></label><button disabled={loading} onClick={() => void refresh()} aria-label="刷新日程" title="刷新日程"><RefreshCw size={14} /></button></div>
+      <span aria-live="polite">{loading ? '正在读取…' : loadError ? '日程读取失败' : searching ? `全部日期匹配 ${filtered.length} 项` : isFiltered ? `${period}匹配 ${periodItems.length} / ${periodCount} 项` : `${period} ${periodCount} 项日程`}{isFiltered && <button onClick={clearFilters}>清除筛选</button>}</span>
+      <div><button disabled={loading} onClick={() => void refresh()} aria-label="刷新日程" title="刷新日程"><RefreshCw size={14} /></button></div>
     </div>
     <div className={`case-calendar-layout view-${view}`} aria-busy={loading}>
-      {view === 'list' ? <div className="case-calendar-list" aria-label="本月日程列表">
+      {view === 'list' || searching ? <div className="case-calendar-list" aria-label={searching ? '搜索结果' : '本月日程列表'}>
         {listDays.map(day => <section key={day} className="case-calendar-list-day">
-          <button className="case-calendar-list-date" aria-pressed={selectedDate === day} onClick={() => setSelectedDate(day)}><strong>{shortDayLabel(day)}</strong><span>星期{weekdays[(parseDay(day).getDay() + 6) % 7]}{day === today ? ' · 今天' : ''}</span><span>{byDate.get(day)!.length} 项</span></button>
+          <button className="case-calendar-list-date" aria-pressed={selectedDate === day} onClick={() => setSelectedDate(day)}><strong>{searching ? dayLabel(day) : shortDayLabel(day)}</strong><span>星期{weekdays[(parseDay(day).getDay() + 6) % 7]}{day === today ? ' · 今天' : ''}</span><span>{byDate.get(day)!.length} 项</span></button>
           <ul>{byDate.get(day)!.map(item => <li key={item.id}><button className="case-calendar-list-item" onClick={event => showDetail(item, event.currentTarget)}><time>{item.time ?? '全天'}</time><span className={`case-calendar-kind kind-${item.kind}`}>{calendarKindLabel(item)}</span><span className="case-calendar-list-content"><strong>{item.title}</strong>{(item.caseName || item.location) && <span>{[item.caseName, item.location].filter(Boolean).join(' · ')}</span>}</span>{item.reminderMinutes !== null && <Bell size={14} aria-label={reminders.find(([minutes]) => minutes === item.reminderMinutes)?.[1]} />}<ChevronRight size={14} aria-hidden="true" /></button></li>)}</ul>
         </section>)}
-        {!listDays.length && <div className="case-calendar-empty"><CalendarDays size={28} aria-hidden="true" /><p>{loading ? '正在读取日程…' : loadError ? '刷新后查看日程' : isFiltered ? '本月没有符合筛选条件的日程' : '本月还没有日程'}</p>{!loading && !loadError && (isFiltered ? <button onClick={clearFilters}>清除筛选</button> : <button onClick={event => createOnDate(selectedDate, event.currentTarget)}>添加日程</button>)}</div>}
+        {!listDays.length && (loading ? <LoadingState>正在读取日程…</LoadingState> : <div className="case-calendar-empty"><CalendarDays size={28} aria-hidden="true" /><p>{loadError ? '刷新后查看日程' : searching ? '没有找到符合条件的日程' : isFiltered ? '本月没有符合筛选条件的日程' : '本月还没有日程'}</p>{!loadError && (isFiltered ? <button onClick={clearFilters}>清除筛选</button> : <button onClick={event => createOnDate(selectedDate, event.currentTarget)}>添加日程</button>)}</div>)}
       </div> : <div className={`case-calendar-month ${view === 'week' ? 'case-calendar-week' : ''}`} aria-label={`${title}${view === 'week' ? '周历' : '月历'}`}>
         <div className="case-calendar-weekdays" aria-hidden="true">{weekdays.map(day => <span key={day}>周{day}</span>)}</div>
         <div className="case-calendar-days">{days.map(day => {
@@ -193,7 +198,7 @@ export function CaseCalendarView({ api = caseCalendarApi, initialDate, onEventsC
         })}</div>
       </div>}
       <aside className="case-calendar-agenda" aria-label="当天日程"><header><div><h2>{shortDayLabel(selectedDate)}</h2><span>星期{weekdays[(parseDay(selectedDate).getDay() + 6) % 7]}{selectedDate === today ? ' · 今天' : ''} · {dayItems.length} 项{isFiltered ? '符合筛选' : ''}</span></div><button aria-label="添加当日日程" title="添加当日日程" disabled={!canCreate} onClick={event => createOnDate(selectedDate, event.currentTarget)}><Plus size={16} /></button></header>
-        {dayItems.length ? <ul>{dayItems.map(item => <li key={item.id}><button className="case-calendar-agenda-item" onClick={event => showDetail(item, event.currentTarget)}><span className="case-calendar-agenda-meta"><span className={`case-calendar-kind kind-${item.kind}`}>{calendarKindLabel(item)}</span><span><Clock3 size={12} />{item.time ?? '全天'}</span></span><strong>{item.title}</strong>{item.caseName && <span className="case-calendar-case-name">{item.caseName}</span>}{item.location && <span><MapPin size={13} />{item.location}</span>}<span className="case-calendar-reminder-label"><Bell size={12} />{reminders.find(([minutes]) => minutes === item.reminderMinutes)?.[1]}{item.reminderAcknowledgedAt ? ' · 已确认' : ''}</span>{item.notes && <span className="case-calendar-note-preview">{item.notes}</span>}</button></li>)}</ul> : !loading && !loadError ? <div className="case-calendar-empty"><CalendarDays size={26} aria-hidden="true" /><p>{isFiltered ? '当天没有符合筛选条件的日程' : '这一天还没有日程'}</p>{isFiltered ? <button onClick={clearFilters}>显示全部日程</button> : <button onClick={event => createOnDate(selectedDate, event.currentTarget)}>添加当天安排</button>}</div> : <p className="case-calendar-empty-note">{loading ? '正在读取日程…' : '刷新后查看当天安排'}</p>}
+        {dayItems.length ? <ul>{dayItems.map(item => <li key={item.id}><button className="case-calendar-agenda-item" onClick={event => showDetail(item, event.currentTarget)}><span className="case-calendar-agenda-meta"><span className={`case-calendar-kind kind-${item.kind}`}>{calendarKindLabel(item)}</span><span><Clock3 size={12} />{item.time ?? '全天'}</span></span><strong>{item.title}</strong>{item.caseName && <span className="case-calendar-case-name">{item.caseName}</span>}{item.location && <span><MapPin size={13} />{item.location}</span>}<span className="case-calendar-reminder-label"><Bell size={12} />{reminders.find(([minutes]) => minutes === item.reminderMinutes)?.[1]}{item.reminderAcknowledgedAt ? ' · 已确认' : ''}</span>{item.notes && <span className="case-calendar-note-preview">{item.notes}</span>}</button></li>)}</ul> : !loading && !loadError ? <div className="case-calendar-empty"><CalendarDays size={26} aria-hidden="true" /><p>{isFiltered ? '当天没有符合筛选条件的日程' : '这一天还没有日程'}</p>{isFiltered ? <button onClick={clearFilters}>显示全部日程</button> : <button onClick={event => createOnDate(selectedDate, event.currentTarget)}>添加当天安排</button>}</div> : loading ? <LoadingState>正在读取日程…</LoadingState> : <p className="case-calendar-empty-note">刷新后查看当天安排</p>}
       </aside>
     </div>
     <footer className="case-calendar-footnote"><p>应用运行时提醒；退出或休眠期间到期，重新打开或唤醒后补提醒。</p><span role="status">{status}</span></footer>
@@ -213,8 +218,7 @@ export function CaseCalendarView({ api = caseCalendarApi, initialDate, onEventsC
         <footer><button type="button" disabled={busy} onClick={closeDialog}>取消</button><button type="submit" className="case-calendar-primary" disabled={busy || conflict || !editor.value.title.trim()}>{busy ? '正在保存…' : '保存日程'}</button></footer>
       </form> : detail && <div className="case-calendar-detail"><span className={`case-calendar-kind kind-${detail.kind}`}>{calendarKindLabel(detail)}</span><h3>{detail.title}</h3><dl><div><dt>日期</dt><dd>{dayLabel(detail.date)}</dd></div><div><dt>时间</dt><dd>{detail.time ?? '全天'}</dd></div><div><dt>时区</dt><dd>北京时间（UTC+8）</dd></div><div><dt>提醒</dt><dd>{reminders.find(([minutes]) => minutes === detail.reminderMinutes)?.[1]}{detail.time === null && detail.reminderMinutes !== null ? '（按当天 09:00 计算）' : ''}</dd></div>{detail.caseName && <div><dt>案件名称</dt><dd>{detail.caseName}</dd></div>}{detail.location && <div><dt>地点</dt><dd>{detail.location}</dd></div>}{detail.notes && <div><dt>备注</dt><dd className="case-calendar-notes">{detail.notes}</dd></div>}</dl>
         {actionError && <div className="case-calendar-error" role="alert">{actionError}{conflict && <button type="button" disabled={busy} onClick={() => void reloadEditor()}>重新载入日程</button>}</div>}
-        {confirmDelete && <div className="case-calendar-confirm" role="alert"><p>删除「{detail.title}」？此操作无法撤销，相关提醒也会取消。</p><button className="case-calendar-danger" disabled={busy || conflict} onClick={() => void remove(detail)}>{busy ? '正在删除…' : '确认删除'}</button><button disabled={busy} onClick={() => setConfirmDelete(false)}>取消删除</button></div>}
-        <footer><button className="case-calendar-danger" disabled={busy || conflict} onClick={() => setConfirmDelete(true)}>删除日程</button><button className="case-calendar-primary" disabled={busy || conflict} onClick={() => openEditor(detail)}>编辑日程</button></footer>
+        <footer><button className="case-calendar-danger" disabled={busy || conflict} onClick={() => void remove(detail)}>{busy ? '正在删除…' : '删除日程'}</button><button className="case-calendar-primary" disabled={busy || conflict} onClick={() => openEditor(detail)}>编辑日程</button></footer>
       </div>}
     </DetailDialog>}
   </section>;

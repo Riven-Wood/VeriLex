@@ -3,7 +3,7 @@ import {runtimeRequest} from '../../runtime/api';
 import type {WorkKind} from '../../views/LitigationClient';
 export interface EditableProductSummary {path:string;id:string;title:string;kind:WorkKind;revision:number;updated_at:string;external_update:boolean}
 export interface EditableProduct extends EditableProductSummary {
-  document_type?:string;native_word?:boolean;document:JSONContent|null;file_hash:string;path:string;editor_receipt?:{proposal_id:string;action:string};
+  document_type?:string;native_word?:boolean;projection_complete?:boolean;document:JSONContent|null;file_hash:string;path:string;editor_receipt?:{proposal_id:string;action:string};
   recovery?:{base_hash:string;document:JSONContent;updated_at:string};
   draft?:{base_hash:string;document:JSONContent;updated_at:string};draft_current?:boolean;draft_error?:string;
   external_content?:{paragraphs:{id:string;text:string;editable:boolean}[];retained_objects:string[]};
@@ -12,7 +12,8 @@ const base=(workspace:string)=>`/v1/litigation/workspaces/${encodeURIComponent(w
 const json=(method:string,body:unknown)=>({method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
 export interface EditorProposal {id:string;product_id:string;thread_id:string;status:'pending'|'accepted'|'discarded'|'undone'|'partial';changes?:{selection:{from:number;to:number;text:string}|null;replacement:string}[];applied?:number[];preview_before?:JSONContent;preview_changes?:{selection:{from:number;to:number;text:string}|null;replacement:string}[];before:JSONContent;after:JSONContent;selection:{text:string}|null;replacement:string}
 export const editorClient={
-  openWord:async(w:string,id:string,base_hash:string)=>runtimeRequest<{product:EditableProduct;content:string}>(`${base(w)}/${id}/word`,json('POST',{base_hash})),
+  openWord:async(w:string,id:string,base_hash:string)=>runtimeRequest<{product:EditableProduct;content:string;tracking_enabled?:boolean}>(`${base(w)}/${id}/word`,json('POST',{base_hash})),
+  openWordHistory:async(w:string,id:string,revision:number,base_hash:string)=>runtimeRequest<{product:EditableProduct;content:string;tracking_enabled:boolean}>(`${base(w)}/${id}/history/${revision}/word`,json('POST',{base_hash})),
   saveWord:async(w:string,id:string,base_hash:string,content:string)=>runtimeRequest<EditableProduct>(`${base(w)}/${id}/word`,json('PUT',{base_hash,content})),
   export:async(w:string,id:string,base_hash:string,document:JSONContent,title:string,format:'docx'|'pdf')=>runtimeRequest<{filename:string;content:string;path:string;product:EditableProduct}>(`${base(w)}/${id}/export/${format}`,json('POST',{base_hash,document,title})),
   fromWork:async(w:string,kind:WorkKind,expected_revision:number)=>runtimeRequest<EditableProduct>(`/v1/litigation/workspaces/${encodeURIComponent(w)}/editor-from-work/${kind}`,json('POST',{expected_revision})),
@@ -28,6 +29,7 @@ export const editorClient={
   rename:async(w:string,id:string,base_hash:string,title:string)=>runtimeRequest<EditableProduct>(`${base(w)}/${id}/rename`,json('POST',{base_hash,title})),
   delete:async(w:string,id:string,base_hash:string)=>runtimeRequest<{id:string;path:string}>(`${base(w)}/${id}`,json('DELETE',{base_hash})),
   save:async(w:string,id:string,base_hash:string,document:JSONContent,title:string)=>runtimeRequest<EditableProduct>(`${base(w)}/${id}`,json('PUT',{base_hash,document,title})),
+  copy:async(w:string,id:string,base_hash:string,document:JSONContent,title:string)=>runtimeRequest<EditableProduct>(`${base(w)}/${id}/copy`,json('POST',{base_hash,document,title})),
   draft:async(w:string,id:string,base_hash:string,document:JSONContent)=>runtimeRequest(`${base(w)}/${id}/draft`,json('PUT',{base_hash,document})),
   history:async(w:string,id:string)=>runtimeRequest<{versions:EditableProduct[]}>(`${base(w)}/${id}/history`),
 };

@@ -60,6 +60,7 @@ class ContractReviewSummaryResponse(StrictSchema):
     created_at: str
     updated_at: str
     opinion_count: int
+    discussion_only: bool = False
 
 
 class ContractReviewDetailResponse(ContractReviewSummaryResponse):
@@ -68,6 +69,7 @@ class ContractReviewDetailResponse(ContractReviewSummaryResponse):
     signature: str
     retrieval_enabled: bool
     requirements: str
+    custom_party: str
     file_digest: str
     opinions: list[OpinionResponse]
 
@@ -106,6 +108,7 @@ def _summary(row: dict) -> ContractReviewSummaryResponse:
         created_at=row["created_at"],
         updated_at=row["updated_at"],
         opinion_count=row.get("opinion_count", 0),
+        discussion_only=bool(row.get("discussion_only", False)),
     )
 
 
@@ -164,14 +167,17 @@ def build_contract_review_router(
         provider_id: str | None = Query(default=None, max_length=200),
         document_id: str | None = Query(default=None, max_length=200),
         document_revision: int | None = Query(default=None, ge=0),
+        discussion_only: bool = False,
     ) -> ContractReviewCreateResponse:
         requirements = ""
+        custom_party = ""
         if request.headers.get("content-type", "").lower().startswith("multipart/form-data"):
-            async with request.form(max_files=1, max_fields=1, max_part_size=16000) as form:
+            async with request.form(max_files=1, max_fields=2, max_part_size=16000) as form:
                 uploaded = form.get("file")
                 requirements = form.get("requirements", "")
-                if (set(form) != {"file", "requirements"} or len(form.multi_items()) != 2
-                        or not isinstance(uploaded, UploadFile) or not isinstance(requirements, str)):
+                custom_party = form.get("custom_party", "")
+                if (set(form) not in ({"file", "requirements"}, {"file", "requirements", "custom_party"}) or len(form.multi_items()) != len(form)
+                        or not isinstance(uploaded, UploadFile) or not isinstance(requirements, str) or not isinstance(custom_party, str)):
                     raise ContractReviewError("contract_requirements_invalid")
                 data = await uploaded.read()
         else:
@@ -188,6 +194,8 @@ def build_contract_review_router(
             signature=signature,
             retrieval_enabled=retrieval,
             requirements=requirements,
+            custom_party=custom_party,
+            discussion_only=discussion_only,
             document_id=document_id,
             document_revision=document_revision,
         )
@@ -241,10 +249,23 @@ def build_contract_review_router(
     @router.put("/documents/{document_id}")
     async def save_word_document(document_id: str, request: Request, revision: int = Query(ge=0),
                                  review_id: str | None = Query(default=None, max_length=200),
-                                 applied: int = Query(default=0, ge=0, le=500), skipped: int = Query(default=0, ge=0, le=500)):
+                                 applied: int = Query(default=0, ge=0, le=500), skipped: int = Query(default=0, ge=0, le=500),
+                                 ai_edit_id: str | None = Query(default=None, max_length=200)):
         import anyio
         data = await request.body()
-        return await anyio.to_thread.run_sync(documents.save, document_id, revision, data, review_id, applied, skipped)
+        return await anyio.to_thread.run_sync(documents.save, document_id, revision, data, review_id, applied, skipped, ai_edit_id)
+
+    @router.get("/{review_id}/word-ai-edits")
+    async def pending_word_ai_edits(review_id: str):
+        if repository.get_review(review_id) is None:
+            raise ContractReviewError('contract_not_found')
+        return repository.pending_word_ai_edits(review_id)
+
+    @router.post("/{review_id}/word-ai-edits/{edit_id}/conflict")
+    async def conflict_word_ai_edit(review_id: str, edit_id: str):
+        if not repository.conflict_word_ai_edit(review_id, edit_id):
+            raise ContractReviewError('contract_editor_conflict')
+        return {'status':'conflict'}
 
     @router.get("/{review_id}/word-markup-plan")
     async def word_markup_plan(review_id: str):
@@ -271,6 +292,7 @@ def build_contract_review_router(
             signature=row["signature"],
             retrieval_enabled=bool(row["retrieval_enabled"]),
             requirements=row["requirements"],
+            custom_party=row["custom_party"],
             file_digest=row["file_digest"],
             opinions=[_opinion(opinion) for opinion in opinions],
         )

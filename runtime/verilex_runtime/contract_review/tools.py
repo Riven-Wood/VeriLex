@@ -112,8 +112,8 @@ def register_contract_review_tools(
 
     registry.register(ToolDefinition(
         name="contract_edit_proposal",
-        description=("针对本轮合同编辑选区提出一处文字修改；before 必须逐字等于本轮选中文字，"
-                     "after 只替换该选区。只在用户明确要求改写时使用；提交不会直接改动正文，等待用户接受。"),
+        description=("针对本轮合同编辑选区提交一处文字修改；before 必须逐字等于本轮选中文字，"
+                     "after 只替换该选区。只在用户明确要求改写时使用；写入状态以工具结果和编辑器反馈为准。"),
         parameters={
             "type": "object", "properties": {
                 "before": {"type": "string", "minLength": 1, "maxLength": 12000},

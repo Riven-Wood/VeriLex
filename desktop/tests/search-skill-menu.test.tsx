@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { SkillMenu } from "../src/components/SkillMenu";
 
 afterEach(cleanup);
@@ -21,14 +21,15 @@ test("preview stays separate from multiple selection and toggling keeps the menu
   expect(second.getAttribute("aria-selected")).toBe("false");
   fireEvent.click(first);
   fireEvent.click(second);
-  expect(trigger.textContent).toBe("检索技能（2）");
+  expect(trigger.textContent).toBe("检索技能0、检索技能1");
+  expect(trigger.getAttribute("title")).toBe("检索技能0、检索技能1");
   expect(first.getAttribute("aria-selected")).toBe("true");
   expect(second.getAttribute("aria-selected")).toBe("true");
   expect(screen.getByRole("listbox").getAttribute("aria-multiselectable")).toBe("true");
   fireEvent.keyDown(trigger, { key: "Home" });
   fireEvent.keyDown(trigger, { key: " " });
   expect(first.getAttribute("aria-selected")).toBe("false");
-  expect(trigger.textContent).toBe("检索技能（1）");
+  expect(trigger.textContent).toBe("检索技能1");
   fireEvent.keyDown(trigger, { key: "Escape" });
   expect(screen.queryByRole("listbox")).toBeNull();
 });
@@ -44,10 +45,27 @@ test("ten-skill limit blocks addition while allowing preview and removal", () =>
   fireEvent.click(extra);
   fireEvent.keyDown(trigger, { key: "End" });
   fireEvent.keyDown(trigger, { key: "Enter" });
-  expect(trigger.textContent).toBe("检索技能（10）");
+  expect(trigger.textContent).toBe(entries.slice(0, 10).map(entry => entry.name).join("、"));
   expect(extra.getAttribute("aria-selected")).toBe("false");
   fireEvent.click(screen.getByRole("option", { name: entries[0].name }));
   expect(extra.hasAttribute("aria-disabled")).toBe(false);
   fireEvent.click(extra);
   expect(extra.getAttribute("aria-selected")).toBe("true");
+});
+
+
+test('input-area skill menu opens above its trigger and closes when locked', () => {
+  const props = {label: '检索技能', entries, value: [], onChange: () => undefined, multiple: true};
+  const {rerender} = render(<SkillMenu {...props} placement="above" />);
+  const trigger = screen.getByRole('combobox');
+  vi.spyOn(trigger, 'getBoundingClientRect').mockReturnValue({top: 600, bottom: 634, left: 200, right: 350, width: 150, height: 34, x: 200, y: 600, toJSON() {}});
+  fireEvent.click(trigger);
+  const panel = screen.getByRole('listbox').parentElement!;
+  expect(panel.style.top).toBe('594px');
+  expect(panel.style.transform).toBe('translateY(-100%)');
+  expect(panel.style.height).toBe('440px');
+  fireEvent.mouseEnter(screen.getByRole('option', { name: entries[1].name }));
+  expect(panel.style.height).toBe('440px');
+  rerender(<SkillMenu {...props} placement="above" disabled />);
+  expect(screen.queryByRole('listbox')).toBeNull();
 });

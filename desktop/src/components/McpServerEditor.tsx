@@ -10,6 +10,7 @@ import {
   testMcpServerDraft,
   testSavedMcpServer,
   updateMcpServer,
+  reviewMcpServerTool,
 } from "../runtime/api";
 import type {
   CreateMcpServerInput,
@@ -458,6 +459,9 @@ export function McpServerEditor({
   const [sourceParsed, setSourceParsed] = useState(Boolean(server || initialDraft));
   const controllerRef = useRef<AbortController | null>(null);
   const generationRef = useRef(0);
+  // Keep a committed configuration when only applying the reviewed tool
+  // choices failed; retrying must not consume its one-use receipt again.
+  const pendingToolReviewRef = useRef<{ receipt: string; saved: McpServerRecord } | null>(null);
 
   useEffect(() => () => {
     generationRef.current += 1;
@@ -962,7 +966,9 @@ export function McpServerEditor({
         if (mode === "thread" && onAtomicSelected) {
           await onAtomicSelected(input);
         } else if (server) {
-          const saved = await updateMcpServer(server.id, isRenameOnly ? {
+          const pending = pendingToolReviewRef.current;
+          const saved = !isRenameOnly && pending && pending.receipt === entry.result?.testReceipt
+            ? pending.saved : await updateMcpServer(server.id, isRenameOnly ? {
             expectedRevision: server.configRevision,
             patch: { displayName: entry.draft.displayName },
             secretPatch: {},
@@ -977,6 +983,14 @@ export function McpServerEditor({
             toolDecisions: entry.decisions,
           }, controller.signal);
           if (controller.signal.aborted || generation !== generationRef.current) return;
+          if (!isRenameOnly) {
+            pendingToolReviewRef.current = { receipt: entry.result!.testReceipt, saved };
+            for (const decision of entry.decisions) {
+              await reviewMcpServerTool(saved.id, decision.toolName, decision, controller.signal);
+              if (controller.signal.aborted || generation !== generationRef.current) return;
+            }
+            pendingToolReviewRef.current = null;
+          }
           onSaved?.(saved);
         } else {
           const saved = await createMcpServer(input, controller.signal);

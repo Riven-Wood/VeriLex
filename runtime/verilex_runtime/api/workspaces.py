@@ -28,6 +28,10 @@ class WorkspaceUpdateRequest(StrictSchema):
     allow_write: bool
 
 
+class WorkspaceRenameRequest(StrictSchema):
+    display_name: str = Field(min_length=1, max_length=200, pattern=r".*\S.*")
+
+
 class WorkspaceResponse(StrictSchema):
     id: str
     root_path: str
@@ -105,6 +109,10 @@ def build_workspaces_router(service: WorkspaceService) -> APIRouter:
                 allow_write=request.allow_write,
             )
         )
+
+    @router.post("/{workspace_id}/rename", response_model=WorkspaceResponse)
+    async def rename_workspace(workspace_id: str, request: WorkspaceRenameRequest) -> WorkspaceResponse:
+        return _response(service.rename(workspace_id, request.display_name))
 
     @router.delete("/{workspace_id}", status_code=status.HTTP_204_NO_CONTENT)
     async def revoke_workspace(workspace_id: str) -> Response:

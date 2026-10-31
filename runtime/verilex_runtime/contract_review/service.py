@@ -111,6 +111,8 @@ class ContractReviewService:
         document_id: str | None = None,
         document_revision: int | None = None,
         requirements: str = "",
+        custom_party: str = "",
+        discussion_only: bool = False,
     ) -> dict:
         while (busy := self._repository.running_review()) is not None:
             refreshed = self.reconcile(busy["id"])
@@ -125,10 +127,15 @@ class ContractReviewService:
         if not isinstance(requirements, str) or len(requirements) > 4000 or "\x00" in requirements:
             raise ContractReviewError("contract_requirements_invalid")
         requirements = requirements.strip()
+        if not isinstance(custom_party, str) or len(custom_party) > 200 or "\x00" in custom_party:
+            raise ContractReviewError("contract_file_unsupported", "invalid custom party")
+        custom_party = custom_party.strip()
         signature = _bounded(signature, 80, code="contract_annotation_write_failed")
         skill = _bounded(skill, 128, code="contract_annotation_write_failed")
         if not file_bytes:
             raise ContractReviewError("contract_file_unsupported", "empty file")
+        if discussion_only and document_id is None:
+            raise ContractReviewError('contract_editor_selection')
         from verilex_runtime.attachments.inspection import normalize_display_name
         normalize_display_name(normalized)
         if document_id is not None:
@@ -177,6 +184,9 @@ class ContractReviewService:
             signature=signature,
             retrieval_enabled=retrieval_enabled,
             requirements=requirements,
+            custom_party=custom_party,
+            status="completed" if discussion_only else "pending",
+            discussion_only=discussion_only,
             created_at=now,
             updated_at=now,
         )

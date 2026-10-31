@@ -9,6 +9,7 @@ class AttachmentDomainError(Exception):
 
 _ERRORS: dict[str, tuple[str, bool, int]] = {
     "attachment_doc_converter_missing": ("导入旧版 .doc 需要本机安装 LibreOffice；也可在 Word/WPS 中另存为 .docx 后导入。", False, 422),
+    "attachment_doc_layout_reader_missing": ("旧版 .doc 转换组件不完整，请更新或重新安装 VeriLex；也可在 Word/WPS 中另存为 .docx 后导入。", False, 422),
     "attachment_doc_conversion_failed": ("本机转换组件未能完成旧版 Word 转换。请在 Word/WPS 中另存为 .docx 后重试，原件未改动。", False, 422),
     "attachment_type_unsupported": ("Attachment type is not supported.", False, 415),
     "attachment_media_type_mismatch": (

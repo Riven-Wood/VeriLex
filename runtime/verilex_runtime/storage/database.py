@@ -14,7 +14,7 @@ class Database:
 
     @contextmanager
     def connect(
-        self, *, foreign_keys: bool = True
+        self, *, foreign_keys: bool = True, busy_timeout_ms: int = 5000
     ) -> Iterator[sqlite3.Connection]:
         connection: sqlite3.Connection | None = None
         for attempt in range(len(_OPEN_RETRY_DELAYS_SECONDS) + 1):
@@ -23,7 +23,7 @@ class Database:
                 connection.row_factory = sqlite3.Row
                 if foreign_keys:
                     connection.execute("PRAGMA foreign_keys = ON")
-                connection.execute("PRAGMA busy_timeout = 5000")
+                connection.execute(f"PRAGMA busy_timeout = {int(busy_timeout_ms)}")
                 break
             except sqlite3.OperationalError as error:
                 if connection is not None:

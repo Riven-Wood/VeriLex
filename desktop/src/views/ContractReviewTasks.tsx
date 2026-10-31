@@ -3,6 +3,7 @@ import { Plus, X } from "lucide-react";
 import { ContractReviewView, type ContractReviewViewProps, type ContractTaskSnapshot } from "./ContractReviewView";
 import { wordDocumentApi } from "../runtime/wordDocumentClient";
 import { contractReviewApi } from "../runtime/contractReviewClient";
+import { LoadingState } from "../components/LoadingState";
 
 const STORAGE_KEY = "verilex:contract-tasks:v1";
 type StoredSnapshot = Omit<ContractTaskSnapshot, "document" | "detail"> & { documentId?: string; reviewId?: string };
@@ -141,6 +142,6 @@ export function ContractReviewTasks(props:ContractReviewViewProps) {
         }
       })}
       onStartReview={async(file,options)=>{pendingStart.current=true;try{await props.onStartReview(file,options);}catch(cause){pendingStart.current=false;throw cause;}}}/>
-      : <div className="contract-task-loading">{taskTabs}<p role="status">正在打开任务…</p></div>}
+      : <div className="contract-task-loading">{taskTabs}<LoadingState>正在打开任务…</LoadingState></div>}
   </div>;
 }

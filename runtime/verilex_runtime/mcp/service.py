@@ -314,6 +314,15 @@ class MCPTurnScope:
                     )
                 finally:
                     await self._service._close_leases((catalog,))
+            # Do not silently offer a partial catalog (for example, balance only
+            # after a provider renames its search tools). Keep the discovered
+            # snapshot for review, and stop before the model answers without it.
+            if any(
+                tool.review_state != "known"
+                for server_id in self._service._repository.selected_server_ids(self.thread_id)
+                for tool in self._service._repository.list_tools(server_id)
+            ):
+                raise MCPDomainError("mcp_tool_review_required", retryable=False)
             return self._service.persisted_definitions_for_thread(self.thread_id)
 
     async def _close(self, *, unregister: bool = True) -> None:

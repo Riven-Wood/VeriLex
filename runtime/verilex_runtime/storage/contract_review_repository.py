@@ -23,7 +23,7 @@ _ALLOWED_TRANSITIONS = frozenset(
 
 _REVIEW_COLUMNS = (
     "id, thread_id, filename, file_digest, skill, party, strictness, signature, "
-    "retrieval_enabled, status, created_at, updated_at, requirements"
+    "retrieval_enabled, status, created_at, updated_at, requirements, custom_party, discussion_only"
 )
 
 
@@ -51,7 +51,7 @@ class ContractReviewRepository:
         return "deleted"
 
     def create_word_document(self, id: str, filename: str, original: bytes, content: bytes, now: str):
-        with self._database.connect() as connection:
+        with self._database.connect(busy_timeout_ms=60000) as connection:
             connection.execute(
                 "INSERT INTO contract_word_documents (id, filename, original, content, updated_at) VALUES (?, ?, ?, ?, ?)",
                 (id, filename, original, content, now),
@@ -67,19 +67,41 @@ class ContractReviewRepository:
             row = connection.execute("SELECT id, filename, content, revision, updated_at, review_markups FROM contract_word_documents WHERE id = ?", (id,)).fetchone()
         return {**dict(row), 'review_markups': json.loads(row['review_markups'])} if row else None
 
-    def save_word_document(self, id: str, revision: int, content: bytes, now: str, markup=None):
+    def save_word_document(self, id: str, revision: int, content: bytes, now: str, markup=None, ai_edit_id=None):
         with self._database.connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             row = connection.execute("SELECT review_markups FROM contract_word_documents WHERE id = ? AND revision = ?", (id, revision)).fetchone()
             if row is None:
                 return False
+            if ai_edit_id:
+                edit = connection.execute("SELECT status FROM contract_word_ai_edits WHERE id=? AND document_id=? AND revision=?", (ai_edit_id,id,revision)).fetchone()
+                if edit is None or edit['status'] != 'pending':
+                    return False
             markups = json.loads(row['review_markups'])
             if markup:
                 markups[markup['review_id']] = {'applied': markup['applied'], 'skipped': markup['skipped']}
-            return connection.execute(
+            changed = connection.execute(
                 "UPDATE contract_word_documents SET content = ?, revision = revision + 1, updated_at = ?, review_markups = ? WHERE id = ? AND revision = ?",
                 (content, now, json.dumps(markups), id, revision),
             ).rowcount == 1
+            if changed and ai_edit_id:
+                connection.execute("UPDATE contract_word_ai_edits SET status='applied' WHERE id=?", (ai_edit_id,))
+            return changed
+
+    def add_word_ai_edit(self, edit):
+        with self._database.connect() as connection:
+            connection.execute("INSERT OR IGNORE INTO contract_word_ai_edits (id,review_id,turn_id,document_id,revision,selection,before_text,after_text,reason,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)", (edit['id'],edit['review_id'],edit['turn_id'],edit['document_id'],edit['revision'],json.dumps(edit['selection'],ensure_ascii=False),edit['before'],edit['after'],edit['reason'],edit['created_at']))
+            row=connection.execute("SELECT * FROM contract_word_ai_edits WHERE turn_id=?",(edit['turn_id'],)).fetchone()
+        return dict(row) if row else None
+
+    def pending_word_ai_edits(self, review_id):
+        with self._database.connect() as connection:
+            rows=connection.execute("SELECT * FROM contract_word_ai_edits WHERE review_id=? AND status='pending' ORDER BY created_at",(review_id,)).fetchall()
+        return [{**dict(row),'selection':json.loads(row['selection'])} for row in rows]
+
+    def conflict_word_ai_edit(self, review_id, edit_id):
+        with self._database.connect() as connection:
+            return connection.execute("UPDATE contract_word_ai_edits SET status='conflict' WHERE id=? AND review_id=? AND status='pending'",(edit_id,review_id)).rowcount == 1
 
     def ensure_review_word_document(self, review_id, filename, original, content, now):
         import uuid
@@ -170,14 +192,16 @@ class ContractReviewRepository:
         status: str = "pending",
         normalized_docx: bytes | None = None,
         requirements: str = "",
+        custom_party: str = "",
+        discussion_only: bool = False,
     ) -> dict:
         with self._database.connect() as connection:
             connection.execute(
-                "INSERT INTO contract_reviews (id, thread_id, filename, file_digest, original, skill, party, strictness, signature, retrieval_enabled, status, created_at, updated_at, normalized_docx, requirements) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO contract_reviews (id, thread_id, filename, file_digest, original, skill, party, strictness, signature, retrieval_enabled, status, created_at, updated_at, normalized_docx, requirements, custom_party, discussion_only) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     id, thread_id, filename, file_digest, original, skill, party,
                     strictness, signature, int(retrieval_enabled), status,
-                    created_at, updated_at, normalized_docx, requirements,
+                    created_at, updated_at, normalized_docx, requirements, custom_party, int(discussion_only),
                 ),
             )
         record = self.get_review(id)
@@ -240,7 +264,7 @@ class ContractReviewRepository:
     def list_reviews(self, limit: int = 50) -> list[dict]:
         with self._database.connect() as connection:
             rows = connection.execute(
-                "SELECT r.id, r.thread_id, r.filename, r.skill, r.status, r.created_at, r.updated_at, (SELECT COUNT(*) FROM review_opinions AS o WHERE o.review_id = r.id) AS opinion_count FROM contract_reviews AS r ORDER BY r.created_at DESC, r.id DESC LIMIT ?",
+                "SELECT r.id, r.thread_id, r.filename, r.skill, r.status, r.created_at, r.updated_at, r.discussion_only, (SELECT COUNT(*) FROM review_opinions AS o WHERE o.review_id = r.id) AS opinion_count FROM contract_reviews AS r ORDER BY r.created_at DESC, r.id DESC LIMIT ?",
                 (limit,),
             ).fetchall()
         return [dict(row) for row in rows]

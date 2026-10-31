@@ -10,11 +10,11 @@ test('searches beginner steps and recovers from an empty result', () => {
   render(<HelpCenter {...diagnostics}/>);
   fireEvent.change(screen.getByRole('searchbox'), {target: {value: 'Ollama'}});
   expect(screen.getByText('连接模型，开始第一次对话')).toBeTruthy();
-  expect(screen.queryByText('对 Word 文件脱敏')).toBeNull();
+  expect(screen.queryByText('对文件脱敏')).toBeNull();
   fireEvent.change(screen.getByRole('searchbox'), {target: {value: 'unmatched-here'}});
   expect(screen.getByText(/没有找到相关说明/)).toBeTruthy();
   fireEvent.click(screen.getByText('显示全部'));
-  expect(screen.getByText('对 Word 文件脱敏')).toBeTruthy();
+  expect(screen.getByText('对文件脱敏')).toBeTruthy();
 });
 test('rejects raw runtime data and can omit all diagnostics', () => {
   const text = feedbackTemplate({appVersion:'/Users/example/private.docx',runtimeVersion:'https://model.invalid?token=secret',runtimeConnected:false},true);

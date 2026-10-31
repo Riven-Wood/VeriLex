@@ -26,6 +26,7 @@ test('regeneration starts only after its revision is saved and failure preserves
   vi.mocked(litigationClient.regenerateFacts).mockRejectedValueOnce(new Error('案件已有更新')).mockResolvedValueOnce({...facts,revision:4});
   render(<LitigationWorkspaceView {...props}/>);
   const regenerate=await screen.findByRole('button',{name:'整体重新梳理'});
+  fireEvent.click(screen.getByRole('checkbox',{name:'合同.txt'}));
   fireEvent.click(regenerate);
   expect(await screen.findByRole('alert')).toHaveProperty('textContent',expect.stringContaining('案件已有更新'));
   expect(props.onStartWorkflow).not.toHaveBeenCalled();
@@ -46,16 +47,6 @@ test('element edits survive refresh and submission uses the originally read revi
   expect(confirm).toHaveBeenCalledWith({issues:[{title:'合同是否成立',elements:['合意','履行']}],summary:'用户核对要件清单'},1);
   fireEvent.click(screen.getByRole('button',{name:'重新载入清单'}));
   expect((screen.getByRole('textbox',{name:'构成要件（每行一项）'}) as HTMLTextAreaElement).value).toBe('合意');
-});
-
-test('confirmation is saved before continuing the same workflow',async()=>{
-  vi.mocked(litigationClient.confirmElements).mockResolvedValue({...outline,revision:2,data:{...outline.data,confirmed:true}});
-  render(<LitigationWorkspaceView {...props}/>);
-  await screen.findByRole('button',{name:'整体重新梳理'});
-  fireEvent.click(screen.getByRole('tab',{name:'争议焦点'}));
-  fireEvent.click(await screen.findByRole('button',{name:'确认清单并继续分析'}));
-  await waitFor(()=>expect(litigationClient.confirmElements).toHaveBeenCalledOnce());
-  await waitFor(()=>expect(props.onStartWorkflow).toHaveBeenCalledWith(expect.stringContaining('先读elements')));
 });
 
 test('history previews the full old fact and a stale restore keeps the preview',async()=>{
@@ -92,46 +83,4 @@ test('user testimony without a material source is labelled as user supplied',asy
   render(<LitigationWorkspaceView {...props}/>);
   expect(await screen.findByText('用户已补充')).toBeTruthy();
   expect(screen.queryByText('有材料支持')).toBeNull();
-});
-
-test('editing elements survives switching to facts and back',async()=>{
-  render(<LitigationWorkspaceView {...props}/>);
-  await screen.findByRole('button',{name:'整体重新梳理'});
-  fireEvent.click(screen.getByRole('tab',{name:'争议焦点'}));
-  fireEvent.change(screen.getByRole('textbox',{name:'构成要件（每行一项）'}),{target:{value:'合意\n尚未保存的要件'}});
-  fireEvent.click(screen.getByRole('tab',{name:'事实梳理 · 已生成'}));
-  fireEvent.click(screen.getByRole('tab',{name:'争议焦点'}));
-  expect((screen.getByRole('textbox',{name:'构成要件（每行一项）'}) as HTMLTextAreaElement).value).toBe('合意\n尚未保存的要件');
-});
-
-test('saved elements remain visible when the subsequent refresh fails',async()=>{
-  const saved={...outline,revision:2,data:{...outline.data,confirmed:true,issues:[{title:'合同是否成立',elements:['合意','已保存的新要件']} ]}};
-  vi.mocked(litigationClient.confirmElements).mockResolvedValue(saved);
-  vi.mocked(litigationClient.snapshot).mockResolvedValueOnce(snapshot).mockRejectedValue(new Error('刷新失败'));
-  render(<LitigationWorkspaceView {...props}/>);
-  await screen.findByRole('button',{name:'整体重新梳理'});
-  fireEvent.click(screen.getByRole('tab',{name:'争议焦点'}));
-  fireEvent.change(screen.getByRole('textbox',{name:'构成要件（每行一项）'}),{target:{value:'合意\n已保存的新要件'}});
-  fireEvent.click(screen.getByRole('button',{name:'确认清单并继续分析'}));
-  await screen.findByRole('alert');
-  expect((screen.getByRole('textbox',{name:'构成要件（每行一项）'}) as HTMLTextAreaElement).value).toBe('合意\n已保存的新要件');
-  expect(screen.getByText('构成要件清单 · 已核对')).toBeTruthy();
-});
-
-test('restoring facts updates the workspace even after the history panel is unmounted',async()=>{
-  const restored={...facts,revision:4,data:{...facts.data,facts:[{...fact,text:'恢复的旧版事实'}]}};
-  vi.mocked(litigationClient.factVersions).mockResolvedValue({versions:[{revision:1,summary:'旧版'}]});
-  vi.mocked(litigationClient.factVersion).mockResolvedValue({...restored,revision:1});
-  let finish!: (value: typeof restored) => void;
-  vi.mocked(litigationClient.restoreFacts).mockReturnValue(new Promise(resolve=>{finish=resolve;}));
-  vi.mocked(litigationClient.snapshot).mockResolvedValueOnce(snapshot).mockRejectedValue(new Error('刷新失败'));
-  render(<LitigationWorkspaceView {...props}/>);
-  fireEvent.click(await screen.findByRole('button',{name:'查看历史版本'}));
-  fireEvent.change(await screen.findByRole('combobox',{name:'事实版本'}),{target:{value:'1'}});
-  fireEvent.click(await screen.findByRole('button',{name:'恢复此版并保留现版'}));
-  fireEvent.click(screen.getByRole('tab',{name:'争议焦点'}));
-  finish(restored);
-  await screen.findByRole('alert');
-  fireEvent.click(screen.getByRole('tab',{name:'事实梳理 · 已生成'}));
-  expect(screen.getByText('恢复的旧版事实',{selector:'p'})).toBeTruthy();
 });

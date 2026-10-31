@@ -8,6 +8,7 @@ labeling, and truncation rules stay identical everywhere.
 from __future__ import annotations
 
 from typing import Callable
+import re
 
 from verilex_runtime.legal.cache import LawCacheService
 from verilex_runtime.legal.client import (
@@ -28,6 +29,13 @@ _TRUNCATION_SUFFIX = "\n……（正文超长，已截断）"
 MAX_BODY_CHARACTERS = 12_000
 MAX_KEYWORD_CHARACTERS = 100
 MAX_PAGE = 100
+
+
+def statute_url(bbbs: str) -> str | None:
+    """Official detail pages identify a statute version by its database ID."""
+    if not isinstance(bbbs, str) or not re.fullmatch(r"[0-9a-fA-F]{32}", bbbs):
+        return None
+    return f"https://flk.npc.gov.cn/detail?id={bbbs}"
 
 
 class LawRetrievalService:
@@ -130,6 +138,7 @@ class LawRetrievalService:
             truncated = False
         return {
             "source": SOURCE_NAME,
+            "url": statute_url(entry.bbbs),
             "bbbs": entry.bbbs,
             "title": entry.title,
             "flxz": entry.flxz,

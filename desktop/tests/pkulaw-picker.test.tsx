@@ -17,22 +17,24 @@ function props(selected: boolean) {
 test('one click selects or deselects the exact saved Pkulaw endpoints only', async () => {
   const input = props(false); const view = render(<McpThreadPicker {...input} />);
   expect(input.onSelect).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: '全选法宝服务（9）' }));
+  expect(screen.getAllByText("北大法宝")).toHaveLength(1);
+  expect(screen.queryByText(savedServers[0].displayName)).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: '选择 北大法宝' }));
   await waitFor(() => expect(input.onSelect).toHaveBeenCalledTimes(9));
   expect(input.onSelect.mock.calls.map(([id]) => id)).toEqual(savedServers.map(server => server.id));
   const selected = props(true); view.rerender(<McpThreadPicker {...selected} />);
-  fireEvent.click(screen.getByRole('button', { name: '取消全选法宝服务（9）' }));
+  fireEvent.click(screen.getByRole('button', { name: '取消选择 北大法宝' }));
   await waitFor(() => expect(selected.onDeselect).toHaveBeenCalledTimes(9));
   expect(selected.onDeselect.mock.calls.map(([id]) => id)).toEqual(savedServers.map(server => server.id));
 });
 test('partial failure keeps successful selections visible and allows retrying the remaining endpoints', async () => {
   const input = props(false); input.onSelect.mockRejectedValueOnce(new Error('offline'));
   const view = render(<McpThreadPicker {...input} />);
-  fireEvent.click(screen.getByRole('button', { name: '全选法宝服务（9）' }));
-  await waitFor(() => expect(screen.getByRole('button', { name: '全选法宝服务（9）' })).toHaveProperty('disabled', false));
+  fireEvent.click(screen.getByRole('button', { name: '选择 北大法宝' }));
+  await waitFor(() => expect(screen.getByRole('button', { name: '选择 北大法宝' })).toHaveProperty('disabled', false));
   const partial = props(false); partial.snapshot.servers[0].selected = true;
   view.rerender(<McpThreadPicker {...partial} />);
-  fireEvent.click(screen.getByRole('button', { name: '全选法宝服务（9）' }));
+  fireEvent.click(screen.getByRole('button', { name: '选择 北大法宝' }));
   await waitFor(() => expect(partial.onSelect).toHaveBeenCalledTimes(8));
   expect(partial.onSelect).not.toHaveBeenCalledWith('pku-0');
 });

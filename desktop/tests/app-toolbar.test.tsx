@@ -51,3 +51,10 @@ test("back and forward are disabled at the ends of history", () => {
   expect(screen.getByRole("button", { name: "后退" }).hasAttribute("disabled")).toBe(false);
   expect(screen.getByRole("button", { name: "前进" }).hasAttribute("disabled")).toBe(true);
 });
+
+
+test("left controls show back, forward, then sidebar", () => {
+  renderToolbar();
+  const labels=screen.getAllByRole('button').map(button=>button.getAttribute('aria-label'));
+  expect(labels.slice(0,3)).toEqual(['后退','前进','收起侧栏']);
+});

@@ -639,7 +639,7 @@ test("shows the loading state before the document resolves", () => {
   const { container } = render(
     <PdfViewer source="data:application/pdf;base64,JVBERi0xLjQ=" />,
   );
-  expect(container.querySelector(".preview-pdf-pending")).not.toBeNull();
+  expect(container.querySelector('[role="status"]')?.textContent).toContain('正在打开 PDF');
 });
 
 test('a 60-page case file cannot crash React while the preview layout settles', async () => {

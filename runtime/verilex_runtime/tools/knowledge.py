@@ -39,6 +39,7 @@ def register_knowledge_tools(registry, sources: TurnSources):
                         'quote_id', 'source_name', 'line_start', 'line_end')}
                     value['display_notice'] = (
                         '原文卡已显示，文字与位置由程序提供。接下来只写分析结论及资料不足之处；'
+                        f'在相关分析文字后附 [[knowledge:{value["quote_id"]}]]，以便打开这张原文卡；'
                         '不要重抄、缩写或用省略号改述原句，不描述原句的标点或逐项复述卡片。'
                         '要查看原文，请用户点击对应文件的原文卡。')
                 return ToolResult(ok=True, output=json.dumps(value, ensure_ascii=False))

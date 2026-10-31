@@ -21,6 +21,33 @@ class RedactionService:
     def __init__(self,database,detector=detect):
         self.db=database; self.detector=detector; self.lock=threading.RLock(); self.processing=threading.Lock()
 
+    def process(self, filename, raw, kinds, replacements, variant):
+        if not filename.lower().endswith(('.doc', '.docx', '.md')):
+            raise RedactionError('redaction_unsupported')
+        if filename.lower().endswith('.md') and variant != 'markdown':
+            raise RedactionError('redaction_markdown_format')
+        self._options(kinds, [item['old'] for item in replacements])
+        if len({item['old'] for item in replacements}) != len(replacements):
+            raise RedactionError()
+        if any(not isinstance(item['new'], str) or len(item['new']) > 200 for item in replacements):
+            raise RedactionError()
+        if len(raw) > 20*1024*1024:
+            raise RedactionError('redaction_limit')
+        if not self.processing.acquire(blocking=False):
+            raise RedactionError('redaction_busy')
+        try:
+            if filename.lower().endswith('.doc'):
+                from verilex_runtime.attachments.legacy_doc import convert_doc
+                raw = convert_doc(raw)
+            from .direct import export_direct, export_markdown
+            if filename.lower().endswith('.md'):
+                return export_markdown(raw, kinds, replacements, self.detector)
+            return export_direct(raw, kinds, replacements, variant, self.detector)
+        except AttachmentDomainError as error:
+            raise import_error(error.code) from None
+        finally:
+            self.processing.release()
+
     def recent(self):
         with self.db.connect() as c:
             return [dict(r) for r in c.execute('SELECT j.id,j.filename,j.created_at,j.revision,EXISTS(SELECT 1 FROM redaction_mappings m WHERE m.job_id=j.id) AS restorable FROM redaction_jobs j ORDER BY created_at DESC LIMIT 100')]

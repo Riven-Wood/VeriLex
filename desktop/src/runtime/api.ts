@@ -860,6 +860,26 @@ export function listSkills(signal?: AbortSignal): Promise<SkillSummary[]> {
   return runtimeRequest<SkillSummary[]>("/v1/skills", { signal });
 }
 
+export function listSkillCategories(): Promise<{id: string; name: string}[]> {
+  return runtimeRequest("/v1/skills/categories");
+}
+
+export function createSkillCategory(name: string): Promise<{id: string; name: string}> {
+  return runtimeRequest("/v1/skills/categories", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({name}) });
+}
+
+export function renameSkillCategory(id: string, name: string): Promise<void> {
+  return runtimeRequest(`/v1/skills/categories/${encodeURIComponent(id)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({name}) });
+}
+
+export function deleteSkillCategory(id: string): Promise<void> {
+  return runtimeRequest(`/v1/skills/categories/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export function setSkillCategory(name: string, category: string | null): Promise<void> {
+  return runtimeRequest(`/v1/skills/${encodeURIComponent(name)}/category`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({category}) });
+}
+
 export function setSkillEnabled(
   name: string,
   enabled: boolean,
@@ -1008,4 +1028,8 @@ export function updateWorkspacePermissions(id: string, allowRead: boolean, allow
 }
 export function revokeWorkspace(id: string): Promise<void> {
   return runtimeRequest(`/v1/workspaces/${encodeURIComponent(id)}`, {method:"DELETE"});
+}
+
+export function renameWorkspace(id: string, displayName: string): Promise<WorkspaceRecord> {
+  return runtimeRequest(`/v1/workspaces/${encodeURIComponent(id)}/rename`, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({display_name:displayName})});
 }

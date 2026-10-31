@@ -7,9 +7,32 @@ import copy
 import difflib
 import json
 from lxml import etree
-from .editor import MAIN, _editable, patch_docx, ParagraphEdit, fingerprint, render_docx, validate_document
+from .editor import MAIN, _editable, patch_docx, ParagraphEdit, fingerprint, render_docx, validate_document, import_docx
 from .service import _failure
 from verilex_runtime.documents.docx_package import W, parts, pack, xml, serialize
+from verilex_runtime.tools.registry import ToolError
+
+
+def projection_is_complete(data):
+    """Only enable AI editing when its text projection covers the source."""
+    try:
+        import_docx(data)
+        for name, content in parts(data).items():
+            if not (name.startswith(('word/header', 'word/footer')) or name in ('word/footnotes.xml', 'word/endnotes.xml')) or not name.endswith('.xml'):
+                continue
+            root = xml(content)
+            if any((node.text or '').strip() for node in root.iter(f'{{{W}}}t')) or next(root.iter(f'{{{W}}}drawing'),None) is not None:
+                return False
+        return True
+    except ToolError:
+        return False
+
+
+def tracking_enabled(data):
+    settings=parts(data).get('word/settings.xml')
+    if settings is None:return False
+    tracked=xml(settings).find(f'{{{W}}}trackRevisions')
+    return tracked is not None and tracked.get(f'{{{W}}}val','true').lower() not in ('0','false','off')
 
 
 def visible_text(p):
@@ -72,6 +95,69 @@ def update_document(data,before,after,*,pleading=False):
                         continue
                     patch_paragraph(element,new_node)
                 continue
+            # Split one ordinary paragraph by cloning its original runs and
+            # patching each clone. This retains the formatting of surviving text
+            # instead of rebuilding it from the text-only projection.
+            if len(originals)==1 and len(replacements)>1 and not initial:
+                original=originals[0]
+                props=original.find(f'{{{W}}}pPr')
+                if (original.tag==f'{{{W}}}p' and _editable(original)
+                    and (props is None or all(props.find(f'{{{W}}}{name}') is None for name in ('sectPr','pPrChange')))
+                    and all(node['type']=='paragraph' for node in replacements)):
+                    position=parent.index(original)
+                    for i,node in enumerate(replacements):
+                        clone=copy.deepcopy(original)
+                        if i:
+                            for attr in ('paraId','textId'):
+                                clone.attrib.pop(f'{{http://schemas.microsoft.com/office/word/2010/wordml}}{attr}',None)
+                        parent.insert(position+i,clone)
+                        patch_paragraph(clone,node)
+                    parent.remove(original)
+                    continue
+            if len(originals)>1 and len(replacements)==1 and not initial:
+                def paragraph_properties(p):
+                    props=p.find(f'{{{W}}}pPr')
+                    return etree.tostring(props) if props is not None else None
+                first=originals[0]
+                if (all(p.tag==f'{{{W}}}p' and _editable(p) for p in originals)
+                    and replacements[0]['type']=='paragraph'
+                    and all(paragraph_properties(p)==paragraph_properties(first) for p in originals)
+                    and all(p.find(f'{{{W}}}pPr/{{{W}}}{name}') is None for p in originals for name in ('sectPr','pPrChange'))):
+                    position=parent.index(first);merged=copy.deepcopy(first)
+                    for paragraph in originals[1:]:
+                        for run in paragraph.findall(f'{{{W}}}r'):merged.append(copy.deepcopy(run))
+                    parent.insert(position,merged)
+                    patch_paragraph(merged,replacements[0])
+                    for paragraph in originals:parent.remove(paragraph)
+                    continue
+            if len(originals)>1 and len(replacements)>1 and not initial:
+                def properties(node, name):
+                    prop=node.find(f'{{{W}}}{name}')
+                    return etree.tostring(prop) if prop is not None else None
+                first=originals[0]
+                all_runs=[run for p in originals for run in p.findall(f'{{{W}}}r')]
+                # A full rewrite can safely reuse a uniform original style.
+                # If the paragraphs or runs differ, a text projection cannot
+                # determine which original formatting each new paragraph owns.
+                if (all(p.tag==f'{{{W}}}p' and _editable(p) for p in originals)
+                    and all(node['type']=='paragraph' for node in replacements)
+                    and all(properties(p,'pPr')==properties(first,'pPr') for p in originals)
+                    and all(p.find(f'{{{W}}}pPr/{{{W}}}{name}') is None for p in originals for name in ('sectPr','pPrChange'))
+                    and all_runs and all(properties(run,'rPr')==properties(all_runs[0],'rPr') for run in all_runs)):
+                    position=parent.index(first)
+                    for i,node in enumerate(replacements):
+                        clone=copy.deepcopy(first)
+                        if i:
+                            for attr in ('paraId','textId'):
+                                clone.attrib.pop(f'{{http://schemas.microsoft.com/office/word/2010/wordml}}{attr}',None)
+                        parent.insert(position+i,clone)
+                        patch_paragraph(clone,node)
+                    for paragraph in originals:parent.remove(paragraph)
+                    continue
+            # Rebuilding existing paragraphs from a text projection loses run
+            # styles and other source formatting. Do not publish that result.
+            if originals and replacements and not initial:
+                raise _failure('litigation_selection_unsupported','这次修改会改变段落数量，暂不能完整保留原有文字格式，请逐段修改。')
             if any(p.tag!=f'{{{W}}}p' or not _editable(p) for p in originals) or any(n['type'] not in (('paragraph','heading','table') if initial and parent is body else ('paragraph','heading')) for n in replacements):
                 raise _failure('litigation_selection_unsupported','此处包含表格、批注或修订，请缩小选区后修改，已有排版已保留。')
             fragment=xml(parts(render_docx({'type':'doc','content':replacements or [{'type':'paragraph'}]},pleading=initial))[MAIN]).find(f'{{{W}}}body')

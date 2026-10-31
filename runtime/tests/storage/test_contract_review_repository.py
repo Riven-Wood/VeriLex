@@ -73,7 +73,7 @@ def test_migration_creates_contract_review_tables(tmp_path):
     assert reviews == {
         "id", "thread_id", "filename", "file_digest", "original", "normalized_docx", "skill", "party",
         "strictness", "signature", "retrieval_enabled", "status",
-        "created_at", "updated_at", "document_id", "requirements",
+        "created_at", "updated_at", "document_id", "requirements", "custom_party", "discussion_only",
     }
     assert opinions == {
         "id", "review_id", "clause_label", "clause_excerpt", "anchor_text",
@@ -81,6 +81,20 @@ def test_migration_creates_contract_review_tables(tmp_path):
         "edited_text", "replacement_text", "created_at", "updated_at",
     }
     assert citations == {"id", "opinion_id", "document", "source_kind", "source_label", "verified_at", "created_at", "source_call_id"}
+
+
+def test_collaboration_migration_preserves_existing_review(tmp_path,monkeypatch):
+    database=Database(tmp_path/'legacy.sqlite3')
+    with monkeypatch.context() as scope:
+        scope.setattr('verilex_runtime.storage.migrations.MIGRATIONS',MIGRATIONS[:-1])
+        run_migrations(database)
+    _thread(database)
+    with database.connect() as connection:
+        connection.execute("INSERT INTO contract_reviews (id,thread_id,filename,file_digest,original,skill,party,strictness,signature,retrieval_enabled,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",('legacy','th-1','合同.docx','digest',b'legacy bytes','通用合同审查','neutral','normal','V',0,'completed','t','t'))
+    run_migrations(database)
+    review=ContractReviewRepository(database).get_review('legacy')
+    assert review['discussion_only']==0 and review['filename']=='合同.docx'
+    assert ContractReviewRepository(database).original_bytes('legacy')==b'legacy bytes'
 
 
 def test_create_and_get_review_roundtrip(tmp_path):

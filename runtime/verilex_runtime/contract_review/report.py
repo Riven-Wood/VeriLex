@@ -48,7 +48,7 @@ def report_paragraphs(review: dict, opinions: Sequence[Opinion], original: bytes
         ("metadata", f"合同名称：{Path(review['filename']).stem}"),
         ("metadata", f"合同签订方：{parties[0]}"),
         *[("party", name) for name in parties[1:]],
-        ("metadata", "审查立场：" + {"party_a": "甲方", "party_b": "乙方", "neutral": "中立"}[review["party"]]),
+        ("metadata", "审查立场：" + (review.get("custom_party") or {"party_a": "甲方", "party_b": "乙方", "neutral": "中立"}[review["party"]])),
         ("heading", "审核意见："),
     ]
     for number, opinion in enumerate(opinions, 1):

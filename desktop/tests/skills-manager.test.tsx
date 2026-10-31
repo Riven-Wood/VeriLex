@@ -1,11 +1,14 @@
 Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, writable: true, value() { this.setAttribute('open', ''); } });
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { SkillsManager } from "../src/components/SkillsManager";
 import * as runtimeApi from "../src/runtime/api";
 import { RuntimeApiError } from "../src/runtime/api";
 import type { SkillSummary } from "../src/runtime/contracts";
+import { skillCategory, managedSkillCategory } from "../src/components/skillCategories";
+
+beforeEach(() => { vi.spyOn(runtimeApi, "listSkillCategories").mockResolvedValue([]); });
 
 afterEach(() => {
   cleanup();
@@ -17,7 +20,7 @@ test("category and name filters intersect without changing global counts or mana
     skill({ name: "合同条款", category: "contract-review" }),
     skill({ name: "合同履约", category: "contract-review", enabled: false }),
     skill({ name: "法规查询", category: "legal-retrieval" }),
-    skill({ name: "旧技能", category: "unknown-category" }),
+    skill({ name: "旧技能", description: "提供协助", category: "unknown-category" }),
   ];
   vi.spyOn(runtimeApi, "listSkills").mockResolvedValue(records);
   const toggle = vi.spyOn(runtimeApi, "setSkillEnabled").mockResolvedValue(undefined);
@@ -37,6 +40,74 @@ test("category and name filters intersect without changing global counts or mana
   rerender(<SkillsManager />);
   fireEvent.click(screen.getByRole("button", { name: "未分类（1）" }));
   expect(screen.getByText("旧技能")).toBeTruthy();
+});
+
+test("infers categories from names and descriptions while respecting explicit classifications", async () => {
+  vi.spyOn(runtimeApi, "listSkills").mockResolvedValue([
+    skill({name: "审查买卖合同", category: undefined}),
+    skill({name: "deadline-planner", description: "提醒期限", category: undefined}),
+    skill({name: "资料处理", description: "处理个人信息和隐私", category: undefined}),
+    skill({name: "合同", category: "employment"}),
+    skill({name: "通用助手", description: "帮助用户", category: undefined}),
+  ]);
+  render(<SkillsManager />);
+  expect(await screen.findByRole("button", {name: "合同审查与起草（1）"})).toBeTruthy();
+  expect(screen.getByRole("button", {name: "案件管理与期限（1）"})).toBeTruthy();
+  expect(screen.getByRole("button", {name: "合规监管与隐私（1）"})).toBeTruthy();
+  expect(screen.getByRole("button", {name: "劳动用工（1）"})).toBeTruthy();
+  expect(screen.getByRole("button", {name: "未分类（1）"})).toBeTruthy();
+});
+
+test("manual organization does not hide a skill from its existing legal use", () => {
+  const item = skill({category: "legal-retrieval", categoryOverride: "custom:abc"});
+  expect(managedSkillCategory(item)).toBe("custom:abc");
+  expect(skillCategory(item)).toBe("legal-retrieval");
+});
+
+test("renames and deletes custom categories after confirmation", async () => {
+  vi.spyOn(runtimeApi, "listSkills").mockResolvedValue([skill()]);
+  let categories = [{id: "custom:abc", name: "合同"}];
+  vi.mocked(runtimeApi.listSkillCategories).mockImplementation(async () => categories);
+  const rename = vi.spyOn(runtimeApi, "renameSkillCategory").mockImplementation(async (_id, name) => { categories = [{id:"custom:abc", name}]; });
+  const remove = vi.spyOn(runtimeApi, "deleteSkillCategory").mockImplementation(async () => { categories = []; });
+  render(<SkillsManager />);
+  fireEvent.click(await screen.findByRole("button", {name:"管理分类"}));
+  fireEvent.click(screen.getByRole("button", {name:"重命名分类 合同"}));
+  fireEvent.change(screen.getByLabelText("修改分类 合同 的名称"), {target:{value:"重点合同"}});
+  fireEvent.click(screen.getByRole("button", {name:"保存"}));
+  await waitFor(() => expect(rename).toHaveBeenCalledWith("custom:abc", "重点合同"));
+  fireEvent.click(await screen.findByRole("button", {name:"删除分类 重点合同"}));
+  expect(remove).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", {name:"确认删除分类 重点合同"}));
+  await waitFor(() => expect(remove).toHaveBeenCalledWith("custom:abc"));
+  await screen.findByText("还没有自定义分类");
+});
+
+test("creates a category and assigns a skill, then allows returning to automatic classification", async () => {
+  const records = [skill({name: "合同审查", category: "contract-review"})];
+  vi.spyOn(runtimeApi, "listSkills").mockImplementation(async () => records);
+  let categories: {id:string; name:string}[] = [];
+  vi.mocked(runtimeApi.listSkillCategories).mockImplementation(async () => categories);
+  const create = vi.spyOn(runtimeApi, "createSkillCategory").mockImplementation(async name => {
+    categories = [{id: "custom:abc", name}]; return categories[0];
+  });
+  const assign = vi.spyOn(runtimeApi, "setSkillCategory").mockImplementation(async (_name, category) => {
+    records[0] = {...records[0], categoryOverride: category};
+  });
+  render(<SkillsManager />);
+  fireEvent.click(await screen.findByRole("button", {name: "管理分类"}));
+  fireEvent.change(screen.getByLabelText("新分类名称"), {target: {value: "我的办案"}});
+  fireEvent.click(screen.getByRole("button", {name: "新建分类"}));
+  await waitFor(() => expect(create).toHaveBeenCalledWith("我的办案"));
+  await screen.findByText("0 个技能");
+  fireEvent.click(screen.getByRole("button", {name: "关闭"}));
+  const select = screen.getByRole("combobox", {name: "选择技能 合同审查 的分类"});
+  fireEvent.change(select, {target: {value: "custom:abc"}});
+  await waitFor(() => expect(assign).toHaveBeenCalledWith("合同审查", "custom:abc"));
+  await screen.findByRole("button", {name: "我的办案（1）"});
+  fireEvent.change(select, {target: {value: "auto"}});
+  await waitFor(() => expect(assign).toHaveBeenCalledWith("合同审查", null));
+  await screen.findByRole("button", {name: "合同审查与起草（1）"});
 });
 
 test("deleting the final skill in a category preserves the filter and allows returning to all", async () => {

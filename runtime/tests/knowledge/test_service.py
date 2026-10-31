@@ -109,6 +109,20 @@ def test_literal_queries_do_not_become_search_operators(library, query):
     assert [d['path'] for d in service.documents(identifier, query)['items']] == ['one.md']
 
 
+def test_browse_paginates_in_path_order_with_document_snippets(library):
+    service, identifier, root = library
+    for index in range(105):
+        (root / f'{index:03}.md').write_text(f'正文{index}' + '长' * 1000)
+    service.sync(identifier)
+    first = service.documents(identifier)
+    second = service.documents(identifier, offset=100)
+    assert len(first['items']) == 100 and first['has_more']
+    assert [doc['path'] for doc in second['items']] == [f'{i:03}.md' for i in range(100, 105)]
+    assert not second['has_more']
+    assert first['items'][0]['snippet'] == ('正文0' + '长' * 197)
+    assert first['items'][0]['match_start'] is None
+
+
 @pytest.mark.parametrize('path', ['../outside', '/absolute', 'a/../b', 'a\\b', 'a\x00'])
 def test_exclusion_rejects_invalid_paths(library, path):
     service, identifier, _ = library

@@ -948,6 +948,7 @@ test("continues safe and acknowledged entries while another selected risk remain
 });
 
 test("edits with the saved revision and a receipt bound to the reviewed connection", async () => {
+  const review = vi.spyOn(runtimeApi, "reviewMcpServerTool").mockResolvedValue({} as never);
   const existing = record();
   vi.spyOn(runtimeApi, "parseMcpImport").mockResolvedValue({ drafts: [draft()] });
   vi.spyOn(runtimeApi, "testSavedMcpServer").mockResolvedValue(testResult("edit-receipt"));
@@ -967,6 +968,7 @@ test("edits with the saved revision and a receipt bound to the reviewed connecti
   fireEvent.click(screen.getByRole("button", { name: "保存" }));
 
   await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(review).toHaveBeenCalledTimes(2));
   expect(update.mock.calls[0]?.[0]).toBe("server-1");
   expect(update.mock.calls[0]?.[1]).toMatchObject({
     expectedRevision: 4,
@@ -1097,4 +1099,26 @@ test("disables edits during a test, aborts on unmount, and ignores the late resp
   fireEvent.click(screen.getByRole("button", { name: "测试并查看工具" }));
   expect(await screen.findByDisplayValue("新配置")).toBeTruthy();
   expect(screen.queryByText("迟到的旧配置")).toBeNull();
+});
+
+test('retrying failed tool review does not update the saved configuration twice', async () => {
+  const existing = record();
+  vi.spyOn(runtimeApi, 'parseMcpImport').mockResolvedValue({ drafts: [draft()] });
+  vi.spyOn(runtimeApi, 'testSavedMcpServer').mockResolvedValue(testResult('review-retry'));
+  const update = vi.spyOn(runtimeApi, 'updateMcpServer').mockResolvedValue({ ...existing, configRevision: 5 });
+  const review = vi.spyOn(runtimeApi, 'reviewMcpServerTool').mockRejectedValueOnce(new Error('offline')).mockResolvedValue({} as never);
+  const complete = vi.fn();
+  render(<McpServerEditor mode="settings" server={existing} onComplete={complete} />);
+  fireEvent.click(screen.getByText('高级选项'));
+  fireEvent.change(screen.getByLabelText('秘密环境变量'), { target: { value: 'API_TOKEN=synthetic-new-value' } });
+  fireEvent.click(screen.getByRole('button', { name: '测试并查看工具' }));
+  await screen.findByText('找到 2 个工具');
+  fireEvent.click(screen.getByRole('button', { name: '保存' }));
+  await screen.findByText('连接没有成功，请检查配置后重试。');
+  expect(complete).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: '保存' }));
+  await waitFor(() => expect(complete).toHaveBeenCalledTimes(1));
+  expect(update).toHaveBeenCalledTimes(1);
+  expect(review).toHaveBeenCalledTimes(3);
+  expect(review.mock.calls[2][2]).toMatchObject({ expectedDescriptionHash: HASH_C, expectedSchemaHash: HASH_D });
 });

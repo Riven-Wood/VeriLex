@@ -35,6 +35,9 @@ _TOOL_ERROR_STATUS = {
 }
 
 _SKILL_ERROR_STATUS = {
+    "skill_category_invalid": 422,
+    "skill_category_conflict": 409,
+    "skill_category_not_found": 404,
     "skill_not_found": 404,
     "skill_name_invalid": 422,
     "skill_name_conflict": 409,
@@ -47,6 +50,7 @@ _SKILL_ERROR_RETRYABLE = frozenset({"skill_write_failed"})
 
 _CONTRACT_ERROR_STATUS = {
     "contract_requirements_invalid": 422,
+    "contract_storage_busy": 503,
     "contract_editor_conflict": 409,
     "contract_markup_changed": 409,
     "contract_editor_selection": 409,
@@ -86,6 +90,7 @@ _MCP_ERROR_STATUS = {
     "mcp_schema_unsupported": 422,
     "mcp_arguments_invalid": 422,
     "mcp_tool_changed": 409,
+    "mcp_tool_review_required": 409,
     "mcp_tool_disabled": 409,
     "mcp_not_selected": 409,
     "mcp_binary_output_omitted": 422,
@@ -114,6 +119,7 @@ _MCP_ERROR_MESSAGES = {
     "mcp_schema_unsupported": "This MCP tool schema is not supported.",
     "mcp_arguments_invalid": "The MCP tool arguments are invalid.",
     "mcp_tool_changed": "This MCP tool changed. Review it before using it.",
+    "mcp_tool_review_required": "The MCP catalog has updates that need review.",
     "mcp_tool_disabled": "This MCP tool is disabled.",
     "mcp_not_selected": "This MCP server is not selected for the current conversation.",
     "mcp_binary_output_omitted": "Binary MCP output was omitted.",

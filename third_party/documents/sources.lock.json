@@ -19,7 +19,7 @@
     "source-available"
   ],
   "gate_files": {
-    "THIRD_PARTY_NOTICES.md": "9086dbd64caf63f58b54237991a27072d54084ae67796d0befbe8858312d95f2",
+    "THIRD_PARTY_NOTICES.md": "92721726ec287d881609584fe4e435b1f0baedf3af9e0475a5c61626b2751407",
     "docs/qa/office-docx-engine-gate.schema.json": "e5686caaa6b5f39346e50bd44bf04079634f5f5af5f639bf88cfe3ed30004a79",
     "qa/documents/fonts/LICENSES/OFL-1.1.txt": "ba055ffb6aed1fd0849e50686d09e0ea5a145b31a4b1a86d89f44ca02d136d5a",
     "qa/documents/fonts/fonts.lock.json": "b0d4f3e0337cc7be759d6a26b852f555e98adce67f1bc8322501c72d58946edf",
@@ -33,7 +33,7 @@
     "third_party/licenses/documents/Adeu-LICENSE.txt": "fd9d2471ced7619b0b6c67e437e7ab037c5ea66f9d728801c9a406f3fa04f9dd",
     "third_party/licenses/documents/Docxodus-LICENSE.txt": "b812b060623d0bc9c9122320f5a8b12e68b5c9d4324c6286d1951090c6668150",
     "desktop/scripts/build-document-bundle.mjs": "d9a10421447da2df427178bceaf9431f3c15a6b3f40aa3bcc071aac327c4af29",
-    "desktop/patches/docxodus-keyboard.patch": "d8883467f21480c5930c66fa169f100c8afbc015dca1a2fa4605458e3a9fae17"
+    "desktop/patches/docxodus-keyboard.patch": "9a5f7827d20a8c44e960036ea8350b31abce3a6ce89c9ed2a588b0bdc9066b9b"
   },
   "sources": [
     {

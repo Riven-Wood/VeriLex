@@ -1,7 +1,8 @@
-export type SettingsCategoryId = "general" | "appearance" | "models" | "agent" | "tools" | "workspaces" | "skills" | "mcp" | "diagnostics" | "help";
+export type SettingsCategoryId = "general" | "conversations" | "appearance" | "models" | "agent" | "tools" | "workspaces" | "skills" | "mcp" | "diagnostics" | "help";
 export interface SettingsCategory { id: SettingsCategoryId; label: string; description: string; keywords: readonly string[]; }
 export const SETTINGS_CATEGORIES: readonly SettingsCategory[] = [
   {id:"general",label:"通用",description:"输入、通知与任务运行",keywords:["general"]},
+  {id:"conversations",label:"对话",description:"已归档的对话与回收站",keywords:["归档","会话","回收站"]},
   {id:"appearance",label:"外观",description:"主题、字号与动态效果",keywords:["appearance"]},
   {id:"models",label:"模型",description:"连接与模型管理",keywords:["模型","API","提供商","密钥"]},
   {id:"tools",label:"助手与权限",description:"使用偏好与授权文件夹",keywords:["智能体","agent","工作区"]},
@@ -16,6 +17,8 @@ export const SETTINGS_ENTRIES: readonly SettingsEntry[] = [
   {id:"follow-up",category:"general",label:"运行中追加消息",keywords:"队列 排队 引导 交互"},
   {id:"notifications",category:"general",label:"任务通知",keywords:"完成 失败 授权 确认 提醒 桌面 声音 日程"},
   {id:"keep-awake",category:"general",label:"任务运行时保持唤醒",keywords:"防休眠 锁屏 后台运行"},
+  {id:"archived-conversations",category:"conversations",label:"已归档的对话",keywords:"归档 会话 恢复"},
+  {id:"trashed-conversations",category:"conversations",label:"回收站",keywords:"删除 会话 恢复"},
   {id:"theme",category:"appearance",label:"界面主题",keywords:"深色 浅色 跟随系统 dark light"},
   {id:"font-size",category:"appearance",label:"文字大小",keywords:"字号 字体 font"},
   {id:"reduce-motion",category:"appearance",label:"减少动态效果",keywords:"动画 motion"},

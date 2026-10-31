@@ -159,7 +159,7 @@ test("workspace layout keeps the message list as the scroll container", async ()
   expect(list).toContain("min-height: 0");
 });
 
-test("an approval arriving while reading earlier messages shows an explicit jump action without forcing scroll", async () => {
+test("an approval arriving while reading earlier messages shows the approval card without forcing scroll", async () => {
   setupGlobals();
   const scrollSpy = vi.fn();
   Element.prototype.scrollIntoView = scrollSpy;
@@ -179,12 +179,10 @@ test("an approval arriving while reading earlier messages shows an explicit jump
   scrollSpy.mockClear();
   act(() => MockWebSocket.last!.receive({type: "event", event: {type: "approval_requested", turnId: "t1", sequence: 3,
     payload: {toolCallId: "save", approvalId: "approval", name: "litigation_work_save"}}}));
-  const jump = await screen.findByRole("button", {name: "有操作等待确认 · 查看"});
+  expect(await screen.findByRole("button", {name: "保存这次修改"})).toBeTruthy();
+  expect(screen.getByRole("button", {name: "拒绝"})).toBeTruthy();
   expect(scrollSpy).not.toHaveBeenCalled();
   expect(list.scrollTop).toBe(0);
-  fireEvent.click(jump);
-  expect(list.scrollTop).toBe(1000);
-  expect(screen.queryByRole("button", {name: "有操作等待确认 · 查看"})).toBeNull();
   expect(MockWebSocket.last!.sentMessages.some(message => message.includes('"resolve"'))).toBe(false);
 });
 

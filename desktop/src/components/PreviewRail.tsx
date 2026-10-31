@@ -4,13 +4,13 @@ import {useContext} from "react";
 import {useCitationLocation} from "./preview/CitationLocation";
 import {MaterialCoverage} from "./preview/MaterialCoverage";
 import {DiagramSources} from "./preview/DiagramSources";
+import {LoadingState} from "./LoadingState";
 import { lazy, memo, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import {
   ChevronLeft,
   ExternalLink,
   FileWarning,
   FolderOpen,
-  LoaderCircle,
   Minus,
   Plus,
   RotateCcw,
@@ -540,10 +540,7 @@ export const PreviewRail = memo(function PreviewRail({
             <div className="preview-error" role="alert">{artifactsError}</div>
           )}
           {threadId && artifacts === null && !artifactsError && (
-            <div className="preview-loading" role="status">
-              <LoaderCircle aria-hidden="true" size={16} className="spin" />
-              正在加载会话文件…
-            </div>
+            <LoadingState>正在加载会话文件…</LoadingState>
           )}
           {artifacts?.length === 0 && (
             <div className="preview-empty">本次对话还没有生成或修改过文件。</div>
@@ -630,10 +627,7 @@ export const PreviewRail = memo(function PreviewRail({
           </div>
 
           {state.phase === "loading" && (
-            <div className="preview-loading" role="status">
-              <LoaderCircle aria-hidden="true" size={16} className="spin" />
-              正在加载预览…
-            </div>
+            <LoadingState>正在加载预览…</LoadingState>
           )}
           {state.phase === "missing" && (
             <div className="preview-missing" role="status">

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { ChevronDown } from "lucide-react";
 
+import { groupedSearchServers } from "../mcp/providerGroups";
 import { KnowledgePicker, type KnowledgeSelection } from "./KnowledgePicker";
 import type { McpServerRecord } from "../runtime/contracts";
 
@@ -52,9 +53,8 @@ export function CaseChannelPicker({
     return () => window.removeEventListener("keydown", onKey);
   }, [menu, onMenuChange]);
 
-  const selectedServer = mcpServers.find(
-    (server) => value.kind === "plugin" && server.id === value.serverId,
-  );
+  const groups = groupedSearchServers(mcpServers);
+  const selectedGroup = groups.find(group => value.kind === "plugin" && value.serverId !== null && group.ids.includes(value.serverId));
 
   const selectChannel = (channel: CaseMenu) => {
     if (channel === "knowledge") onChange({ kind: "knowledge" });
@@ -75,7 +75,7 @@ export function CaseChannelPicker({
         aria-expanded={menu === "plugin"}
         onClick={() => selectChannel("plugin")}
       >
-        插件{selectedServer ? ` · ${selectedServer.displayName}` : ""}
+        插件{selectedGroup ? ` · ${selectedGroup.label}` : ""}
         <ChevronDown aria-hidden="true" size={14} />
       </button>
       <button
@@ -115,21 +115,21 @@ export function CaseChannelPicker({
               </button>
             </>
           ) : (
-            mcpServers.map((server) => (
+            groups.map((group) => (
               <button
-                key={server.id}
+                key={group.representative.id}
                 type="button"
                 role="menuitemradio"
                 className="legal-channel-menu-item"
                 aria-checked={
-                  value.kind === "plugin" && value.serverId === server.id
+                  value.kind === "plugin" && value.serverId !== null && group.ids.includes(value.serverId)
                 }
                 onClick={() => {
-                  onChange({ kind: "plugin", serverId: server.id });
+                  onChange({ kind: "plugin", serverId: group.representative.id });
                   onMenuChange(null);
                 }}
               >
-                {server.displayName}{server.url === "https://open.chineselaw.com/mcp/case/stream" ? " · 含案例检索" : ""}
+                {group.label}
               </button>
             ))
           )}

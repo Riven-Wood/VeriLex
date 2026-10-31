@@ -32,6 +32,7 @@ export interface ContractReviewSummary {
   created_at: string;
   updated_at: string;
   opinion_count: number;
+  discussion_only?: boolean;
 }
 
 export interface ContractReviewDetail extends ContractReviewSummary {
@@ -40,6 +41,7 @@ export interface ContractReviewDetail extends ContractReviewSummary {
   signature: string;
   retrieval_enabled: boolean;
   requirements?: string;
+  custom_party?: string;
   opinions: ContractOpinion[];
 }
 
@@ -63,10 +65,12 @@ export interface StartReviewOptions {
   signature: string;
   retrieval: boolean;
   requirements?: string;
+  customParty?: string;
   providerId: string | null;
   model: string;
   documentId?: string;
   documentRevision?: number;
+  discussionOnly?: boolean;
 }
 
 const path = (id: string) => `/v1/contract-reviews/${encodeURIComponent(id)}`;
@@ -85,9 +89,11 @@ export const contractReviewApi = {
     });
     if (options.documentId) { params.set('document_id', options.documentId); params.set('document_revision', String(options.documentRevision)); }
     if (options.providerId) params.set('provider_id', options.providerId);
+    if (options.discussionOnly) params.set('discussion_only', 'true');
     const body = new FormData();
     body.append("file", file);
     body.append("requirements", options.requirements ?? "");
+    body.append("custom_party", options.customParty ?? "");
     return runtimeRequest<ContractReviewHandle>(
       `/v1/contract-reviews?${params.toString()}`,
       { method: 'POST', body },

@@ -238,6 +238,31 @@ class ContractEditor:
         return self.read(review_id)
 
     def prepare(self, thread_id, payload):
+        if isinstance(payload, dict) and payload.get('mode') == 'word':
+            if set(payload) != {'mode','review_id','document_id','revision','selection','selected_text'}:
+                raise _fail('contract_editor_selection')
+            review=self.repository.review_for_thread(thread_id)
+            document=self.repository.word_document(payload['document_id']) if isinstance(payload['document_id'],str) else None
+            sel=payload['selection']
+            if (review is None or review['id'] != payload['review_id'] or
+                self.repository.review_document_id(review['id']) != payload['document_id'] or document is None or
+                type(payload['revision']) is not int or document['revision'] != payload['revision'] or
+                not isinstance(sel,dict) or set(sel) != {'texts','start','end','from','to'} or
+                not isinstance(sel['texts'],list) or not all(isinstance(s,str) for s in sel['texts']) or
+                sum(len(s) for s in sel['texts']) > 500000 or
+                not all(type(sel[k]) is int for k in ('start','end','from','to'))):
+                raise _fail('contract_editor_selection')
+            start,end,first,last=sel['start'],sel['end'],sel['from'],sel['to']
+            lengths=[len(s.encode('utf-16-le'))//2 for s in sel['texts']]
+            if not (0 <= start <= end < len(sel['texts']) and 0 <= first <= lengths[start] and 0 <= last <= lengths[end]):
+                raise _fail('contract_editor_selection')
+            try:
+                selected='\n'.join(s.encode('utf-16-le')[(first if i==start else 0)*2:(last*2 if i==end else None)].decode('utf-16-le') for i,s in enumerate(sel['texts']) if start <= i <= end)
+            except UnicodeError:
+                raise _fail('contract_editor_selection') from None
+            if not selected or len(selected)>MAX_SELECTION or selected != payload['selected_text']:
+                raise _fail('contract_editor_selection')
+            return copy.deepcopy({**payload,'thread_id':thread_id,'filename':review['filename']})
         if not isinstance(payload, dict) or set(payload) != {'review_id', 'revision', 'paragraph_id', 'start', 'end', 'selected_text'}:
             raise _fail('contract_editor_selection')
         review = self.repository.review_for_thread(thread_id)
@@ -276,6 +301,8 @@ class ContractEditor:
         snapshot = self._snapshot(context)
         if snapshot is None:
             return None
+        if snapshot.get('mode') == 'word':
+            return json.dumps({k:snapshot[k] for k in ('review_id','revision','filename','selected_text')},ensure_ascii=False)
         return json.dumps({k: snapshot[k] for k in ('review_id', 'revision', 'filename', 'paragraph_id',
                                                   'paragraph_text', 'selected_text', 'start', 'end')}, ensure_ascii=False)
 
@@ -283,6 +310,8 @@ class ContractEditor:
         snapshot = self._snapshot(context)
         if snapshot is None:
             raise _fail('contract_editor_selection')
+        if snapshot.get('mode') == 'word':
+            return self._propose_word(context,snapshot,payload)
         if (context.turn_id in self.service._stopped_turns
                 or not any(t.id == context.turn_id for t in self.service._turns.list_active(context.thread_id))):
             raise _fail('contract_editor_proposal_closed')
@@ -324,6 +353,27 @@ class ContractEditor:
         data['proposals'].append(proposal)
         self._commit(snapshot['review_id'], row, data)
         return {'proposal_id': proposal['id'], 'status': 'pending', 'notice': '修改建议已保存，正文仅在用户接受后更新。'}
+
+    def _propose_word(self, context, snapshot, payload):
+        if (context.turn_id in self.service._stopped_turns or
+            not any(t.id == context.turn_id for t in self.service._turns.list_active(context.thread_id))):
+            raise _fail('contract_editor_proposal_closed')
+        if not isinstance(payload,dict) or set(payload)-{'before','after','reason','proposal_id'}:
+            raise _fail()
+        before,after,reason=payload.get('before'),payload.get('after'),payload.get('reason','')
+        if (before != snapshot['selected_text'] or not isinstance(after,str) or len(after)>MAX_SELECTION or
+            not isinstance(reason,str) or len(reason)>2000 or before==after or '\x00' in after):
+            raise _fail('contract_editor_selection')
+        document=self.repository.word_document(snapshot['document_id'])
+        if document is None or document['revision'] != snapshot['revision']:
+            raise _fail('contract_editor_conflict')
+        edit={'id':uuid.uuid4().hex,'review_id':snapshot['review_id'],'turn_id':context.turn_id,
+              'document_id':snapshot['document_id'],'revision':snapshot['revision'],'selection':snapshot['selection'],
+              'before':before,'after':after,'reason':reason,'created_at':self.service._now()}
+        stored=self.repository.add_word_ai_edit(edit)
+        if not stored or stored['before_text'] != before or stored['after_text'] != after:
+            raise _fail('contract_editor_conflict')
+        return {'proposal_id':stored['id'],'status':stored['status'],'notice':'修改已提交给当前 Word，等待编辑器写入结果。'}
 
     def transition(self, review_id, proposal_id, action, expected_revision):
         _, source, baseline, row = self._load(review_id)

@@ -1,5 +1,5 @@
 diff --git a/Docxodus/DocxSession.cs b/Docxodus/DocxSession.cs
-index 6e60d1a8..8951f908 100644
+index 6e60d1a8..28c52319 100644
 --- a/Docxodus/DocxSession.cs
 +++ b/Docxodus/DocxSession.cs
 @@ -166,7 +166,7 @@ public sealed record ParagraphBorderEdge
@@ -202,7 +202,7 @@ index 6e60d1a8..8951f908 100644
      }
  
      /// <summary>Create native revision markup and keep Word's document-level recording flag in
-@@ -7809,6 +7875,144 @@ public sealed partial class DocxSession : IDisposable
+@@ -7809,6 +7875,147 @@ public sealed partial class DocxSession : IDisposable
          }
      }
  
@@ -287,19 +287,50 @@ index 6e60d1a8..8951f908 100644
 +                    if (!result.Success) return result;
 +                }
 +            }
-+            foreach (var node in paragraph.Descendants().Where(e => e.Name == W.t || e.Name == W.delText).ToList())
-+            {
-+                if (!node.Value.Contains('\n') && !node.Value.Contains('\t')) continue;
-+                var pieces = new List<XElement>(); var buffer = new System.Text.StringBuilder();
-+                void Flush() { if (buffer.Length>0) { pieces.Add(new XElement(node.Name,new XAttribute(XNamespace.Xml+"space","preserve"),buffer.ToString()));buffer.Clear(); } }
-+                foreach(var c in node.Value) { if(c=='\n'||c=='\t'){Flush();pieces.Add(new XElement(c=='\n'?W.br:W.tab));}else buffer.Append(c); }
-+                Flush(); node.ReplaceWith(pieces);
-+            }
++            RestoreKeyboardControls(paragraph);
 +            InvalidateProjectionCache();
 +            transaction.Commit();
 +            return result;
 +        }
 +        catch(Exception ex) { return EditResult.Fail(EditErrorCode.InternalError,ex.Message,anchorId); }
++    }
++
++    private static void RestoreKeyboardControls(XElement paragraph)
++    {
++        foreach (var node in paragraph.Descendants().Where(e => e.Name == W.t || e.Name == W.delText).ToList())
++        {
++            if (!node.Value.Contains('\n') && !node.Value.Contains('\t')) continue;
++            var pieces = new List<XElement>(); var buffer = new System.Text.StringBuilder();
++            void Flush() { if (buffer.Length > 0) { pieces.Add(new XElement(node.Name, new XAttribute(XNamespace.Xml + "space", "preserve"), buffer.ToString())); buffer.Clear(); } }
++            foreach (char c in node.Value) { if (c == '\n' || c == '\t') { Flush(); pieces.Add(new XElement(c == '\n' ? W.br : W.tab)); } else buffer.Append(c); }
++            Flush(); node.ReplaceWith(pieces);
++        }
++    }
++
++    /// <summary>Keyboard offsets count visible line breaks and tabs as one character.
++    /// Normalize only inside a transaction so split history always stores real OOXML controls.</summary>
++    public EditResult SplitKeyboardParagraph(string anchorId, int offset)
++    {
++        if (_disposed) return EditResult.Fail(EditErrorCode.SessionDisposed, "session disposed");
++        var target = FindAnchor(anchorId);
++        var paragraph = target?.Resolve(_doc!);
++        if (target is null || paragraph?.Name != W.p)
++            return EditResult.Fail(EditErrorCode.AnchorWrongKind, "keyboard split requires a paragraph", anchorId);
++        using var transaction = BeginTransaction();
++        try
++        {
++            foreach (var run in InlineRuns(paragraph).Where(r => !r.Ancestors().Any(e => e.Name == W.del || e.Name == W.moveFrom)).ToList())
++                foreach (var control in run.Elements().Where(e => e.Name == W.br || e.Name == W.cr || e.Name == W.tab).ToList())
++                    control.ReplaceWith(new XElement(W.t, control.Name == W.tab ? "\t" : "\n"));
++            var result = SplitParagraph(anchorId, offset);
++            if (!result.Success) return result;
++            RestoreKeyboardControls(paragraph);
++            if (paragraph.NextNode is XElement second && second.Name == W.p) RestoreKeyboardControls(second);
++            InvalidateProjectionCache();
++            transaction.Commit();
++            return result;
++        }
++        catch (Exception ex) { return EditResult.Fail(EditErrorCode.InternalError, ex.Message, anchorId); }
 +    }
 +
 +    public EditResult InsertKeyboardControl(string anchorId, int offset, string kind)
@@ -309,45 +340,17 @@ index 6e60d1a8..8951f908 100644
 +        var paragraph = target?.Resolve(_doc!);
 +        if (target is null || paragraph?.Name != W.p || (kind != "br" && kind != "tab"))
 +            return EditResult.Fail(EditErrorCode.AnchorWrongKind, "keyboard control requires a paragraph", anchorId);
-+        if (offset < 0 || offset > ParagraphText(paragraph).Length || HasUnsupportedInlineInsertionBoundary(paragraph, offset))
++        var text = string.Concat(InlineRuns(paragraph).Where(r => !r.Ancestors().Any(e => e.Name == W.del || e.Name == W.moveFrom))
++            .SelectMany(r => r.Elements()).Select(e => e.Name == W.t ? (string)e : e.Name == W.br || e.Name == W.cr ? "\n" : e.Name == W.tab ? "\t" : ""));
++        if (offset < 0 || offset > text.Length)
 +            return EditResult.Fail(EditErrorCode.OffsetOutOfRange, "unsupported keyboard position", anchorId);
-+        _history.RecordPreOp(TakeSnapshot());
-+        try
-+        {
-+            SplitRunsAtOffset(paragraph, offset);
-+            SplitInlineContainersAtOffset(paragraph, offset);
-+            var run = new XElement(W.r, new XElement(kind == "br" ? W.br : W.tab));
-+            var properties = InlineRuns(paragraph).FirstOrDefault()?.Element(W.rPr);
-+            if (properties is not null) run.AddFirst(new XElement(properties));
-+            XElement insertion = run;
-+            if (_trackedChanges == TrackedChangeMode.RenderInline)
-+            {
-+                EnsureTrackRevisionsEnabled();
-+                insertion = CreateRevisionEnvelope(W.ins, _revisionAuthor ?? "VeriLex", NextTrackedFormatRevisionDate(), run);
-+            }
-+            int consumed = 0;
-+            XElement? before = null;
-+            foreach (var child in paragraph.Elements().Where(e => e.Name != W.pPr))
-+            {
-+                if (consumed >= offset) { before = child; break; }
-+                consumed += IsInlineChild(child) ? InlineChildTextLength(child) : 0;
-+            }
-+            if (before is null) paragraph.Add(insertion); else before.AddBeforeSelf(insertion);
-+            UnidHelper.AssignToSelfAndDescendants(insertion);
-+            InvalidateProjectionCache();
-+            return new EditResult { Success = true, Modified = new[] { target.Anchor }, Patch = PatchFor(target) };
-+        }
-+        catch (Exception ex)
-+        {
-+            LastInternalError = ex; RollbackFailedOp();
-+            return EditResult.Fail(EditErrorCode.InternalError, ex.Message, anchorId);
-+        }
++        return SyncKeyboardText(anchorId, text.Insert(offset, kind == "br" ? "\n" : "\t"));
 +    }
 +
      public EditResult SplitParagraph(string anchorId, int characterOffset)
      {
          if (_disposed) return EditResult.Fail(EditErrorCode.SessionDisposed, "session disposed");
-@@ -7832,8 +8036,6 @@ public sealed partial class DocxSession : IDisposable
+@@ -7832,8 +8039,6 @@ public sealed partial class DocxSession : IDisposable
              return EditResult.Fail(EditErrorCode.UnsupportedInlineBoundary,
                  "SplitParagraph offset falls inside a revision or unsupported inline container; " +
                  "choose a boundary before or after that container", anchorId);
@@ -356,7 +359,7 @@ index 6e60d1a8..8951f908 100644
  
          _history.RecordPreOp(TakeSnapshot());
          try
-@@ -7888,12 +8090,29 @@ public sealed partial class DocxSession : IDisposable
+@@ -7888,12 +8093,29 @@ public sealed partial class DocxSession : IDisposable
                      }
                  }
  
@@ -386,7 +389,7 @@ index 6e60d1a8..8951f908 100644
              UnidHelper.AssignToSelfAndDescendants(second);
              element.AddAfterSelf(second);
  
-@@ -7962,22 +8181,40 @@ public sealed partial class DocxSession : IDisposable
+@@ -7962,22 +8184,40 @@ public sealed partial class DocxSession : IDisposable
              return EditResult.Fail(EditErrorCode.AnchorsNotAdjacent,
                  "MergeParagraphs requires second anchor to be the immediate next sibling of first");
          if (_trackedChanges == TrackedChangeMode.RenderInline)
@@ -438,7 +441,7 @@ index 6e60d1a8..8951f908 100644
              }
  
              // Move every paragraph-level child from secondEl into firstEl in document
-@@ -8605,18 +8842,38 @@ public sealed partial class DocxSession : IDisposable
+@@ -8605,18 +8845,38 @@ public sealed partial class DocxSession : IDisposable
          if (element is null) return EditResult.Fail(EditErrorCode.AnchorNotFound, "element null", anchorId);
          if (RefuseNestedTrackedParagraphPropertyChange(element, anchorId) is { } pending) return pending;
  
@@ -478,7 +481,7 @@ index 6e60d1a8..8951f908 100644
          _history.RecordPreOp(TakeSnapshot());
          try
          {
-@@ -8631,6 +8888,7 @@ public sealed partial class DocxSession : IDisposable
+@@ -8631,6 +8891,7 @@ public sealed partial class DocxSession : IDisposable
                      ParagraphAlignment.Center => "center",
                      ParagraphAlignment.Right => "right",
                      ParagraphAlignment.Justify => "both",
@@ -486,7 +489,7 @@ index 6e60d1a8..8951f908 100644
                      _ => "left",
                  };
                  SetPPrChildInOrder(pPr, new XElement(W.jc, new XAttribute(W.val, val)));
-@@ -8639,7 +8897,44 @@ public sealed partial class DocxSession : IDisposable
+@@ -8639,7 +8900,44 @@ public sealed partial class DocxSession : IDisposable
              if (op.PageBreakBefore is { } pbb)
              {
                  pPr.Element(W.pageBreakBefore)?.Remove();
@@ -532,7 +535,7 @@ index 6e60d1a8..8951f908 100644
              }
  
              if (op.IndentDelta is { } delta && delta != 0)
-@@ -8660,6 +8955,29 @@ public sealed partial class DocxSession : IDisposable
+@@ -8660,6 +8958,29 @@ public sealed partial class DocxSession : IDisposable
                  ind.SetAttributeValue(W.left, next);
              }
  
@@ -562,7 +565,7 @@ index 6e60d1a8..8951f908 100644
              // firstLine/hanging share one w:ind slot in Word: writing either evicts the other
              // (validation above already rejected an op carrying both).
              if (op.FirstLineIndent is { } firstLine)
-@@ -8667,12 +8985,16 @@ public sealed partial class DocxSession : IDisposable
+@@ -8667,12 +8988,16 @@ public sealed partial class DocxSession : IDisposable
                  var ind = GetOrCreatePPrChild(pPr, W.ind);
                  ind.SetAttributeValue(W.firstLine, firstLine);
                  ind.SetAttributeValue(W.hanging, null);
@@ -579,7 +582,7 @@ index 6e60d1a8..8951f908 100644
              }
  
              if (op.SpacingBefore is not null || op.SpacingAfter is not null || op.LineSpacing is not null)
-@@ -8684,12 +9006,14 @@ public sealed partial class DocxSession : IDisposable
+@@ -8684,12 +9009,14 @@ public sealed partial class DocxSession : IDisposable
                  if (op.SpacingBefore is { } before)
                  {
                      spacing.SetAttributeValue(W.before, before);
@@ -596,7 +599,7 @@ index 6e60d1a8..8951f908 100644
                  }
                  if (op.LineSpacing is { } line)
                  {
-@@ -10232,8 +10556,6 @@ public sealed partial class DocxSession : IDisposable
+@@ -10232,8 +10559,6 @@ public sealed partial class DocxSession : IDisposable
          if (colWidths is not null && (colWidths.Count != cols || colWidths.Any(w => w <= 0)))
              return EditResult.Fail(EditErrorCode.MalformedMarkdown,
                  $"ColumnWidths must have one positive width per column ({cols}); got {colWidths.Count}", anchorId);
@@ -605,7 +608,7 @@ index 6e60d1a8..8951f908 100644
  
          _history.RecordPreOp(TakeSnapshot());
          try
-@@ -10280,6 +10602,12 @@ public sealed partial class DocxSession : IDisposable
+@@ -10280,6 +10605,12 @@ public sealed partial class DocxSession : IDisposable
                  tbl.Add(tr);
              }
  
@@ -618,7 +621,7 @@ index 6e60d1a8..8951f908 100644
              UnidHelper.AssignToSelfAndDescendants(tbl);
  
              if (pos == Position.Before) element.AddBeforeSelf(tbl);
-@@ -10293,6 +10621,7 @@ public sealed partial class DocxSession : IDisposable
+@@ -10293,6 +10624,7 @@ public sealed partial class DocxSession : IDisposable
              if (afterTbl is null || afterTbl.Name == W.sectPr || afterTbl.Name == W.tbl)
              {
                  var trailing = new XElement(W.p);
@@ -626,7 +629,7 @@ index 6e60d1a8..8951f908 100644
                  UnidHelper.AssignToSelfAndDescendants(trailing);
                  tbl.AddAfterSelf(trailing);
              }
-@@ -10550,6 +10879,78 @@ public sealed partial class DocxSession : IDisposable
+@@ -10550,6 +10882,78 @@ public sealed partial class DocxSession : IDisposable
              anchorId);
      }
  
@@ -705,7 +708,7 @@ index 6e60d1a8..8951f908 100644
      private static EditResult TrackedStructureUnsupported(string operation, string anchorId) =>
          EditResult.Fail(EditErrorCode.TrackedOperationUnsupported,
              $"{operation} has no reversible native tracked-change encoding on this document shape; no changes were made",
-@@ -10585,7 +10986,21 @@ public sealed partial class DocxSession : IDisposable
+@@ -10585,7 +10989,21 @@ public sealed partial class DocxSession : IDisposable
      private void TrackPropertyMutation(XElement current, XElement oldProperties, XName changeName,
          string author, string date, params XName[] excluded)
      {
@@ -727,7 +730,7 @@ index 6e60d1a8..8951f908 100644
          if (PropertySnapshotEquals(oldBase, current, changeName, excluded)) return;
          current.Add(CreateRevisionEnvelope(changeName, author, date, oldBase));
      }
-@@ -10633,6 +11048,8 @@ public sealed partial class DocxSession : IDisposable
+@@ -10633,6 +11051,8 @@ public sealed partial class DocxSession : IDisposable
      /// continuation rather than punching a hole through it. Returns the new canonical cell anchors.</summary>
      public EditResult InsertTableRow(string cellAnchorId, Position pos)
      {
@@ -736,7 +739,7 @@ index 6e60d1a8..8951f908 100644
          if (ResolveCell(cellAnchorId, out _, out _, out var tr, out var tbl, out var target) is { } err)
              return err;
          if (RefuseUnresolvedTableStructure(tbl!, cellAnchorId) is { } pending) return pending;
-@@ -10699,6 +11116,8 @@ public sealed partial class DocxSession : IDisposable
+@@ -10699,6 +11119,8 @@ public sealed partial class DocxSession : IDisposable
      /// canonical cell anchors (top→bottom); rows that only widened contribute none.</summary>
      public EditResult InsertTableColumn(string cellAnchorId, Position pos)
      {
@@ -745,7 +748,7 @@ index 6e60d1a8..8951f908 100644
          if (ResolveCell(cellAnchorId, out _, out var tc, out var tr, out var tbl, out var target) is { } err)
              return err;
          if (RefuseUnresolvedTableStructure(tbl!, cellAnchorId) is { } pending) return pending;
-@@ -10823,6 +11242,8 @@ public sealed partial class DocxSession : IDisposable
+@@ -10823,6 +11245,8 @@ public sealed partial class DocxSession : IDisposable
      /// restart, so the run is never left headless. Deleting the last row removes the whole table.</summary>
      public EditResult DeleteTableRow(string cellAnchorId)
      {
@@ -754,7 +757,7 @@ index 6e60d1a8..8951f908 100644
          if (ResolveCell(cellAnchorId, out _, out _, out var tr, out var tbl, out var target) is { } err)
              return err;
          var hyperlinkOwner = Internal.OwnedPartRelationships.FindOwner(_doc!, tbl!);
-@@ -10896,6 +11317,8 @@ public sealed partial class DocxSession : IDisposable
+@@ -10896,6 +11320,8 @@ public sealed partial class DocxSession : IDisposable
      /// removes the whole table.</summary>
      public EditResult DeleteTableColumn(string cellAnchorId)
      {
@@ -763,7 +766,7 @@ index 6e60d1a8..8951f908 100644
          if (ResolveCell(cellAnchorId, out _, out var tc, out var tr, out var tbl, out var target) is { } err)
              return err;
          var hyperlinkOwner = Internal.OwnedPartRelationships.FindOwner(_doc!, tbl!);
-@@ -11034,6 +11457,8 @@ public sealed partial class DocxSession : IDisposable
+@@ -11034,6 +11460,8 @@ public sealed partial class DocxSession : IDisposable
      public EditResult MergeCells(string cellAnchorId, int rowSpan, int colSpan,
          TableMergeOptions? options = null)
      {
@@ -772,7 +775,7 @@ index 6e60d1a8..8951f908 100644
          if (ResolveCell(cellAnchorId, out _, out var tc, out var tr, out var tbl, out var target) is { } err)
              return err;
          if (RefuseUnresolvedTableStructure(tbl!, cellAnchorId) is { } pending) return pending;
-@@ -11151,6 +11576,8 @@ public sealed partial class DocxSession : IDisposable
+@@ -11151,6 +11579,8 @@ public sealed partial class DocxSession : IDisposable
      /// </summary>
      public EditResult UnmergeCells(string cellAnchorId)
      {
@@ -781,7 +784,7 @@ index 6e60d1a8..8951f908 100644
          if (ResolveCell(cellAnchorId, out _, out var tc, out var tr, out var tbl, out var target) is { } err)
              return err;
          if (RefuseUnresolvedTableStructure(tbl!, cellAnchorId) is { } pending) return pending;
-@@ -11221,6 +11648,153 @@ public sealed partial class DocxSession : IDisposable
+@@ -11221,6 +11651,153 @@ public sealed partial class DocxSession : IDisposable
          }
      }
  
@@ -935,7 +938,7 @@ index 6e60d1a8..8951f908 100644
      // ─── Table styling (issue #315 Stage A), addressed by a canonical tc anchor ───────────
      //
      // Localized w:tblPr / w:trPr / w:tcPr writes over the grid model above.
-@@ -11649,14 +12223,41 @@ public sealed partial class DocxSession : IDisposable
+@@ -11649,14 +12226,41 @@ public sealed partial class DocxSession : IDisposable
          }
      }
  
@@ -982,7 +985,7 @@ index 6e60d1a8..8951f908 100644
      }
  
      private void TrackListPropertyMutation(XElement paragraph, XElement oldPPr, bool insertedNumPr)
-@@ -11665,6 +12266,22 @@ public sealed partial class DocxSession : IDisposable
+@@ -11665,6 +12269,22 @@ public sealed partial class DocxSession : IDisposable
          var author = _revisionAuthor ?? "docxodus";
          var date = NextTrackedFormatRevisionDate();
          var pPr = paragraph.Element(W.pPr);
@@ -1005,7 +1008,7 @@ index 6e60d1a8..8951f908 100644
          var oldBase = PropertySnapshot(oldPPr, W.pPr, W.pPrChange, W.rPr, W.sectPr);
          var newBase = PropertySnapshot(pPr, W.pPr, W.pPrChange, W.rPr, W.sectPr);
          if (XNode.DeepEquals(oldBase, newBase)) return;
-@@ -13644,6 +14261,7 @@ public sealed partial class DocxSession : IDisposable
+@@ -13644,6 +14264,7 @@ public sealed partial class DocxSession : IDisposable
                  var rFonts = new XElement(W.rFonts,
                      new XAttribute(W.ascii, op.FontFamily),
                      new XAttribute(W.hAnsi, op.FontFamily),
@@ -1013,7 +1016,7 @@ index 6e60d1a8..8951f908 100644
                      new XAttribute(W.cs, op.FontFamily));
                  WordprocessingMLUtil.InsertRPrChildInOrder(rPr, rFonts);
              }
-@@ -14031,7 +14649,7 @@ public sealed partial class DocxSession : IDisposable
+@@ -14031,7 +14652,7 @@ public sealed partial class DocxSession : IDisposable
              if (consumed < offset && offset < consumed + length)
              {
                  if (child.Name == W.r) return false;
@@ -1022,7 +1025,7 @@ index 6e60d1a8..8951f908 100644
  
                  int localOffset = offset - consumed;
                  int hyperlinkConsumed = 0;
-@@ -14102,7 +14720,7 @@ public sealed partial class DocxSession : IDisposable
+@@ -14102,7 +14723,7 @@ public sealed partial class DocxSession : IDisposable
              if (consumed == offset) return; // boundary already clean
              int local = offset - consumed;
  
@@ -1031,7 +1034,7 @@ index 6e60d1a8..8951f908 100644
                  SplitHyperlinkAt(child, local);
              // For <w:r>: SplitRunsAtOffset already handled it. For sdt/fldSimple/smartTag and
              // revision wrappers: treat as atomic — callers that insert a top-level child must
-@@ -14128,7 +14746,7 @@ public sealed partial class DocxSession : IDisposable
+@@ -14128,7 +14749,7 @@ public sealed partial class DocxSession : IDisposable
          }
          if (movedChildren.Count == 0) return;
  
@@ -1141,15 +1144,18 @@ index 14a00ab9..bca9a70a 100644
          BoolValue("keepLines", f.KeepLines);
          BoolValue("pageBreakBefore", f.PageBreakBefore);
 diff --git a/Docxodus/Internal/DocxSessionOps.cs b/Docxodus/Internal/DocxSessionOps.cs
-index 2367bb70..fcd9dbbe 100644
+index 2367bb70..4b2abd0b 100644
 --- a/Docxodus/Internal/DocxSessionOps.cs
 +++ b/Docxodus/Internal/DocxSessionOps.cs
-@@ -439,6 +439,12 @@ internal static class DocxSessionOps
+@@ -439,6 +439,15 @@ internal static class DocxSessionOps
          Mutate(handle, preconditions, anchorId,
              s => s.InsertParagraph(anchorId, position, markdown));
  
 +    public static string SyncKeyboardText(int handle, string anchorId, string text) =>
 +        Mutate(handle, null, anchorId, s => s.SyncKeyboardText(anchorId, text));
++
++    public static string SplitKeyboardParagraph(int handle, string anchorId, int offset) =>
++        Mutate(handle, null, anchorId, s => s.SplitKeyboardParagraph(anchorId, offset));
 +
 +    public static string InsertKeyboardControl(int handle, string anchorId, int offset, string kind) =>
 +        Mutate(handle, null, anchorId, s => s.InsertKeyboardControl(anchorId, offset, kind));
@@ -1157,7 +1163,7 @@ index 2367bb70..fcd9dbbe 100644
      public static string SplitParagraph(int handle, string anchorId, int characterOffset,
          MutationPreconditions? preconditions = null) =>
          Mutate(handle, preconditions, anchorId,
-@@ -876,6 +882,10 @@ internal static class DocxSessionOps
+@@ -876,6 +885,10 @@ internal static class DocxSessionOps
          MutationPreconditions? preconditions = null) =>
          Mutate(handle, preconditions, cellAnchorId, s => s.UnmergeCells(cellAnchorId));
  
@@ -1280,10 +1286,40 @@ index b563cc21..4cde724d 100644
      };
  
 diff --git a/Docxodus/WmlToHtmlConverter.cs b/Docxodus/WmlToHtmlConverter.cs
-index 619cea2c..7c341073 100644
+index 619cea2c..3f5a7b1b 100644
 --- a/Docxodus/WmlToHtmlConverter.cs
 +++ b/Docxodus/WmlToHtmlConverter.cs
-@@ -6576,6 +6576,25 @@ namespace Docxodus
+@@ -6295,8 +6295,6 @@ namespace Docxodus
+          *
+          * Don't Handle (yet)
+          * - adjustRightInd?
+-         * - autoSpaceDE
+-         * - autoSpaceDN
+          * - bidi
+          * - contextualSpacing (handled via GroupAndVerticallySpaceNumberedParagraphs)
+          * - divId
+@@ -6334,6 +6332,20 @@ namespace Docxodus
+             bool suppressLeadingWhiteSpace = false)
+         {
+             var style = DefineParagraphStyle(paragraph, elementName, suppressTrailingWhiteSpace, currentMarginLeft, isBidi, suppressLeadingWhiteSpace);
++            var paragraphProperties = paragraph.Element(W.pPr);
++            var autoLatin = paragraphProperties?.Element(W.autoSpaceDE)?.Attribute(W.val)?.ToBoolean() != false;
++            var autoDigits = paragraphProperties?.Element(W.autoSpaceDN)?.Attribute(W.val)?.ToBoolean() != false;
++            style["--docx-auto-space-de"] = autoLatin ? "1" : "0";
++            style["--docx-auto-space-dn"] = autoDigits ? "1" : "0";
++            style["text-autospace"] = autoLatin && autoDigits ? "normal"
++                : autoLatin ? "ideograph-alpha" : autoDigits ? "ideograph-numeric" : "no-autospace";
++            var documentSettings = wordDoc.MainDocumentPart?.DocumentSettingsPart?.GetXDocument().Root;
++            style["--docx-overflow-punctuation"] = paragraphProperties?.Element(W.overflowPunct)?.Attribute(W.val)?.ToBoolean() != false ? "1" : "0";
++            style["--docx-punctuation-kerning"] = documentSettings?.Element(W.noPunctuationKerning) is XElement noKerning
++                && noKerning.Attribute(W.val)?.ToBoolean() != false ? "0" : "1";
++            var compression = (string)documentSettings?.Element(W.characterSpacingControl)?.Attribute(W.val);
++            if (compression == "compressPunctuation" || compression == "compressPunctuationAndJapaneseKana")
++                style["--docx-compress-punctuation"] = "1";
+             var rtl = isBidi ? new XAttribute("dir", "rtl") : new XAttribute("dir", "ltr");
+             var firstMark = isBidi ? new XEntity("#x200f") : null;
+             var anchorAttr = settings.StampAnchors && (string)paragraph.Attribute(PtOpenXml.Unid) != null
+@@ -6576,6 +6588,25 @@ namespace Docxodus
  
              DefineFontSize(style, paragraph);
              DefineLineHeight(style, paragraph);
@@ -1309,11 +1345,196 @@ index 619cea2c..7c341073 100644
  
              // vertical text alignment as of December 2013 does not work in any major browsers.
              CreateStyleFromTextAlignment(style, pPr.Element(W.textAlignment));
+@@ -6729,11 +6760,30 @@ namespace Docxodus
+ 
+         private static void DefineLineHeight(Dictionary<string, string> style, XElement paragraph)
+         {
+-            // Don't set a default line-height. LibreOffice doesn't set explicit line-height,
+-            // and browser defaults (~1.2) provide reasonable spacing. The previous 108% default
+-            // made text too tight compared to LibreOffice's HTML output.
+-            // Line-height is only set explicitly when w:lineRule is specified in the document
+-            // (handled by CreateStyleFromSpacing).
++            // A line grid belongs to the section, not to the editor viewport. Keep
++            // explicit spacing and opt-out paragraphs intact. This path handles the
++            // ordinary single-spaced body text grid; tables need compatibility flags.
++            var pPr = paragraph.Element(W.pPr);
++            var grid = paragraph.Annotation<SectionAnnotation>()?.SectionElement?.Element(W.docGrid);
++            var gridType = (string)grid?.Attribute(W.type);
++            if (gridType != "lines" && gridType != "linesAndChars") return;
++            if (paragraph.Ancestors(W.tc).Any()) return;
++            var snap = pPr?.Element(W.snapToGrid);
++            if (snap?.Attribute(W.val)?.ToBoolean() == false) return;
++            var spacing = pPr?.Element(W.spacing);
++            var rule = (string)spacing?.Attribute(W.lineRule) ?? "auto";
++            var line = WordprocessingMLUtil.AttributeToTwips(spacing?.Attribute(W.line));
++            if (rule != "auto" || (line != null && line != 240m)) return;
++            var pitch = (decimal?)grid?.Attribute(W.linePitch);
++            if (pitch == null || pitch <= 0m) return;
++            var size = paragraph.DescendantsTrimmed(W.txbxContent)
++                .Where(e => e.Name == W.r).Select(GetFontSize).Max() ?? GetFontSize(paragraph);
++            if (size == null || size <= 0m) return;
++            var pitchPt = pitch.Value / 20m;
++            var height = Math.Ceiling(size.Value / 2m / pitchPt) * pitchPt;
++            style["line-height"] = height.ToString("0.###", NumberFormatInfo.InvariantInfo) + "pt";
++            style["--docx-line-grid"] = "1";
++            style["--docx-grid-font-px"] = (size.Value * 2m / 3m).ToString("0.###", NumberFormatInfo.InvariantInfo);
+         }
+ 
+         /*
+diff --git a/npm/src/editor.ts b/npm/src/editor.ts
+index dd343e75..0fa7582d 100644
+--- a/npm/src/editor.ts
++++ b/npm/src/editor.ts
+@@ -186,6 +186,8 @@ export interface DocxEditorOptions {
+   editable?: boolean;
+   /** Render block-flow pages (page boxes via pagination.ts) vs a continuous view. Default false. */
+   paginated?: boolean;
++  /** Host must reunify visual fragments before wiring editable blocks. */
++  fragmentParagraphs?: boolean;
+   /** Author-pinned page render scale (1.0 = 100%). Default 1. */
+   scale?: number;
+   /**
+@@ -1168,6 +1170,7 @@ export class DocxEditor {
+       fabricateClasses: options.fabricateClasses ?? false,
+       editable: options.editable ?? true,
+       paginated: options.paginated ?? false,
++      fragmentParagraphs: options.fragmentParagraphs ?? false,
+       scale: options.scale ?? 1,
+       columnWidth: options.columnWidth ?? "section",
+       fitToWidth: options.fitToWidth ?? true,
+@@ -2044,12 +2047,12 @@ export class DocxEditor {
+       target.className = "docx-body-flow";
+       this.container.appendChild(target);
+     }
+-    // Fragmented paragraphs intentionally have only one addressable head and
+-    // are therefore unsuitable for the editor's one-block editing model.
++    // The host restores each paragraph's fragments into a single editing host
++    // before wireBlocks; session edits still address the complete paragraph.
+     paginateHtml(fullHtml, target, {
+       scale: this.options.scale,
+       cssPrefix: "page-",
+-      fragmentParagraphs: false,
++      fragmentParagraphs: this.options.fragmentParagraphs,
+     });
+     // pagination.ts measures the hidden #pagination-staging subtree ONCE, then flows CLONES of its
+     // blocks into the visible page boxes. Leaving staging in the live DOM is a trap: every
+diff --git a/npm/src/pagination.ts b/npm/src/pagination.ts
+index 904939f2..bc618bed 100644
+--- a/npm/src/pagination.ts
++++ b/npm/src/pagination.ts
+@@ -82,6 +82,8 @@ export interface MeasuredBlock {
+   sectionIndex: number;
+   /** Measured height in points (content + padding + border, excluding margins) */
+   heightPt: number;
++  /** Empty half-leading below the final glyph of a grid-aligned line. */
++  gridTrailingSpacePt?: number;
+   /** Top margin in points */
+   marginTopPt: number;
+   /** Bottom margin in points */
+@@ -1217,6 +1219,7 @@ export class PaginationEngine {
+         element: child,
+         sectionIndex,
+         heightPt,
++        gridTrailingSpacePt: this.gridTrailingSpace(child, style),
+         marginTopPt,
+         marginBottomPt,
+         keepWithNext: child.dataset.keepWithNext === "true",
+@@ -1426,6 +1429,14 @@ export class PaginationEngine {
+    * This is intentionally DOM-based: table row heights cannot be inferred from individual
+    * rows because wrapping and collapsed borders change the height of a fragment.
+    */
++  private gridTrailingSpace(element: HTMLElement, style: CSSStyleDeclaration): number {
++    if (element.tagName !== "P" || style.getPropertyValue("--docx-line-grid").trim() !== "1") return 0;
++    if (element.querySelector("img,svg,math,table,canvas,video")) return 0;
++    const line = parseFloat(style.lineHeight);
++    const font = Math.max(parseFloat(style.fontSize), parseFloat(style.getPropertyValue("--docx-grid-font-px")) || 0);
++    return Number.isFinite(line) && Number.isFinite(font) ? pxToPt(Math.max(0, (line - font) / 2)) : 0;
++  }
++
+   private measureElement(
+     element: HTMLElement,
+     dims: PageDimensions,
+@@ -1447,6 +1458,7 @@ export class PaginationEngine {
+       element,
+       sectionIndex,
+       heightPt: pxToPt(rect.height),
++      gridTrailingSpacePt: this.gridTrailingSpace(measuredElement, style),
+       marginTopPt: pxToPt(parseFloat(style.marginTop) || 0),
+       marginBottomPt: pxToPt(parseFloat(style.marginBottom) || 0),
+       keepWithNext: element.dataset.keepWithNext === "true",
+@@ -1858,7 +1870,9 @@ export class PaginationEngine {
+         textOffset: start + node.data.length,
+         priority: 0,
+       });
+-      if (emergencyGraphemeBreaks) {
++      // CJK lines wrap between characters without ASCII spaces. The shared
++      // boundary filter below still protects graphemes and prohibited punctuation.
++      if (emergencyGraphemeBreaks || /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u.test(node.data)) {
+         for (let offset = 1; offset < node.data.length; offset++) {
+           if (offset % 256 === 0) this.checkpoint();
+           addCandidate({
+@@ -2088,8 +2102,9 @@ export class PaginationEngine {
+       return false;
+     }
+ 
+-    const isValidatedEndnote = paragraph.dataset.paginationSafeEndnote === "true";
+-    return isValidatedEndnote || this.hasRangeFragmentSafeLayout(paragraph, allowInlineRoot);
++    const isValidatedRange = paragraph.dataset.paginationSafeEndnote === "true" ||
++      paragraph.dataset.paginationRangeSafe === "true";
++    return isValidatedRange || this.hasRangeFragmentSafeLayout(paragraph, allowInlineRoot);
+   }
+ 
+   /**
+@@ -2120,6 +2135,9 @@ export class PaginationEngine {
+ 
+     for (const descendant of Array.from(paragraph.querySelectorAll<HTMLElement>("*"))) {
+       const style = this.view.getComputedStyle(descendant);
++      // Hidden revision decorations do not introduce a competing layout box.
++      // Range cloning retains them, so they remain available for reject/save.
++      if (style.display === "none") continue;
+       if (
+         style.display !== "inline" ||
+         style.position !== "static" ||
+@@ -2144,6 +2162,10 @@ export class PaginationEngine {
+     isFinalFragment: boolean
+   ): HTMLElement {
+     const fragment = paragraph.cloneNode(false) as HTMLElement;
++    // This fragment comes from a paragraph whose inline layout was validated
++    // while attached to staging. Its continuation is detached after measurement;
++    // computed styles there cannot validate it again for a third or later page.
++    fragment.dataset.paginationRangeSafe = "true";
+     const contents = range.cloneContents();
+     fragment.appendChild(contents);
+ 
+@@ -3708,11 +3730,12 @@ export class PaginationEngine {
+       // prefix that fits this page. Fragment before the ordinary next-page or
+       // oversized fallback so the cloned head participates in the same margin
+       // and footnote accounting as every other block.
+-      if (blockSpace > effectiveRemainingHeight) {
++      const visibleRemainingHeight = effectiveRemainingHeight + (block.gridTrailingSpacePt ?? 0);
++      if (blockSpace > visibleRemainingHeight) {
+         const paragraphFragments = this.tryFragmentParagraph(
+           block,
+           blockDimensions,
+-          effectiveRemainingHeight,
++          visibleRemainingHeight,
+           effectiveMarginTop
+         );
+         if (paragraphFragments) {
+@@ -3724,7 +3747,7 @@ export class PaginationEngine {
+ 
+       // Check if block fits on current page (including its footnotes)
+       if (
+-        blockSpace <= effectiveRemainingHeight
++        blockSpace <= visibleRemainingHeight
+         && (combinedFootnoteHeight === 0
+           || combinedFootnoteHeight + FOOTNOTE_MEASUREMENT_GUARD_PT <= maxFootnoteArea)
+       ) {
 diff --git a/wasm/DocxodusWasm/DocxSessionBridge.cs b/wasm/DocxodusWasm/DocxSessionBridge.cs
-index 60aaed10..4be79ef6 100644
+index 60aaed10..ea789641 100644
 --- a/wasm/DocxodusWasm/DocxSessionBridge.cs
 +++ b/wasm/DocxodusWasm/DocxSessionBridge.cs
-@@ -352,6 +352,14 @@ public static partial class DocxSessionBridge
+@@ -352,6 +352,18 @@ public static partial class DocxSessionBridge
      public static string InsertParagraph(int h, string anchor, string posStr, string md) =>
          DocxSessionOps.InsertParagraph(h, anchor, DocxSessionJson.ParsePos(posStr), md);
  
@@ -1322,13 +1543,17 @@ index 60aaed10..4be79ef6 100644
 +        DocxSessionOps.SyncKeyboardText(h, anchor, text);
 +
 +    [JSExport]
++    public static string SplitKeyboardParagraph(int h, string anchor, int offset) =>
++        DocxSessionOps.SplitKeyboardParagraph(h, anchor, offset);
++
++    [JSExport]
 +    public static string InsertKeyboardControl(int h, string anchor, int offset, string kind) =>
 +        DocxSessionOps.InsertKeyboardControl(h, anchor, offset, kind);
 +
      [JSExport]
      public static string SplitParagraph(int h, string anchor, int offset) =>
          DocxSessionOps.SplitParagraph(h, anchor, offset);
-@@ -421,6 +429,11 @@ public static partial class DocxSessionBridge
+@@ -421,6 +433,11 @@ public static partial class DocxSessionBridge
      public static string UnmergeCells(int h, string cellAnchor) =>
          DocxSessionOps.UnmergeCells(h, cellAnchor);
  

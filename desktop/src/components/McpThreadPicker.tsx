@@ -71,10 +71,10 @@ export function McpThreadPicker({
   const yuandianComplete = existingYuandianServices.size === YUANDIAN_SERVICES.length;
   const filtered = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("zh-CN");
-    return (snapshot?.servers ?? []).filter((server) => server.presetId !== "yuandian" && (
+    return (snapshot?.servers ?? []).filter((server) => server.presetId !== "yuandian" && !pkulawIds.has(server.serverId) && (
       !normalized || server.displayName.toLocaleLowerCase("zh-CN").includes(normalized)
     ));
-  }, [query, snapshot]);
+  }, [query, snapshot, savedServers]);
   const showYuandian = !query.trim()
     || "元典智库".toLocaleLowerCase("zh-CN").includes(query.trim().toLocaleLowerCase("zh-CN"));
 
@@ -181,21 +181,9 @@ export function McpThreadPicker({
             )}
 
             <div className="mcp-picker-list" aria-live="polite">
-              {pkulawServers.length > 1 && (!query.trim() || "北大法宝 pkulaw".includes(query.trim().toLowerCase())) &&
-                <button type="button" className="mcp-secondary-button" disabled={pkulawPending}
-                  aria-pressed={pkulawSelected} onClick={() => runSafely((async () => {
-                    if (pkulawBusy) return;
-                    setPkulawBusy(true);
-                    try {
-                      for (const server of pkulawServers) {
-                        if (pkulawSelected) await onDeselect(server.serverId);
-                        else if (!server.selected) await onSelect(server.serverId);
-                      }
-                    } finally { setPkulawBusy(false); }
-                  })())}>{pkulawSelected ? "取消全选法宝服务" : "全选法宝服务"}（{pkulawServers.length}）</button>}
               {loading && !snapshot ? (
                 <p className="mcp-loading"><LoaderCircle className="attachment-spinner" aria-hidden="true" size={15} />正在读取插件</p>
-              ) : filtered.length === 0 && !showYuandian ? (
+              ) : filtered.length === 0 && !showYuandian && !(pkulawServers.length && (!query.trim() || "北大法宝 pkulaw".includes(query.trim().toLowerCase()))) ? (
                 <p className="mcp-empty">{query ? "没有匹配的插件。" : "还没有保存的插件。"}</p>
               ) : (
                 <ul>
@@ -278,6 +266,35 @@ export function McpThreadPicker({
                         )}
                       </li>
                     );
+                  })()}
+                  {pkulawServers.length > 0 && (!query.trim() || "北大法宝 pkulaw".includes(query.trim().toLowerCase())) && (() => {
+                    const partial = pkulawServers.some(server => server.selected);
+                    const failed = pkulawServers.some(server => server.selected && Boolean(server.errorCode));
+                    const readyTools = pkulawServers.reduce((sum, server) => sum + (server.connectionStatus === "ready" ? server.toolCount : 0), 0);
+                    return <li key="preset:pkulaw">
+                      <button type="button" className="mcp-picker-row" disabled={pkulawPending}
+                        aria-pressed={pkulawSelected} aria-label={`${pkulawSelected ? "取消选择" : "选择"} 北大法宝`}
+                        onClick={() => runSafely((async () => {
+                          if (pkulawBusy) return;
+                          setPkulawBusy(true);
+                          try {
+                            for (const server of pkulawServers) {
+                              if (pkulawSelected) await onDeselect(server.serverId);
+                              else if (!server.selected) await onSelect(server.serverId);
+                            }
+                          } finally { setPkulawBusy(false); }
+                        })())}>
+                        <span className="mcp-picker-check" aria-hidden="true">{pkulawSelected ? "✓" : ""}</span>
+                        <span className="mcp-picker-copy"><strong>北大法宝</strong>
+                          <small>{pkulawPending ? "正在更新" : pkulawSelected && !failed ? `可用工具 ${readyTools} 个` : partial ? "部分能力已选择" : "未选择"}</small>
+                          {failed && <small className="mcp-picker-row-error">部分服务连接没有成功</small>}
+                        </span>
+                      </button>
+                      {failed && pkulawServers.some(server => server.selected && server.errorCode && server.retryable) &&
+                        <button type="button" className="mcp-picker-retry" onClick={() => runSafely((async () => {
+                          for (const server of pkulawServers.filter(item => item.selected && item.errorCode && item.retryable)) await onRetry(server.serverId);
+                        })())}><RotateCw aria-hidden="true" size={14} />重试</button>}
+                    </li>;
                   })()}
                   {filtered.map((server, index) => {
                     const pending = pendingServerIds.has(server.serverId) || (pkulawBusy && pkulawIds.has(server.serverId));

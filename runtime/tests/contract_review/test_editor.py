@@ -64,6 +64,25 @@ def bind_selection(env, *, index=0, text='十日', turn_id='edit-turn'):
     return context, payload
 
 
+def test_current_word_edit_bound_to_version_and_committed_once(env):
+    service, repo, _, h, source, turns = env
+    doc=repo.create_word_document('word-test','虚构合同.docx',source,source,NOW)
+    repo.link_word_document(h['review_id'],doc['id'])
+    context=SimpleNamespace(thread_id=h['thread_id'],turn_id='word-turn')
+    turns.create(TurnRecord(id=context.turn_id,thread_id=context.thread_id,status=TurnStatus.RUNNING,error_code=None,started_at=NOW,finished_at=None,created_at=NOW))
+    selection={'texts':['😀甲方十日内支付'], 'start':0,'end':0,'from':4,'to':6}
+    payload={'mode':'word','review_id':h['review_id'],'document_id':doc['id'],'revision':0,'selection':selection,'selected_text':'十日'}
+    snapshot=service.editor.prepare(context.thread_id,payload)
+    service.editor.bind(context.thread_id,context.turn_id,snapshot)
+    result=service.editor.propose(context,{'before':'十日','after':'三十日\n另行通知','reason':'期限调整'})
+    assert service.editor.propose(context,{'before':'十日','after':'三十日\n另行通知','reason':'期限调整'})['proposal_id']==result['proposal_id']
+    pending=repo.pending_word_ai_edits(h['review_id']);assert len(pending)==1
+    assert repo.save_word_document(doc['id'],0,source,NOW,None,result['proposal_id'])
+    assert repo.pending_word_ai_edits(h['review_id'])==[]
+    assert not repo.save_word_document(doc['id'],0,source,NOW,None,result['proposal_id'])
+    with pytest.raises(ContractReviewError):service.editor.prepare(context.thread_id,payload)
+
+
 def edit_one(editor, rid, state, index, text):
     p = state['paragraphs'][index]
     return editor.save(rid, state['revision'], [{'paragraph_id': p['id'], 'original': p['text'], 'text': text}])

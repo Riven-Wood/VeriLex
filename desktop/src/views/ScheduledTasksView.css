@@ -1,5 +1,6 @@
 body:has(.scheduled-page) { min-width: 0; }
 .scheduled-page{height:100%;overflow:auto;padding:32px clamp(20px,4vw,64px);color:var(--text-primary)}
+.scheduled-page>.loading-state{min-height:calc(100% - 110px)}
 .scheduled-page>header,.scheduled-detail>header{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:24px}
 .scheduled-page h1{font-size:24px;margin:0 0 8px}.scheduled-page h2{font-size:17px;margin:0 0 16px}.scheduled-page h3{font-size:14px;margin-top:28px}.scheduled-page p{color:var(--text-secondary);line-height:1.7}
 .scheduled-page button,.scheduled-back{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--border-subtle);border-radius:8px;background:var(--surface-primary);padding:8px 12px;color:var(--text-primary);cursor:pointer;font:inherit}

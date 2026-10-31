@@ -122,6 +122,35 @@ async def test_bound_work_result_is_saved_by_real_tool_loop_and_can_be_read_from
     assert service.workbench.record(context,'strategy')['data']['sections'][0]['body']=='先补充付款凭证'
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize('kind',['timeline','chronicle','relationship','confrontation'])
+async def test_project_facts_save_runs_without_approval_in_bound_task(web_env,kind):
+    import json
+    from verilex_runtime.litigation.service import LitigationService
+    from verilex_runtime.litigation.tools import register_litigation_tools
+    from verilex_runtime.litigation.workbench import WorkBinding
+    from verilex_runtime.litigation.project_facts import list_results
+    from verilex_runtime.storage.models import ToolCallStatus
+    service=LitigationService(web_env['workspaces'],threads=web_env['threads'])
+    register_litigation_tools(web_env['registry'],service)
+    workspace_id=web_env['workspace_thread'].workspace_id
+    thread=web_env['threads'].create(title='时间轴',model='model-1',provider_id='provider-1',workspace_id=workspace_id,scene='litigation-work')
+    context=service.context(workspace_id,write=True)
+    (service._root(context)/'材料.txt').write_text('双方签订合同。',encoding='utf8')
+    service.workbench.bind(context,thread.id,WorkBinding(kind='facts',project_chart_kind=kind,materials=['材料.txt'],expected_revision=0))
+    data={'kind':kind,'title':'经过','entries':[{'title':'签订合同','sources':[{'path':'材料.txt','quote':'双方签订合同。'}]}]}
+    engine=_engine(web_env,[[tool_call_delta('unsafe','write_file',json.dumps({'path':'材料.txt','content':'不得覆盖'}))],[tool_call_delta('save','litigation_project_facts_save',json.dumps({'result':data},ensure_ascii=False))],[text_delta('已生成')]])
+    engine._litigation_service=service
+    available={item['function']['name'] for item in engine._tools_for_model(thread)}
+    assert 'litigation_project_facts_save' in available and 'write_file' not in available
+    turn=engine.start(thread.id,'生成时间轴',approval_mode='ask')
+    result=await asyncio.wait_for(engine.run(turn.id,lambda r:_emit_into([],r)),15)
+    assert result.status is TurnStatus.COMPLETED
+    calls=web_env['tool_calls'].list_by_thread(thread.id)
+    assert len(calls)==1 and calls[0].name=='litigation_project_facts_save' and calls[0].status is ToolCallStatus.SUCCEEDED
+    assert (service._root(context)/'材料.txt').read_text(encoding='utf8')=='双方签订合同。'
+    assert list_results(service,context)['results'][0]['kind']==kind
+
+@pytest.mark.asyncio
 async def test_editor_snapshot_and_proposal_use_real_turn_without_writing_word(web_env):
     import json
     from dataclasses import replace
@@ -237,12 +266,13 @@ async def test_cross_suggestions_execute_in_ask_mode_without_overwriting_manual_
     assert row['opinion']=='人工内容' and row['suggestion']['opinion']=='核对合同原件。'
 
 @pytest.mark.parametrize('paths', [['focus.txt'], []])
-def test_litigation_material_selection_is_persisted_and_replayed_without_changing_user_text(web_env, paths):
+@pytest.mark.parametrize('scene', ['litigation-work', 'general'])
+def test_litigation_material_selection_is_persisted_and_replayed_without_changing_user_text(web_env, paths, scene):
     from verilex_runtime.litigation.service import LitigationService
     from verilex_runtime.agent.events import user_message_parts, litigation_material_paths
     service=LitigationService(web_env['workspaces'],threads=web_env['threads'])
     workspace_id=web_env['workspace_thread'].workspace_id
-    thread=web_env['threads'].create(title='选材',model='model-1',provider_id='provider-1',workspace_id=workspace_id,scene='litigation-work')
+    thread=web_env['threads'].create(title='选材',model='model-1',provider_id='provider-1',workspace_id=workspace_id,scene=scene)
     context=service.context(workspace_id,write=True)
     (context.root_path/'focus.txt').write_text('synthetic focus')
     engine=_engine(web_env,[[text_delta('done')]])
@@ -265,19 +295,21 @@ def test_litigation_material_selection_is_persisted_and_replayed_without_changin
     {'paths':['../outside.txt']}, {'paths':['missing.txt']},
     {'paths':['focus.txt','focus.txt']}, {'paths':[1]}, {'paths':'focus.txt'},
 ])
-def test_litigation_material_selection_rejects_cross_workspace_or_invalid_files_before_turn(web_env, selection):
+@pytest.mark.parametrize('scene', ['litigation-work', 'general'])
+def test_litigation_material_selection_rejects_cross_workspace_or_invalid_files_before_turn(web_env, selection, scene):
     from verilex_runtime.litigation.service import LitigationService
     from verilex_runtime.tools.registry import ToolError
     service=LitigationService(web_env['workspaces'],threads=web_env['threads'])
     workspace_id=web_env['workspace_thread'].workspace_id
-    thread=web_env['threads'].create(title='选材',model='model-1',provider_id='provider-1',workspace_id=workspace_id,scene='litigation-work')
+    thread=web_env['threads'].create(title='选材',model='model-1',provider_id='provider-1',workspace_id=workspace_id,scene=scene)
     engine=_engine(web_env,[[text_delta('done')]]);engine._litigation_service=service
     with pytest.raises(ToolError):engine.start(thread.id,'分析',litigation_materials={'workspaceId':workspace_id,**selection})
     assert engine._turns.list(thread.id)==[]
 
 
 @pytest.mark.asyncio
-async def test_selected_material_is_read_only_but_independent_output_is_allowed(web_env):
+@pytest.mark.parametrize('scene', ['litigation-work', 'general'])
+async def test_selected_material_is_read_only_but_independent_output_is_allowed(web_env, scene):
     import json
     from verilex_runtime.litigation.service import LitigationService
     from verilex_runtime.storage.models import ToolCallStatus
@@ -286,7 +318,7 @@ async def test_selected_material_is_read_only_but_independent_output_is_allowed(
     context = service.context(workspace_id, write=True)
     source = context.root_path / 'selected.txt'; source.write_text('original source')
     thread = web_env['threads'].create(title='selected', model='model-1', provider_id='provider-1',
-                                      workspace_id=workspace_id, scene='litigation-work')
+                                      workspace_id=workspace_id, scene=scene)
     engine = _engine(web_env, [[
         tool_call_delta('patch','apply_file_patch',json.dumps({'path':'selected.txt','old_text':'original','new_text':'changed'})),
         tool_call_delta('write','write_file',json.dumps({'path':'report.txt','content':'independent result'})),
@@ -320,6 +352,24 @@ async def test_regular_file_read_exposes_actual_call_receipt_to_model(web_env):
     assert f'source_call_id: {call.id}' in tool_message.content
     assert 'synthetic source' in tool_message.content
     assert 'source_call_id' not in call.result_json
+
+
+@pytest.mark.asyncio
+async def test_general_project_turn_reads_the_selected_file(web_env):
+    import json
+    from pathlib import Path
+    from verilex_runtime.litigation.service import LitigationService
+    thread = web_env['workspace_thread']
+    root = Path(web_env['workspaces'].get(thread.workspace_id).root_path)
+    (root/'selected.txt').write_text('selected synthetic evidence')
+    engine = _engine(web_env, [[tool_call_delta('read','read_file',json.dumps({'path':'selected.txt'}))],[text_delta('done')]])
+    engine._litigation_service = LitigationService(web_env['workspaces'], threads=web_env['threads'])
+    turn = engine.start(thread.id, '请分析', litigation_materials={'workspaceId':thread.workspace_id,'paths':['selected.txt']})
+    result = await engine.run(turn.id,lambda r:_emit_into([],r))
+    assert result.status is TurnStatus.COMPLETED
+    messages = engine._build_context(thread,turn.id).messages
+    assert any(m.role=='user' and isinstance(m.content,str) and 'selected.txt' in m.content for m in messages)
+    assert any(m.role=='tool' and 'selected synthetic evidence' in m.content for m in messages)
 
 
 def test_bound_metadata_is_protected_along_with_its_source(web_env):

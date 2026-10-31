@@ -27,6 +27,9 @@ from verilex_runtime.storage.thread_repository import (
     TurnRepository,
 )
 from verilex_runtime.storage.workspace_repository import WorkspaceRepository
+from verilex_runtime.storage.tool_repository import ToolCallRepository
+from verilex_runtime.storage.models import ToolCallRecord, ToolCallStatus, RiskLevel
+import json
 
 TOKEN = "threads-api-token"
 HEADERS = {"X-VeriLex-Token": TOKEN}
@@ -111,6 +114,7 @@ def api_fixture(tmp_path):
             threads_service=threads,
             turn_service=turns,
             artifact_service=ArtifactLifecycleProbe(),
+            tool_calls_repo=ToolCallRepository(database),
         ),
     )
     client = TestClient(
@@ -118,8 +122,66 @@ def api_fixture(tmp_path):
         base_url="http://127.0.0.1",
         raise_server_exceptions=False,
     )
+    client.source_repo = ToolCallRepository(database)
     return client, threads, turns
 
+
+def test_tool_source_is_limited_to_successful_read_in_same_thread(api_fixture):
+    client, threads, turns = api_fixture
+    first = threads.create(title='一', model='model-1')
+    second = threads.create(title='二', model='model-1')
+    turn = turns.create(first.id)
+    def add(call_id, name, status, payload):
+        client.source_repo.create(ToolCallRecord(id=call_id, turn_id=turn.id, provider_call_id=call_id,
+            name=name, arguments_json='{}', risk_level=RiskLevel.LOW, status=status,
+            result_json=json.dumps(payload,ensure_ascii=False)))
+    add('read', 'mcp__laws__read', ToolCallStatus.SUCCEEDED, {'ok':True,'output':'虚构法规原文'})
+    add('failed', 'law_read', ToolCallStatus.FAILED, {'ok':False,'output':'失败'})
+    add('write', 'write_file', ToolCallStatus.SUCCEEDED, {'ok':True,'output':'不可作为读取来源'})
+    path=f'/v1/threads/{first.id}/sources/'
+    assert client.get(path+'read',headers=HEADERS).json()['links']==[]
+    assert client.get(f'/v1/threads/{second.id}/sources/read',headers=HEADERS).status_code==404
+    assert client.get(path+'failed',headers=HEADERS).status_code==404
+    assert client.get(path+'write',headers=HEADERS).status_code==404
+    assert client.get(path+'read').status_code in (401,403)
+
+
+
+def test_plugin_source_exposes_named_public_links_not_raw_response(api_fixture):
+    client, threads, turns = api_fixture
+    thread = threads.create(title='一', model='model-1')
+    turn = turns.create(thread.id)
+    rows = {'success': True, 'data': [
+        {'title': '虚构法规甲', 'url': 'https://example.org/law/1'},
+        {'title': '虚构法规乙', 'url': 'https://example.org/law/2'},
+        {'title': '内部', 'url': 'http://127.0.0.1/private'},
+    ]}
+    inner = json.dumps({'content': [{'text': json.dumps(rows, ensure_ascii=False)}]}, ensure_ascii=False)
+    output = json.dumps({'text': '⟦UNTRUSTED_MCP_RESULT_START⟧\n' + inner + '\n⟦UNTRUSTED_MCP_RESULT_END⟧'}, ensure_ascii=False)
+    client.source_repo.create(ToolCallRecord(id='call', turn_id=turn.id, provider_call_id='call',
+        name='mcp__laws__read', arguments_json='{}', risk_level=RiskLevel.LOW, status=ToolCallStatus.SUCCEEDED,
+        result_json=json.dumps({'ok': True, 'output': output}, ensure_ascii=False)))
+    result = client.get(f'/v1/threads/{thread.id}/sources/call', headers=HEADERS).json()
+    assert result['links'] == [{'title':'虚构法规甲','url':'https://example.org/law/1'}, {'title':'虚构法规乙','url':'https://example.org/law/2'}]
+    assert 'text' not in result
+    from verilex_runtime.api.threads import _plugin_source_links
+    truncated = json.dumps({'text': inner, 'truncated': True})
+    assert _plugin_source_links(truncated) == []
+
+
+def test_law_source_links_to_the_read_statute_version(api_fixture):
+    client, threads, turns = api_fixture
+    thread = threads.create(title='法律检索', model='model-1')
+    turn = turns.create(thread.id)
+    for call_id, bbbs in [('valid', 'ff808081729d1efe01729d50b5c500bf'), ('invalid', 'bad&id=other')]:
+        output = json.dumps({'title': '民法典', 'bbbs': bbbs}, ensure_ascii=False)
+        client.source_repo.create(ToolCallRecord(id=call_id, turn_id=turn.id, provider_call_id=call_id,
+            name='law_read', arguments_json='{}', risk_level=RiskLevel.LOW, status=ToolCallStatus.SUCCEEDED,
+            result_json=json.dumps({'ok': True, 'output': output}, ensure_ascii=False)))
+    path = f'/v1/threads/{thread.id}/sources/'
+    assert client.get(path+'valid', headers=HEADERS).json()['links'] == [
+        {'title': '民法典', 'url': 'https://flk.npc.gov.cn/detail?id=ff808081729d1efe01729d50b5c500bf'}]
+    assert client.get(path+'invalid', headers=HEADERS).json()['links'] == []
 
 def thread_payload():
     return {"title": "Case A", "model": "model-1"}

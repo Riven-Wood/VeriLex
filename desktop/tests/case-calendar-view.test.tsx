@@ -118,14 +118,14 @@ test('capacity errors remain accurate and do not turn into a deleted-event confl
   expect(screen.queryByRole('button', { name: '重新载入日程' })).toBeNull();
 });
 
-test('delete is confirmed, keeps the entry on failure, and removes only after success', async () => {
+test('delete acts immediately, keeps the entry on failure, and removes only after success', async () => {
   const api = fixture(); await openDetail(api);
   api.remove = vi.fn(async () => { throw new Error('offline'); });
-  fireEvent.click(screen.getByRole('button', { name: '删除日程' })); expect(api.remove).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: '确认删除' }));
+  fireEvent.click(screen.getByRole('button', { name: '删除日程' }));
+  expect(api.remove).toHaveBeenCalledWith('one', 3);
   await screen.findByText('日程未能保存或读取，请检查应用连接后重试。');
   expect(screen.getByRole('dialog')).toBeTruthy();
-  api.remove = vi.fn(async () => {}); fireEvent.click(screen.getByRole('button', { name: '确认删除' }));
+  api.remove = vi.fn(async () => {}); fireEvent.click(screen.getByRole('button', { name: '删除日程' }));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   expect(api.remove).toHaveBeenCalledWith('one', 3);
   expect(within(screen.getByLabelText('当天日程')).queryByRole('button', { name: /虚构开庭安排/ })).toBeNull();
@@ -169,9 +169,10 @@ test('switching views and jumping dates preserves the selected day and uses week
   fireEvent.click(screen.getByRole('button', { name: '周视图', exact: true }));
   expect(screen.getByRole('button', { name: '2024年3月31日，1项日程' }).getAttribute('aria-pressed')).toBe('true');
   fireEvent.click(screen.getByRole('button', { name: '下一周' }));
+  fireEvent.click(screen.getByRole('button', { name: /跳转日期，当前/ }));
   expect((screen.getByLabelText('跳转日期') as HTMLInputElement).value).toBe('2024-04-07');
   expect(screen.getByRole('heading', { name: '2024年4月1日—7日' })).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: '列表', exact: true }));
+  fireEvent.click(screen.getByRole('button', { name: '任务列表', exact: true }));
   expect(screen.getByRole('heading', { name: '2024年4月' })).toBeTruthy();
   fireEvent.change(screen.getByLabelText('跳转日期'), { target: { value: '2024-03-31' } });
   expect(await within(screen.getByLabelText('本月日程列表')).findByRole('button', { name: /虚构开庭安排/ })).toBeTruthy();
@@ -186,7 +187,7 @@ test('list includes only the visible month and orders all-day before timed event
   ]);
   render(<CaseCalendarView api={api} initialDate={record.date} />);
   await screen.findByText('本月 3 项日程');
-  fireEvent.click(screen.getByRole('button', { name: '列表', exact: true }));
+  fireEvent.click(screen.getByRole('button', { name: '任务列表', exact: true }));
   const list = within(screen.getByLabelText('本月日程列表'));
   expect(list.queryByText('下月安排')).toBeNull();
   expect(list.getAllByRole('listitem').map(row => row.querySelector('strong')?.textContent)).toEqual(['全天安排', '上午开庭', '下午会议']);
@@ -200,14 +201,14 @@ test('search and kind filters agree in all views, and an empty result can be cle
   await screen.findByText('本月 2 项日程');
   fireEvent.change(screen.getByLabelText('按类型筛选'), { target: { value: 'deadline' } });
   fireEvent.change(screen.getByLabelText('搜索日程'), { target: { value: ' 另一地点 ' } });
-  expect(screen.getByText('本月匹配 1 / 2 项')).toBeTruthy();
+  expect(screen.getByText('全部日期匹配 1 项')).toBeTruthy();
   expect(within(screen.getByLabelText('当天日程')).queryByText('虚构开庭安排')).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: '周视图', exact: true }));
-  expect(screen.getByText('本周匹配 1 / 2 项')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: '列表', exact: true }));
-  expect(within(screen.getByLabelText('本月日程列表')).getByText('材料截止')).toBeTruthy();
+  expect(screen.getByText('全部日期匹配 1 项')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: '任务列表', exact: true }));
+  expect(within(screen.getByLabelText('搜索结果')).getByText('材料截止')).toBeTruthy();
   fireEvent.change(screen.getByLabelText('搜索日程'), { target: { value: '不存在的案件' } });
-  expect(screen.getByText('本月没有符合筛选条件的日程')).toBeTruthy();
+  expect(screen.getByText('没有找到符合条件的日程')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: '显示全部日程' }));
   expect(screen.getByText('本月 2 项日程')).toBeTruthy();
   expect(api.create).not.toHaveBeenCalled(); expect(api.update).not.toHaveBeenCalled();
@@ -219,8 +220,8 @@ test('weekly quick add uses that day and current kind; saving reveals the result
   await screen.findByText('本月 0 项日程');
   fireEvent.click(screen.getByRole('button', { name: '周视图', exact: true }));
   fireEvent.change(screen.getByLabelText('按类型筛选'), { target: { value: 'deadline' } });
-  fireEvent.change(screen.getByLabelText('搜索日程'), { target: { value: '旧标题' } });
   fireEvent.click(screen.getByRole('button', { name: '添加2024年3月27日的日程' }));
+  fireEvent.change(screen.getByLabelText('搜索日程'), { target: { value: '旧标题' } });
   expect((screen.getByLabelText('日期') as HTMLInputElement).value).toBe('2024-03-27');
   expect((screen.getByLabelText('类型') as HTMLSelectElement).value).toBe('deadline');
   fireEvent.change(screen.getByLabelText('日程标题'), { target: { value: '虚构举证截止' } });
@@ -284,4 +285,23 @@ test('all-day remains available and disables the explicit time input', async () 
   expect((screen.getByLabelText('时间') as HTMLInputElement).disabled).toBe(true);
   fireEvent.click(screen.getByRole('button', { name: '保存日程' }));
   await waitFor(() => expect(api.create).toHaveBeenCalledWith(expect.objectContaining({ time: null, timeZone: 'Asia/Shanghai' })));
+});
+
+
+test('search lists matching events across months and years by kind and case name', async () => {
+  const api = fixture([record,
+    { ...record, id: 'future', date: '2025-04-01', title: '证据交换', kind: 'hearing', caseName: '甲方案件' },
+    { ...record, id: 'past', date: '2023-01-02', title: '提交材料', kind: 'deadline', caseName: '甲方案件' },
+  ]);
+  render(<CaseCalendarView api={api} initialDate={record.date} />);
+  await screen.findByText('本月 1 项日程');
+  fireEvent.change(screen.getByLabelText('搜索日程'), { target: { value: '开庭' } });
+  const results = within(screen.getByLabelText('搜索结果'));
+  expect(results.getByText('证据交换')).toBeTruthy();
+  expect(results.getByText('2025年4月1日')).toBeTruthy();
+  fireEvent.change(screen.getByLabelText('搜索日程'), { target: { value: '甲方案件' } });
+  expect(results.getByText('提交材料')).toBeTruthy();
+  expect(results.getByText('证据交换')).toBeTruthy();
+  fireEvent.click(results.getByRole('button', { name: /证据交换/ }));
+  expect(within(screen.getByRole('dialog')).getByText('甲方案件')).toBeTruthy();
 });

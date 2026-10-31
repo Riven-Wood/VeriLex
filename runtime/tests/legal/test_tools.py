@@ -208,6 +208,7 @@ async def test_law_read_uses_cache_without_network(tmp_path):
 
     assert first["cached"] is False
     assert first["source"] == "国家法律法规数据库"
+    assert first["url"] == f"https://flk.npc.gov.cn/detail?id={_BBBS}"
     assert first["effectivity"] == "现行有效"
     assert first["gbrq"] == "2020-05-28"
     assert first["sxrq"] == "2021-01-01"

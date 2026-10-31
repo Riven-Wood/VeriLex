@@ -1,0 +1,6 @@
+.loading-state {display:flex; flex:1 1 auto; min-height:220px; align-items:center; justify-content:center; flex-direction:column; gap:12px; padding:24px; box-sizing:border-box; text-align:center; color:var(--vl-muted); font-size:13px; line-height:1.5}
+.loading-state-icon {flex:none; color:var(--vl-blue); animation:loading-state-spin 1s linear infinite}
+.loading-state-inline {flex:0 0 auto; min-height:0; flex-direction:row; justify-content:flex-start; gap:8px; padding:10px 0; text-align:left}
+.loading-state-inline .loading-state-icon {width:16px; height:16px}
+@keyframes loading-state-spin {to {transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce) {.loading-state-icon {animation:none}}

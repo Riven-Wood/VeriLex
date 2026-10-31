@@ -26,6 +26,7 @@ import {
 } from "../runtime/api";
 import { McpServerEditor } from "./McpServerEditor";
 import { YuandianSetup } from "./YuandianSetup";
+import { DetailDialog } from "./DetailDialog";
 
 import { PluginCatalog } from "./PluginCatalog";
 import { PluginCatalogDetail } from "./PluginCatalogDetail";
@@ -80,6 +81,8 @@ export function McpConnections({ onChanged, variant = "settings", query = "" }: 
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
   const [editing, setEditing] = useState<EditingTarget>(null);
+  const [yuandianDialog, setYuandianDialog] = useState(false);
+  const [yuandianBusy, setYuandianBusy] = useState(false);
   const [catalog, setCatalog] = useState(false);
   const [presetEntry, setPresetEntry] = useState<CatalogEntry | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -194,8 +197,11 @@ export function McpConnections({ onChanged, variant = "settings", query = "" }: 
 
   const completeYuandian = () => {
     setEditing(null);
-    setStatus("元典智库已添加。需要使用时，请在当前对话中选择。");
+    setYuandianDialog(false);
+    setYuandianBusy(false);
+    setStatus(yuandianDialog ? "元典智库连接已更新。" : "元典智库已添加。需要使用时，请在当前对话中选择。");
   };
+  const openYuandian = () => { if (variant === "center") setYuandianDialog(true); else setEditing("yuandian"); };
 
   const closeDelete = () => {
     if (deleting) return;
@@ -325,13 +331,17 @@ export function McpConnections({ onChanged, variant = "settings", query = "" }: 
     setTesting(true);
     setToolsLoading(null);
     try {
+      let pendingCount = 0;
       for (const server of records) {
         const tools = await refreshMcpServerTools(server.id, server.configRevision, controller.signal);
         if (controller.signal.aborted) return;
         setToolsByServer(current => ({ ...current, [server.id]: tools }));
         setToolCounts(current => ({ ...current, [server.id]: tools.length }));
+        pendingCount += tools.filter(tool => tool.reviewState !== "known").length;
       }
-      setStatus("测试通过。工具清单已刷新。");
+      setStatus(pendingCount
+        ? `连接成功，有 ${pendingCount} 项工具更新需要确认。请在下方选择要启用的工具。`
+        : "测试通过。工具清单已刷新。");
     } catch (caught) {
       if (!controller.signal.aborted) setError(errorCopy(caught));
     } finally {
@@ -371,11 +381,16 @@ export function McpConnections({ onChanged, variant = "settings", query = "" }: 
     <div className="mcp-connections">
       {error && !deleteTarget && <p className="mcp-error" role="alert">{error}{variant === "center" && <button type="button" className="mcp-secondary-button" disabled={testing || reviewingTool || deleting} onClick={() => void refreshServers()}>刷新列表</button>}</p>}
       {status && <p className="mcp-save-status" role="status">{status}</p>}
+      {yuandianDialog && <DetailDialog title="元典智库" className="yuandian-dialog" busy={yuandianBusy} returnFocus={yuandianActionRef.current} onClose={() => setYuandianDialog(false)}>
+        <YuandianSetup placement="settings" inDialog existingServers={yuandianServers} onBusyChange={setYuandianBusy}
+          onAddServer={async input => saved(await createMcpServer(input))} onRefresh={refreshServers}
+          onCancel={() => setYuandianDialog(false)} onComplete={completeYuandian}/>
+      </DetailDialog>}
       {presetEntry && <PluginCatalogDetail entry={presetEntry} servers={servers}
         onSaved={saved} onClose={closePreset}
         onComplete={() => { closePreset(); void onChanged?.(); }}
         onOpen={server => { setPresetEntry(null); void toggleTools(server); }}
-        onYuandian={() => setEditing("yuandian")} />}
+        onYuandian={() => {setPresetEntry(null); openYuandian();}} />}
 
       {variant === "center" && !editing && !expandedId && <div className="plugin-browse-mode" role="group" aria-label="外部工具浏览方式">
         <button type="button" aria-pressed={!catalog} onClick={() => setCatalog(false)}>已添加</button>
@@ -384,7 +399,7 @@ export function McpConnections({ onChanged, variant = "settings", query = "" }: 
       {variant === "center" && catalog && !editing && !expandedId ? <PluginCatalog query={query} servers={servers}
         onSaved={saved} onComplete={() => { setCatalog(false); void onChanged?.(); }}
         onOpen={server => { setCatalog(false); void toggleTools(server); }}
-        onYuandian={() => { setCatalog(false); if (yuandianComplete) void toggleYuandianTools(); else setEditing("yuandian"); }}
+        onYuandian={openYuandian}
       /> : editing === "yuandian" ? (
         <div className="mcp-yuandian-detail">
           <YuandianSetup
@@ -411,8 +426,8 @@ export function McpConnections({ onChanged, variant = "settings", query = "" }: 
           counts={toolCounts} complete={yuandianComplete} query={query} expandedId={expandedId} tools={toolsByServer}
           toolsLoading={toolsLoading} busy={reviewingTool || testing} testing={testing}
           onBack={() => { actionControllerRef.current?.abort(); setExpandedId(null); setToolsLoading(null); }}
-          onOpen={server => void toggleTools(server)} onOpenYuandian={() => void toggleYuandianTools()}
-          onAdd={() => setEditing("generic")} onEdit={setEditing} onYuandian={() => setEditing("yuandian")}
+          onOpen={server => void toggleTools(server)}
+          onAdd={() => setEditing("generic")} onEdit={setEditing} onYuandian={openYuandian}
           onPreset={openPreset}
           onTest={records => void testConnections(records)} renderTool={renderTool}
           onDelete={(records, label, builtin, trigger) => {

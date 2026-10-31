@@ -93,6 +93,14 @@ class WorkspaceRepository:
             )
         return cursor.rowcount == 1
 
+    def rename(self, workspace_id: str, display_name: str) -> bool:
+        with self._database.connect() as connection:
+            cursor = connection.execute(
+                "UPDATE workspaces SET display_name = ? WHERE id = ? AND revoked_at IS NULL",
+                (display_name, workspace_id),
+            )
+        return cursor.rowcount == 1
+
     def delete(self, workspace_id: str, *, revoked_at: str | None = None) -> bool:
         with self._database.connect() as connection:
             connection.execute("BEGIN IMMEDIATE")

@@ -18,6 +18,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from . import __version__
 from .api.errors import install_error_handlers
 from .api.limits import RequestBodyLimitMiddleware
 from .api.providers import build_provider_router
@@ -61,7 +62,7 @@ class ConfiguredCapabilities(BaseModel):
 class HealthResponse(BaseModel):
     ok: bool = True
     service: str = "verilex-runtime"
-    version: str = "1.0.0"
+    version: str = __version__
     storage: Literal["local"] = "local"
     cloud_backend: bool = False
     configured: ConfiguredCapabilities
@@ -110,7 +111,7 @@ def create_app(
 
     app = FastAPI(
         title="VeriLex Local Runtime",
-        version="1.0.0",
+        version=__version__,
         docs_url=None,
         redoc_url=None,
         openapi_url=None,

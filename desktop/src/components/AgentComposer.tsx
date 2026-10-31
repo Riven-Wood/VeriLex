@@ -1,6 +1,7 @@
 import { useUiPreferences, isSendKey } from "../settings/preferences";
+import { DetailDialog } from "./DetailDialog";
 import { KnowledgePicker } from "./KnowledgePicker";
-import { LitigationSkillPicker } from "./LitigationSkillPicker";
+import { LitigationSkillPicker, SkillList } from "./LitigationSkillPicker";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { ApprovalMode } from "../hooks/useAgentChat";
 import { invoke } from "@tauri-apps/api/core";
@@ -9,7 +10,6 @@ import {
   ChevronDown,
   Database,
   FolderOpen,
-  ListTree,
   Paperclip,
   Plug,
   Plus,
@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   Square,
   Wrench,
+  Scale,
 } from "lucide-react";
 import type { ContextUsageRecord, ProviderKind, ReasoningEffort } from "../runtime/contracts";
 
@@ -43,6 +44,7 @@ function nativeDropReadError(error: unknown): string {
 }
 
 interface AgentComposerProps {
+  searchControls?: ReactNode;
   litigationSkillScope?: string;
   knowledgeSelection?: { selected: string[]; onChange: (ids: string[]) => void; disabled: boolean };
   hasModel: boolean;
@@ -114,6 +116,7 @@ const CLOSED_WEB_ACCESS = {
 };
 
 export function AgentComposer({
+  searchControls,
   litigationSkillScope,
   knowledgeSelection,
   hasModel,
@@ -181,6 +184,7 @@ export function AgentComposer({
   const [nativeDropError, setNativeDropError] = useState("");
   const [showRunningActions, setShowRunningActions] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [skillMenu, setSkillMenu] = useState<"all" | "legal" | null>(null);
   const [showApprovalMenu, setShowApprovalMenu] = useState(false);
   const [showContextUsage, setShowContextUsage] = useState(false);
   const [showReasoningMenu, setShowReasoningMenu] = useState(false);
@@ -444,6 +448,7 @@ export function AgentComposer({
           {workspaceLabel}
         </button>
       </div>
+      {searchControls !== undefined && <div className="composer-search-controls">{searchControls}</div>}
       <textarea
         ref={textareaRef}
         aria-label="向智能体提问"
@@ -548,23 +553,22 @@ export function AgentComposer({
               <FolderOpen aria-hidden="true" size={16} />
               选择工作区
             </button>
-            {knowledgeSelection ? <KnowledgePicker {...knowledgeSelection} /> : <button type="button" role="menuitem" disabled aria-disabled="true">
+            {searchControls === undefined && <>{knowledgeSelection ? <KnowledgePicker {...knowledgeSelection} /> : <button type="button" role="menuitem" disabled aria-disabled="true">
               <Database aria-hidden="true" size={16} />知识库
             </button>}
-            <button type="button" role="menuitem" disabled aria-disabled="true">
-              <ListTree aria-hidden="true" size={16} />
-              问答 · 计划 · 目标
-            </button>
             <button
               type="button"
               role="menuitem"
               onClick={() => {
                 setShowAddMenu(false);
-                onOpenSettings();
+                setSkillMenu("all");
               }}
             >
               <Wrench aria-hidden="true" size={16} />
-              技能
+              全部技能
+            </button>
+            <button type="button" role="menuitem" onClick={() => { setShowAddMenu(false); setSkillMenu("legal"); }}>
+              <Scale aria-hidden="true" size={16} />法律技能
             </button>
             <button
               type="button"
@@ -576,9 +580,18 @@ export function AgentComposer({
             >
               <Plug aria-hidden="true" size={16} />
               插件
-            </button>
+            </button></>}
           </div>
         )}
+        {skillMenu && <DetailDialog title={skillMenu === "all" ? "全部技能" : "法律技能"} className="litigation-skill-dialog"
+          returnFocus={addToggleRef.current} onClose={() => setSkillMenu(null)}>
+          <SkillList mode={skillMenu} onChoose={name => {
+            const instruction = `请先读取并使用「${name}」技能。`;
+            if (!value.split(/\r?\n/).includes(instruction)) onChange(`${value}${value ? value.endsWith("\n") ? "\n" : "\n\n" : ""}${instruction}`);
+            setSkillMenu(null);
+            requestAnimationFrame(() => textareaRef.current?.focus());
+          }} />
+        </DetailDialog>}
         <div className="composer-approval">
           <ShieldCheck aria-hidden="true" size={16} />
           <button
@@ -621,7 +634,7 @@ export function AgentComposer({
             </div>
           )}
         </div>
-        <button
+        {searchControls === undefined && <button
           type="button"
           className={`composer-web-access${webAccess.enabled ? " is-enabled" : ""}`}
           aria-label={webAccessLabel}
@@ -630,7 +643,7 @@ export function AgentComposer({
           onClick={() => onWebAccessChange(!webAccess.enabled)}
         >
           联网
-        </button>
+        </button>}
         {litigationSkillScope !== undefined && <LitigationSkillPicker key={litigationSkillScope}
           disabled={submissionPending}
           onOpen={() => {

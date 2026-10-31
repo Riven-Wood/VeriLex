@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
 
 import { DeliverablesCard } from "../src/components/timeline/DeliverablesCard";
@@ -305,5 +305,42 @@ test('legal results and background task controls stay outside the failure disclo
   render(<TurnGroup presentation="legal" items={items} active={false} renderItem={item => <span key={item.id}>DETAIL:{item.id}</span>} />);
   expect(screen.getByText('DETAIL:law')).toBeTruthy();
   expect(screen.getByText('DETAIL:background')).toBeTruthy();
+  expect(screen.queryByText('DETAIL:failure')).toBeNull();
+});
+
+test('过程说明与最终回答分层显示，过程不出现消息操作', () => {
+  const items = [assistant('step', 't1', '先检索现行条文'), {...tool('search', 't1'), name: 'law_search'}, assistant('answer', 't1', '最终回答')];
+  render(<TurnGroup presentation="legal" items={items} active renderItem={() => null} />);
+  const process = screen.getByText('先检索现行条文').closest('.turn-narrative');
+  const answer = screen.getByText('最终回答').closest('.turn-narrative');
+  expect(process?.classList.contains('turn-narrative-process')).toBe(true);
+  expect(process?.querySelector('.message-actions')).toBeNull();
+  expect(answer?.classList.contains('turn-narrative-process')).toBe(false);
+  expect(answer?.querySelector('.message-actions')).not.toBeNull();
+});
+
+
+test('回答开始后自动折叠执行过程，仍可手动展开', () => {
+  const running = {...tool('working', 't1'), status:'running' as const};
+  const renderItem = (item: TimelineItem) => <span key={item.id}>DETAIL:{item.id}</span>;
+  const view = render(<TurnGroup items={[running]} active startedAt={Date.now()} renderItem={renderItem} />);
+  const toggle = screen.getByRole('button', {name:/执行过程/});
+  if (toggle.getAttribute('aria-expanded') === 'false') fireEvent.click(toggle);
+  expect(toggle.getAttribute('aria-expanded')).toBe('true');
+  view.rerender(<TurnGroup items={[running, assistant('answer','t1','回答')]} active startedAt={Date.now()} renderItem={renderItem} />);
+  expect(toggle.getAttribute('aria-expanded')).toBe('false');
+  fireEvent.click(toggle);
+  expect(toggle.getAttribute('aria-expanded')).toBe('true');
+});
+
+test('回答出现时，展开的失败记录自动收起', () => {
+  const failure = tool('failure', 't1', 'failed');
+  const renderItem = (item: TimelineItem) => <span key={item.id}>DETAIL:{item.id}</span>;
+  const view = render(<TurnGroup items={[failure]} active renderItem={renderItem} />);
+  const toggle = screen.getByRole('button', {name:/执行记录/});
+  fireEvent.click(toggle);
+  expect(screen.getByText('DETAIL:failure')).toBeTruthy();
+  view.rerender(<TurnGroup items={[failure, assistant('answer','t1','回答')]} active renderItem={renderItem} />);
+  expect(toggle.getAttribute('aria-expanded')).toBe('false');
   expect(screen.queryByText('DETAIL:failure')).toBeNull();
 });

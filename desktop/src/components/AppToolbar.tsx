@@ -19,7 +19,7 @@ interface AppToolbarProps {
 /**
  * The single top toolbar (product layout decision 2026-08-31, modeled after
  * the reference image): traffic lights sit over the spacer, then the sidebar
- * toggle and back/forward; the right-rail toggle lives at the far right. The
+ * back/forward and sidebar toggle; the right-rail toggle lives at the far right. The
  * strip doubles as the window drag region; buttons opt out by being real
  * controls.
  */
@@ -37,17 +37,6 @@ export function AppToolbar({
   return (
     <header className="app-toolbar" data-tauri-drag-region>
       <span className="app-toolbar-traffic-spacer" aria-hidden="true" />
-      {showSidebarToggle && <button
-        type="button"
-        className="icon-button app-toolbar-button"
-        aria-label={sidebarCollapsed ? "展开侧栏" : "收起侧栏"}
-        title={sidebarCollapsed ? "展开侧栏" : "收起侧栏"}
-        onClick={onToggleSidebar}
-      >
-        {sidebarCollapsed
-          ? <PanelLeftOpen aria-hidden="true" size={15} />
-          : <PanelLeftClose aria-hidden="true" size={15} />}
-      </button>}
       <button
         type="button"
         className="icon-button app-toolbar-button"
@@ -68,6 +57,17 @@ export function AppToolbar({
       >
         <ArrowRight aria-hidden="true" size={15} />
       </button>
+      {showSidebarToggle && <button
+        type="button"
+        className="icon-button app-toolbar-button"
+        aria-label={sidebarCollapsed ? "展开侧栏" : "收起侧栏"}
+        title={sidebarCollapsed ? "展开侧栏" : "收起侧栏"}
+        onClick={onToggleSidebar}
+      >
+        {sidebarCollapsed
+          ? <PanelLeftOpen aria-hidden="true" size={15} />
+          : <PanelLeftClose aria-hidden="true" size={15} />}
+      </button>}
       <span className="app-toolbar-drag" data-tauri-drag-region />
       {onOpenCommands && <button type="button" className="icon-button app-toolbar-button" aria-label="打开命令面板" title="命令面板" onClick={onOpenCommands}><Command aria-hidden="true" size={15}/></button>}
       {rightRail ? (

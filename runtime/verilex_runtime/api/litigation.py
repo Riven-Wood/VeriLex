@@ -44,6 +44,9 @@ class EditorSave(BaseModel):
     document: dict
     title: str | None = Field(default=None, min_length=1, max_length=200)
 
+class EditorCopy(EditorSave):
+    title: str = Field(min_length=1, max_length=200)
+
 class WordOpen(BaseModel):
     model_config = ConfigDict(extra='forbid')
     base_hash: str = Field(pattern=r'^[a-f0-9]{64}$')
@@ -167,6 +170,11 @@ def build_litigation_router(service: LitigationService) -> APIRouter:
     async def diagrams(workspace_id: str):
         from verilex_runtime.litigation.visualizations import diagram_list
         return await anyio.to_thread.run_sync(diagram_list, service, service.context(workspace_id))
+
+    @router.get('/{workspace_id}/project-facts')
+    async def project_facts(workspace_id: str):
+        from verilex_runtime.litigation.project_facts import list_results
+        return await anyio.to_thread.run_sync(list_results, service, service.context(workspace_id))
 
     @router.get('/{workspace_id}/diagram-preview')
     async def diagram_preview(workspace_id: str, path: str):
@@ -302,6 +310,10 @@ def build_litigation_router(service: LitigationService) -> APIRouter:
     async def save_editor_product(workspace_id: str, product_id: str, request: EditorSave):
         return await anyio.to_thread.run_sync(service.products.save, service.context(workspace_id, write=True), product_id, request.base_hash, request.document, request.title)
 
+    @router.post('/{workspace_id}/editor-products/{product_id}/copy')
+    async def copy_editor_product(workspace_id: str, product_id: str, request: EditorCopy):
+        return await anyio.to_thread.run_sync(service.products.copy_product, service.context(workspace_id, write=True), product_id, request.base_hash, request.document, request.title)
+
     @router.put('/{workspace_id}/editor-products/{product_id}/draft')
     async def editor_draft(workspace_id: str, product_id: str, request: EditorSave):
         return await anyio.to_thread.run_sync(service.products.draft, service.context(workspace_id, write=True), product_id, request.base_hash, request.document)
@@ -321,5 +333,9 @@ def build_litigation_router(service: LitigationService) -> APIRouter:
     @router.get('/{workspace_id}/editor-products/{product_id}/history')
     async def editor_history(workspace_id: str, product_id: str):
         return await anyio.to_thread.run_sync(service.products.history, service.context(workspace_id), product_id)
+
+    @router.post('/{workspace_id}/editor-products/{product_id}/history/{revision}/word')
+    async def editor_word_history(workspace_id:str,product_id:str,revision:int,request:WordOpen):
+        return await anyio.to_thread.run_sync(service.products.open_word_history,service.context(workspace_id),product_id,revision,request.base_hash)
 
     return router

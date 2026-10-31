@@ -896,9 +896,9 @@ async def test_catalog_change_and_new_tool_are_disabled_and_removed_from_model(t
     )
 
     async with service.turn_scope(thread_id, "turn-1") as scope:
-        definitions = await scope.refresh_catalog()
+        with pytest.raises(MCPDomainError, match="mcp_tool_review_required"):
+            await scope.refresh_catalog()
 
-    assert definitions == ()
     tools = repository.list_tools("server-a")
     assert [(tool.tool_name, tool.enabled, tool.review_state) for tool in tools] == [
         ("read_case", False, "changed"),
@@ -1121,3 +1121,77 @@ async def test_service_close_waits_for_mcp_operation_not_caller_after_unknown(
         caller_gate.set()
         await calling
         await closing
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("change", ["rename", "add", "description", "schema"])
+async def test_catalog_updates_require_review_and_recover_on_next_turn(tmp_path, change):
+    service, repository, pool, thread_id, _other, record = _components(tmp_path)
+    original = pool.tools[0]
+    if change == "rename":
+        pool.tools = (original.model_copy(update={"name": "new_search"}),)
+    elif change == "add":
+        pool.tools = (original, original.model_copy(update={"name": "new_search"}))
+    elif change == "description":
+        pool.tools = (original.model_copy(update={"description": "New instructions"}),)
+    else:
+        pool.tools = (original.model_copy(update={"inputSchema": {"type": "object"}}),)
+    for attempt in range(2):
+        async with service.turn_scope(thread_id, f"waiting-{attempt}") as scope:
+            with pytest.raises(MCPDomainError, match="mcp_tool_review_required"):
+                await scope.refresh_catalog()
+    assert not pool.calls
+    pending = [tool for tool in repository.list_tools(record.id) if tool.review_state != "known"]
+    assert pending
+    for tool in pending:
+        await service.review_tool(record.id, tool.tool_name, enabled=True,
+            expected_description_hash=tool.description_hash, expected_schema_hash=tool.schema_hash)
+    async with service.turn_scope(thread_id, "recovered") as scope:
+        definitions = await scope.refresh_catalog()
+        assert len(definitions) == len(pool.tools)
+    assert not pool.active("turn", "recovered")
+
+
+@pytest.mark.asyncio
+async def test_review_can_decline_new_tool_without_blocking_existing_tools(tmp_path):
+    service, repository, pool, thread_id, _other, record = _components(tmp_path)
+    pool.tools = (*pool.tools, Tool(name="new_tool", description="New", inputSchema={"type": "object"}))
+    async with service.turn_scope(thread_id, "first") as scope:
+        with pytest.raises(MCPDomainError, match="mcp_tool_review_required"):
+            await scope.refresh_catalog()
+    tool = next(t for t in repository.list_tools(record.id) if t.tool_name == "new_tool")
+    await service.review_tool(record.id, tool.tool_name, enabled=False,
+        expected_description_hash=tool.description_hash, expected_schema_hash=tool.schema_hash)
+    for attempt in range(2):
+        async with service.turn_scope(thread_id, f"ready-{attempt}") as scope:
+            assert len(await scope.refresh_catalog()) == 1
+    assert next(t for t in repository.list_tools(record.id) if t.tool_name == "new_tool").enabled is False
+
+
+@pytest.mark.asyncio
+async def test_changed_catalog_surfaces_actionable_turn_error_before_model_request(tmp_path):
+    from verilex_runtime.agent.engine import AgentEngine
+    from verilex_runtime.sessions.turn_service import TurnService
+    from verilex_runtime.storage.thread_repository import TurnRepository, MessageRepository, EventRepository
+    from verilex_runtime.storage.models import TurnStatus
+
+    service, repository, pool, thread_id, _other, _record = _components(tmp_path)
+    database = repository._database
+    turns = TurnService(ThreadRepository(database), TurnRepository(database),
+                        MessageRepository(database), EventRepository(database), now=lambda: NOW)
+    pool.tools = (*pool.tools, Tool(name="new_search", description="New search", inputSchema={"type": "object"}))
+    model_calls = []
+    def model_factory(*args, **kwargs):
+        model_calls.append(True)
+        raise AssertionError("Model must not receive a partial catalog")
+    emitted = []
+    async def emit(event):
+        emitted.append(event)
+    engine = AgentEngine(service._threads, turns, model_factory, mcp_service=service, now=lambda: NOW)
+    turn = engine.start(thread_id, "Find a case")
+    finished = await engine.run(turn.id, emit)
+    assert finished.status is TurnStatus.FAILED
+    assert finished.error_code == "mcp_tool_review_required"
+    assert not model_calls
+    assert not pool.calls
+    assert emitted

@@ -110,3 +110,28 @@ async def test_scene_does_not_gate_auxiliary_tools_by_scope(web_env, contract_th
     events = []; turn = engine.start(thread.id, '读取辅助资料')
     assert (await engine.run(turn.id, lambda r: _emit_into(events,r))).status is TurnStatus.COMPLETED
     assert calls == ['read', 'read']
+
+
+@pytest.mark.asyncio
+async def test_word_selection_reaches_model_tool_and_queues_only_requested_edit(web_env,contract_thread):
+    import json
+    from verilex_runtime.contract_review.service import ContractReviewService
+    from verilex_runtime.contract_review.tools import register_contract_review_tools
+    from verilex_runtime.storage.contract_review_repository import ContractReviewRepository
+    from verilex_runtime.storage.thread_repository import TurnRepository
+    repo=ContractReviewRepository(web_env['database'])
+    service=ContractReviewService(threads=web_env['threads'],attachments=None,repository=repo,tool_calls=web_env['tool_calls'],turns=TurnRepository(web_env['database']))
+    thread=contract_thread()
+    repo.create_word_document('word-ai','合同.docx',b'fixture',b'fixture','t')
+    repo.create_review(id='review-ai',thread_id=thread.id,filename='合同.docx',file_digest='x',original=b'fixture',skill='通用合同审查',party='neutral',strictness='normal',signature='V',retrieval_enabled=False,status='completed',created_at='t',updated_at='t',discussion_only=True)
+    repo.link_word_document('review-ai','word-ai')
+    register_contract_review_tools(web_env['registry'],service)
+    engine=_engine(web_env,[[tool_call_delta('edit','contract_edit_proposal',json.dumps({'before':'十日','after':'三十日'}))],[text_delta('已提交修改')]])
+    engine._contract_review_service=service;engine._contract_reviews=repo
+    payload={'mode':'word','review_id':'review-ai','document_id':'word-ai','revision':0,'selection':{'texts':['十日付款'],'start':0,'end':0,'from':0,'to':2},'selected_text':'十日'}
+    turn=engine.start(thread.id,'请将选中文字改为三十日',contract_editor_context=payload)
+    events=[]
+    result=await asyncio.wait_for(engine.run(turn.id,lambda event:_emit_into(events,event)),10)
+    assert result.status is TurnStatus.COMPLETED
+    edits=repo.pending_word_ai_edits('review-ai')
+    assert len(edits)==1 and edits[0]['before_text']=='十日' and edits[0]['after_text']=='三十日'

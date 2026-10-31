@@ -21,6 +21,17 @@ class Create(Options):
     filename:str=Field(min_length=1,max_length=255)
     content:str=Field(max_length=28*1024*1024)
 
+class Replacement(Strict):
+    old: str = Field(min_length=1, max_length=200)
+    new: str = Field(default='', max_length=200)
+
+class Process(Strict):
+    filename: str = Field(min_length=1, max_length=255)
+    content: str = Field(max_length=28*1024*1024)
+    kinds: list[str] = Field(default_factory=lambda:list(DEFAULT_KINDS), max_length=20)
+    replacements: list[Replacement] = Field(default_factory=list, max_length=100)
+    variant: Literal['word', 'markdown']
+
 class Version(Strict):
     revision:int=Field(ge=1)
 
@@ -53,6 +64,17 @@ def build_redaction_router(service):
             try: raw=base64.b64decode(body.content,validate=True)
             except (ValueError,binascii.Error): raise RedactionError() from None
             return service.create(body.filename,raw,body.kinds,body.custom)
+        return await call(work)
+
+    @router.post('/process')
+    async def process(body: Process):
+        def work():
+            try: raw = base64.b64decode(body.content, validate=True)
+            except (ValueError, binascii.Error): raise RedactionError() from None
+            data = service.process(body.filename, raw, body.kinds,
+                                   [item.model_dump() for item in body.replacements], body.variant)
+            return {'filename': '脱敏修订版.docx' if body.variant == 'word' else '脱敏版.md',
+                    'content': base64.b64encode(data).decode()}
         return await call(work)
 
     @router.get('/{identifier}')

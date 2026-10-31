@@ -127,3 +127,8 @@ body:has(.case-calendar-page) { min-width: 0; }
 @container (max-width: 500px) { .case-calendar-heading h1 { font-size: 21px; }.case-calendar-toolbar h2 { min-width: 95px; font-size: 14px; }.case-calendar-search { width: 100%; }.case-calendar-navigation { flex-wrap: wrap; }.case-calendar-day .case-calendar-mini { flex-direction: column; align-items: flex-start; gap: 0; }.case-calendar-mini > span { max-width: 100%; }.case-calendar-today-label { display: none; }.case-calendar-week-add span { display: none; }.case-calendar-list .case-calendar-list-item { gap: 6px; padding: 12px 3px; } }
 @media(max-width: 1050px) { .case-calendar-page { padding: 24px 20px 16px; } }
 @media(max-width: 480px) { .case-calendar-page { padding: 20px 12px; }.case-calendar-form, .case-calendar-detail { padding: 18px; }.case-calendar-form-row { gap: 12px; }.case-calendar-dialog .detail-dialog-heading { padding: 18px; } }
+
+.case-calendar-date-navigation { position: relative; }
+.case-calendar-toolbar .case-calendar-date-title { border: 0; padding: 4px 6px; font: inherit; color: inherit; background: transparent; cursor: pointer; }
+.case-calendar-date-title svg { vertical-align: middle; color: var(--text-secondary); }
+.case-calendar-date-navigation > input { position: absolute; z-index: 3; top: 100%; left: 0; width: 150px; padding: 7px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--surface-primary); color: var(--text-primary); }

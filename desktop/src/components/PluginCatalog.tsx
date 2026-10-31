@@ -36,6 +36,6 @@ export function PluginCatalog(props: Props) {
       <button type="button" className="mcp-secondary-button plugin-card-action" aria-label={`了解 ${entry.name}`}
         data-plugin={entry.id} onClick={() => { triggerId.current = entry.id; setSelected(entry); }}>查看与添加</button></div>
     </article>)}</div>
-    {selected && <PluginCatalogDetail {...props} entry={selected} onClose={() => setSelected(null)} />}
+    {selected && <PluginCatalogDetail {...props} entry={selected} onClose={() => setSelected(null)} onYuandian={() => {setSelected(null); props.onYuandian();}} />}
   </section>;
 }

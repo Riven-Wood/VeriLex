@@ -2,6 +2,7 @@
 .litigation-product .litigation-facts-tabs button { border:0; border-bottom:2px solid transparent; border-radius:0; padding:5px 0; background:transparent; color:var(--text-secondary); }
 .litigation-product .litigation-facts-tabs button[aria-selected=true] { color:var(--vl-blue); border-bottom-color:var(--vl-blue); font-weight:600; }
 .litigation-visualizations { min-width:0; }
+.litigation-visualizations > .loading-state:not(.loading-state-inline) {min-height:min(60vh,500px)}
 .litigation-visual-heading { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
 .litigation-visual-heading h2 { flex:1; }
 .litigation-visual-types { position:relative; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; margin:0 0 6px; }

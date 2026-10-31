@@ -10,3 +10,8 @@ export async function saveRedaction(result:RedactionExport,directory:string|null
 export const openRedaction=(path:string,reveal=false)=>invoke('open_redaction_export',{path,reveal});
 
 export const chooseRedactionDirectory=()=>invoke<string|null>('choose_redaction_directory');
+export const defaultRedactionDirectory=()=>invoke<string>('default_redaction_directory');
+
+export interface RedactionHistoryEntry {path:string;filename:string;saved_at:number}
+export const listRedactionExports=()=>invoke<RedactionHistoryEntry[]>('list_redaction_exports');
+export const deleteRedactionExport=(path:string)=>invoke<void>('delete_redaction_export',{path});

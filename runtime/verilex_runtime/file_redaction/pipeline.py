@@ -20,7 +20,7 @@ from .rules import LABELS, merge_hits
 
 def inventory(data):
     items=parts(data); roots={}; groups={}; covered=set()
-    forbidden={f'{{{W}}}{n}' for n in ('txbxContent','object','altChunk')}
+    forbidden={f'{{{W}}}{n}' for n in ('object','altChunk')}
     for name in story_parts(items):
         root=xml(items[name]); roots[name]=root
         if any(e.tag in forbidden for e in root.iter()): raise RedactionError('redaction_complex')

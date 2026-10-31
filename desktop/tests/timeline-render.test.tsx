@@ -807,7 +807,6 @@ test.each(["chat", "legal", "litigation"] as const)("%s keeps approval outside t
   }}));
   expect(container.querySelector(".approval-dock")).toBeNull();
   expect(draft.value).toBe("未发送的草稿");
-  if (variant === "legal") fireEvent.click(screen.getByRole("button", {name: "继续追问"}));
   expect(draft.closest("[hidden]")).toBeNull();
 });
 

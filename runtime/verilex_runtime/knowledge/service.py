@@ -359,12 +359,25 @@ class KnowledgeService:
                 if len(query) >= 3:
                     sql += " AND rowid IN (SELECT rowid FROM knowledge_fts WHERE knowledge_fts MATCH ?)"
                     args += ['"' + query.replace('"', '""') + '"']
+            if not query:
+                # Select the page using the (library_id, path) index before loading
+                # document bodies. A browse refresh should not scan every long file.
+                sql = """SELECT id,path,version,status,error,substr(body,1,200) AS snippet,
+                    -1 AS match_start FROM knowledge_documents WHERE rowid IN (
+                        SELECT rowid FROM knowledge_documents
+                        WHERE library_id=? ORDER BY path LIMIT ? OFFSET ?
+                    ) ORDER BY path"""
+                args = [identifier]
             started = monotonic()
             c.set_progress_handler(lambda: int(monotonic() - started > 1), 1000)
             try:
-                rows = c.execute(sql + " ORDER BY path LIMIT ? OFFSET ?", [*args, limit + 1, offset]).fetchall()
-            except sqlite3.OperationalError:
-                raise ToolError("knowledge_query_incomplete", "本次搜索未完成，请缩小查询范围。") from None
+                statement = sql if not query else sql + " ORDER BY path LIMIT ? OFFSET ?"
+                rows = c.execute(statement, [*args, limit + 1, offset]).fetchall()
+            except sqlite3.OperationalError as error:
+                if getattr(error, 'sqlite_errorcode', None) != sqlite3.SQLITE_INTERRUPT:
+                    raise
+                message = "本次搜索未完成，请缩小查询范围。" if query else "资料列表加载超时，请重试。"
+                raise ToolError("knowledge_query_incomplete", message) from None
         items = []
         for row in rows[:limit]:
             item = dict(row)

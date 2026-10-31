@@ -1,0 +1,38 @@
+.project-facts {height:100%; min-height:0; box-sizing:border-box; display:flex; flex-direction:column; padding:16px; overflow:auto; color:var(--vl-ink)}
+.project-facts-tabs {display:flex; flex-wrap:wrap; gap:8px; border-bottom:1px solid var(--vl-border); padding-bottom:10px}
+.project-facts-tabs button {border:1px solid var(--vl-border); border-radius:8px; padding:8px 16px; background:var(--vl-surface,#fff); color:inherit}
+.project-facts-tabs button[aria-selected=true] {border-color:var(--vl-blue); color:var(--vl-blue); background:var(--vl-selected)}
+.project-facts-selection {margin:10px 0 0; color:var(--vl-muted); font-size:12px}
+.project-facts-empty {flex:1; min-height:220px; display:grid; place-items:center}
+.project-facts-no-project p {margin:0; color:var(--vl-muted); font-size:14px; text-align:center}
+.project-facts-stop {border:1px solid var(--vl-border); border-radius:7px; padding:7px 14px; background:var(--vl-canvas,#fff); color:var(--vl-ink); font:inherit; cursor:pointer}
+.project-facts-stop:disabled {opacity:.6; cursor:default}
+.project-facts-empty button {border:0; border-radius:8px; padding:12px 24px; background:var(--vl-blue); color:white}
+.project-facts-result header {display:flex; align-items:center; justify-content:space-between; gap:12px}
+.project-facts-result header h2 {flex:1; min-width:0; font-size:18px}
+.project-facts-result header button,.project-facts-result header select {border:1px solid var(--vl-border); border-radius:7px; background:var(--vl-surface,#fff); color:var(--vl-ink); padding:7px 11px}
+.project-facts-gaps {padding:12px; border:1px solid var(--vl-border); border-radius:8px; color:var(--vl-ink)}
+.project-facts-gaps summary {cursor:pointer; font-weight:600}
+.project-facts-gaps li {line-height:1.6; margin-top:6px}
+.project-facts-entries {display:grid; gap:12px; padding:0; list-style:none}
+.project-facts-entries li {padding:14px; border:1px solid var(--vl-border); border-radius:8px; background:var(--vl-surface,#fff); overflow-wrap:anywhere}
+.project-facts-entries time {display:block; color:var(--vl-blue); margin-bottom:6px}
+.project-facts-entries p {white-space:pre-wrap; line-height:1.6}
+.project-facts-entries button {display:block; border:0; background:transparent; color:var(--vl-blue); text-align:left}
+.project-facts-timeline {border-left:2px solid var(--vl-blue); margin-left:12px; padding-left:22px}
+.project-facts-timeline li {position:relative}
+.project-facts-timeline li:before {content:''; position:absolute; left:-30px; top:19px; width:12px; height:12px; background:var(--vl-blue); border-radius:50%}
+.project-facts-claims {display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px}
+.project-facts-claims p {padding:10px; background:var(--vl-sidebar); border-radius:6px}
+.project-facts-claims small {display:block; color:var(--vl-muted); margin-bottom:5px}
+@media(max-width:600px) {.project-facts-claims {grid-template-columns:1fr}}
+.project-shell {height:100%; min-height:0; min-width:0; display:flex; flex-direction:column; container-type:inline-size; container-name:project-shell}
+.project-shell-tabs {display:flex; gap:8px; padding:0 16px; border-bottom:1px solid var(--vl-border)}
+.project-shell-tabs button {padding:12px; border:0; border-bottom:2px solid transparent; background:transparent; color:var(--vl-muted)}
+.project-shell-tabs button[aria-pressed=true] {color:var(--vl-blue); border-bottom-color:var(--vl-blue)}
+.project-shell-body {display:flex; flex:1; min-width:0; min-height:0; position:relative; overflow:hidden}
+.project-shell-main {display:flex; flex:1; flex-direction:column; min-width:0; min-height:0}
+.project-shell-content {flex:1; min-width:0; min-height:0}
+.project-shell-content[hidden] {display:none}
+.project-shell-preview {display:flex; flex:0 0 clamp(320px,40%,560px); min-width:0; min-height:0; border-left:1px solid var(--vl-border); background:var(--vl-canvas,#fff)}
+@container project-shell (max-width:700px) {.project-shell-preview {position:absolute; z-index:10; right:0; top:0; bottom:0; width:min(420px,90%); box-shadow:-6px 0 20px #25385718}}

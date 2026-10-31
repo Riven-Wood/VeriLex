@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+import sqlite3
 import uuid
 
 from verilex_runtime.attachments.errors import AttachmentDomainError
@@ -36,8 +37,14 @@ class WordDocuments:
             from verilex_runtime.attachments.legacy_doc import convert_doc
             data = await anyio.to_thread.run_sync(convert_doc, original)
         data = await anyio.to_thread.run_sync(self.validate, data)
-        row = self.repository.create_word_document(
-            f'word_{uuid.uuid4()}', filename, original, data, self.service._now())
+        try:
+            row = await anyio.to_thread.run_sync(
+                self.repository.create_word_document,
+                f'word_{uuid.uuid4()}', filename, original, data, self.service._now())
+        except sqlite3.OperationalError as error:
+            if getattr(error, 'sqlite_errorcode', None) in (sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED):
+                raise ContractReviewError('contract_storage_busy') from error
+            raise
         return self.public(row)
 
     def read(self, document_id):
@@ -46,7 +53,7 @@ class WordDocuments:
             raise ContractReviewError('contract_not_found')
         return self.public(row)
 
-    def save(self, document_id, revision, data, review_id=None, applied=0, skipped=0):
+    def save(self, document_id, revision, data, review_id=None, applied=0, skipped=0, ai_edit_id=None):
         self.validate(data)
         markup = None
         if review_id:
@@ -55,7 +62,9 @@ class WordDocuments:
                     or plan['revision'] != revision or applied + skipped != len(plan['opinions'])):
                 raise ContractReviewError('contract_editor_conflict')
             markup = {'review_id': review_id, 'applied': applied, 'skipped': skipped}
-        if not self.repository.save_word_document(document_id, revision, data, self.service._now(), markup):
+        if review_id and ai_edit_id:
+            raise ContractReviewError('contract_editor_conflict')
+        if not self.repository.save_word_document(document_id, revision, data, self.service._now(), markup, ai_edit_id):
             raise ContractReviewError('contract_editor_conflict')
         # Return this exact write, never a newer writer's bytes/revision.
         return {'id': document_id, 'revision': revision + 1}

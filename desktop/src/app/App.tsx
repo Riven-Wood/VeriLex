@@ -1,3 +1,7 @@
+import { legalWorkbenchServers, searchServerIds } from "../mcp/providerGroups";
+import {clearPreviouslyRemovedProjects} from './projectSidebarState';
+import type { SearchSettings } from "../views/searchSettings";
+import { getStandaloneDraftGuard } from '../components/editor/standaloneDraftStorage';
 import {ShortcutSettings} from "../commands/GlobalShortcut";
 import { HelpCenter } from "../help/HelpCenter";
 import {CommandController} from "../commands/CommandController";
@@ -19,6 +23,7 @@ import {
   listProviders,
   listWorkspaces,
   createWorkspace,
+  revokeWorkspace,
   RuntimeApiError,
 } from "../runtime/api";
 import { contractReviewApi } from "../runtime/contractReviewClient";
@@ -66,7 +71,7 @@ import {
 } from "./navigation";
 import { WorkspaceRouter } from "./WorkspaceRouter";
 import { CaseCalendarReminders } from "../components/CaseCalendarReminders";
-import type { ComposerSubmission } from "../hooks/useAgentChat";
+import {useAgentChat, type ComposerSubmission} from "../hooks/useAgentChat";
 import type { PendingAgentMessage } from "../views/AgentWorkspaceView";
 import {
   runtimeWebAccessApi,
@@ -119,6 +124,7 @@ function snapshotComposerSubmission(
   if (attachments) Object.freeze(attachments);
   const snapshot: ComposerSubmission = {
     text: submission.text,
+    ...(submission.searchSelection ? {searchSelection: structuredClone(submission.searchSelection)} : {}),
     preserveDraft: submission.preserveDraft,
     ...(submission.litigationMaterials?{litigationMaterials:structuredClone(submission.litigationMaterials)}:{}),
     ...(knowledgeLibraryIds.length ? { knowledgeLibraryIds } : {}),
@@ -178,6 +184,10 @@ export function App({
 }: AppProps) {
   const updates = useUpdateController(updaterClient ?? tauriUpdaterClient);
   const [activeView, setActiveView] = useState<WorkViewId>("agent");
+  const [projectMode, setProjectMode] = useState(false);
+  const projectModeRef = useRef(projectMode); projectModeRef.current = projectMode;
+  const [projectWorkThreadId, setProjectWorkThreadId] = useState<string|null>(null);
+  const [projectPendingMessage, setProjectPendingMessage] = useState<PendingAgentMessage|null>(null);
   const activeViewRef = useRef(activeView);
   activeViewRef.current = activeView;
   const [settingsCategory, setSettingsCategory] = useState<SettingsCategoryId>("general");
@@ -187,6 +197,7 @@ export function App({
   const [calendarDate, setCalendarDate] = useState<string>();
   const [calendarRefresh, setCalendarRefresh] = useState(0);
   const [contractThreads, setContractThreads] = useState<ThreadSummary[]>([]);
+  const [threadListsStatus, setThreadListsStatus] = useState<"loading" | "ready" | "error">("loading");
   const [archivedThreads, setArchivedThreads] = useState<ThreadSummary[]>([]);
   const [trashedThreads, setTrashedThreads] = useState<ThreadSummary[]>([]);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
@@ -205,13 +216,14 @@ export function App({
   // Guard the whole user action so a failed Word save cannot change either
   // the page or the selected thread and unmount the only pending input copy.
   const navigateSafely = useCallback((action: () => void | Promise<void>) => {
-    const guard = contractLeaveGuard.current;
-    if (activeViewRef.current !== "contract-review" || !guard) { void action(); return; }
+    const standalone = activeViewRef.current === "litigation" ? getStandaloneDraftGuard() : null;
+    const guard = activeViewRef.current === "contract-review" ? contractLeaveGuard.current : standalone ? async () => { await standalone(); return true; } : null;
+    if (!guard) { void action(); return; }
     if (navigationPending.current) return;
     navigationPending.current = true;
     void guard().then(allowed => {
-      if (allowed && contractLeaveGuard.current === guard) return action();
-    }).catch(() => setRuntimeError("当前合同未能保存，已留在合同审查页。"))
+      if (allowed && (standalone ? getStandaloneDraftGuard() === standalone : contractLeaveGuard.current === guard)) return action();
+    }).catch(() => setRuntimeError(standalone ? "当前文书未能保存，已留在文书起草页。" : "当前合同未能保存，已留在合同审查页。"))
       .finally(() => { navigationPending.current = false; });
   }, []);
   const [litigationError, setLitigationError] = useState("");
@@ -373,8 +385,8 @@ export function App({
   const refreshThreads = useCallback((): Promise<void> => {
     return Promise.all([
       threadApi.listThreads(undefined, undefined, "general"),
-      threadApi.listThreads("archived", undefined, "general"),
-      threadApi.listThreads("trash", undefined, "general"),
+      threadApi.listThreads("archived", undefined, "all"),
+      threadApi.listThreads("trash", undefined, "all"),
       threadApi.listThreads(undefined, undefined, "legal-retrieval"),
       threadApi.listThreads(undefined, undefined, "case-retrieval"),
       threadApi.listThreads(undefined, undefined, "litigation-work"),
@@ -397,6 +409,7 @@ export function App({
         setContractThreads(contracts.map(toSummary));
         setArchivedThreads(archived.map(toSummary));
         setTrashedThreads(trashed.map(toSummary));
+        setThreadListsStatus("ready");
         setRuntimeError((current) =>
           current.startsWith(THREADS_ERROR_PREFIX) ? "" : current,
         );
@@ -423,6 +436,7 @@ export function App({
         }
       })
       .catch((error: unknown) => {
+        setThreadListsStatus("error");
         setRuntimeError(
           `${THREADS_ERROR_PREFIX}${
             error instanceof Error ? error.message : "未知错误"
@@ -634,45 +648,11 @@ export function App({
     [runThreadAction, threadApi],
   );
 
-  const unarchiveThreadById = useCallback(
-    (threadId: string) => {
-      void runThreadAction(
-        () => threadApi.unarchiveThread(threadId),
-        "无法取消归档会话",
-      );
-    },
-    [runThreadAction, threadApi],
-  );
-
   const trashThreadById = useCallback(
     (threadId: string) => {
       void runThreadAction(
         () => threadApi.trashThread(threadId),
         "无法移入回收站",
-      );
-      if (threadId === activeThreadId) {
-        setActiveThreadId(null);
-        window.localStorage.removeItem(LAST_THREAD_STORAGE_KEY);
-      }
-    },
-    [runThreadAction, threadApi, activeThreadId],
-  );
-
-  const restoreThreadById = useCallback(
-    (threadId: string) => {
-      void runThreadAction(
-        () => threadApi.restoreThread(threadId),
-        "无法恢复会话",
-      );
-    },
-    [runThreadAction, threadApi],
-  );
-
-  const deleteThreadById = useCallback(
-    (threadId: string) => {
-      void runThreadAction(
-        () => threadApi.deleteThread(threadId),
-        "无法彻底删除会话",
       );
       if (threadId === activeThreadId) {
         setActiveThreadId(null);
@@ -693,6 +673,12 @@ export function App({
       setLitigationThreads(current => current.map(thread =>
         thread.id === threadId ? {...thread, status: "running"} : thread,
       ));
+      if (submission.searchSelection) {
+        const selection = submission.searchSelection;
+        setLegalThreads(current => current.map(thread => thread.id === threadId
+          ? {...thread, legalChannel: selection.channel === "knowledge" ? null : selection.channel, legalSkills: [...selection.skills]}
+          : thread));
+      }
       if (!submission.preserveDraft && readDraft(threadId) === submission.text) clearDraft(threadId);
       const derived = derivedThreadTitle(
         submission.text,
@@ -701,16 +687,15 @@ export function App({
       if (hiddenDraftThread?.id === threadId) {
         const formalThread: ThreadSummary = {
           ...hiddenDraftThread,
+          ...(submission.searchSelection ? {legalChannel: submission.searchSelection.channel === "knowledge" ? null : submission.searchSelection.channel, legalSkills: [...submission.searchSelection.skills]} : {}),
           title: derived || hiddenDraftThread.title,
           isDraft: false,
         };
         setHiddenDraftThread(null);
         setDraftWebEnabled(false);
         setDraftWebError(null);
-        setThreads((current) => [
-          formalThread,
-          ...current.filter((thread) => thread.id !== threadId),
-        ]);
+        const setThreadCollection = ["legal-retrieval", "case-retrieval"].includes(formalThread.scene) ? setLegalThreads : setThreads;
+        setThreadCollection((current) => [formalThread, ...current.filter((thread) => thread.id !== threadId)]);
         setComposerState((current) =>
           current ? materializeComposerTask(current) : current,
         );
@@ -729,7 +714,7 @@ export function App({
         if (derived && isDefaultThreadTitle(hiddenDraftThread.title)) {
           void threadApi.renameThread(threadId, derived)
             .then((record) => {
-              setThreads((current) =>
+              setThreadCollection((current) =>
                 current.map((thread) =>
                   thread.id === threadId
                     ? {
@@ -840,6 +825,7 @@ export function App({
         allow_read: true,
         allow_write: true,
       });
+      window.dispatchEvent(new CustomEvent('verilex:restore-project',{detail:workspace.id}));
       const context = await resolveComposerContext();
       if (!context) return;
       const record = await threadApi.createThread({
@@ -861,7 +847,11 @@ export function App({
         setDraftWebEnabled(false);
       setDraftWebError(null);
       setPendingAgentMessage(null);
-      setActiveView("agent");
+      if (projectModeRef.current) {
+        setLitigationWorkspaces(current=>[...current.filter(item=>item.id!==workspace.id),workspace]);
+        setLitigationWorkspaceId(workspace.id);
+        setActiveView('litigation');
+      } else setActiveView("agent");
       setRuntimeError("");
       selectThread(record.id);
       await refreshThreads();
@@ -901,24 +891,23 @@ export function App({
     setRuntimeError("");
   }, [composerState, hiddenDraftThread, invalidateDraftSend, resolveComposerContext, threadApi]);
 
-  // Legal search page (plugin channel keeps the original scene-thread flow,
-  // but the app stays on the page; the first message is queued as a pending
-  // agent message and fires when the user opens the research thread).
+  // The search pages create a scene-specific draft for their shared composer.
   const [legalMcpServers, setLegalMcpServers] = useState<McpServerRecord[]>([]);
+  const searchSettingsRef = useRef<SearchSettings | null>(null);
+  const setSearchSettings = useCallback((settings: SearchSettings | null) => {searchSettingsRef.current = settings;}, []);
 
   useEffect(() => {
     if (activeView !== "legal-search" && activeView !== "case-search") return;
     const controller = new AbortController();
     mcpApi
       .listServers(controller.signal)
-      .then((servers) => setLegalMcpServers(servers))
+      .then((servers) => setLegalMcpServers(legalWorkbenchServers(servers)))
       .catch(() => setLegalMcpServers([]));
     return () => controller.abort();
   }, [activeView, mcpApi]);
 
   const [legalThreads, setLegalThreads] = useState<ThreadSummary[]>([]);
-  const [legalStarting, setLegalStarting] = useState(false);
-  const legalStartInFlightRef = useRef(false);
+  const [searchPreparing, setSearchPreparing] = useState(false);
   useEffect(() => {
     const selected = legalThreads.find((t) => t.id === activeThreadId);
     if (!selected || !["legal-retrieval", "case-retrieval"].includes(selected.scene) || (selected.scene === "legal-retrieval" && activeView === "legal-search") || (selected.scene === "case-retrieval" && activeView === "case-search")) return;
@@ -942,81 +931,36 @@ export function App({
     void refreshLegalHistory();
   }, [activeView, refreshLegalHistory]);
 
-  const startLegalSearch = useCallback(async (
-    question: string,
-    serverId: string | null,
-    skills: string[],
-    knowledgeLibraryIds: string[] = [],
-  ): Promise<void> => {
-    if (legalStartInFlightRef.current) return;
-    const startView = activeView;
-    const caseSearch = activeView === "case-search";
-    legalStartInFlightRef.current = true;
-    setLegalStarting(true);
-    setRuntimeError("");
-    try {
-      const context = composerState?.context ?? await resolveComposerContext();
-      if (!context) {
-        setRuntimeError("还没有可用的模型，请先在设置中完成连接。");
+  const newLegalSearch = useCallback(async () => {
+    invalidateDraftSend();
+    if (hiddenDraftThread?.id) {
+      try {
+        await threadApi.discardDraftThread(hiddenDraftThread.id);
+      } catch (error) {
+        setRuntimeError(error instanceof Error ? error.message : "无法清理未发送的对话。");
         return;
       }
-      const record = await threadApi.createThread({
-        title: question.slice(0, 30),
-        model: context.model,
-        provider_id: context.providerId,
-        workspace_id: context.workspaceId,
-        scene: caseSearch ? "case-retrieval" : "legal-retrieval",
-        ...(serverId ? {legal_channel: "plugin" as const} : knowledgeLibraryIds.length ? {} : {legal_channel: "web" as const}),
-        legal_skills: skills,
-      });
-      if (activeViewRef.current !== startView) return;
-      if (serverId) {
-        await mcpApi.selectServer(record.id, serverId);
-      }
-      if (activeViewRef.current !== startView) return;
-      const summary = toSummary(record);
-      activeThreadIdRef.current = record.id;
-      setActiveThreadId(record.id);
-      setLegalThreads((current) => [
-        summary,
-        ...current.filter((thread) => thread.id !== record.id),
-      ]);
-      setComposerState(
-        materializeComposerTask(
-          initialComposerState({
-            providerId: context.providerId,
-            model: context.model,
-            workspaceId: context.workspaceId,
-            reasoningEffort: context.reasoningEffort,
-          }),
-        ),
-      );
-      setPendingAgentMessage({
-        threadId: record.id,
-        operationId: ++draftSendOperationIdRef.current,
-        submission: {
-          text: question,
-          knowledgeLibraryIds: [...knowledgeLibraryIds],
-          attachmentUploadIds: [],
-          attachmentNames: [],
-        },
-      });
-      window.localStorage.setItem(LAST_THREAD_STORAGE_KEY, record.id);
-    } catch (error) {
-      setRuntimeError(
-        error instanceof Error ? error.message : "无法创建检索，请重试。",
-      );
-    } finally {
-      legalStartInFlightRef.current = false;
-      setLegalStarting(false);
+      hiddenDraftThreadIdRef.current = null;
+      setHiddenDraftThread(null);
     }
-  }, [activeView, composerState, legalStarting, mcpApi, resolveComposerContext, threadApi]);
+    activeThreadIdRef.current = null;
+    setActiveThreadId(null);
+    window.localStorage.removeItem(LAST_THREAD_STORAGE_KEY);
+  }, [hiddenDraftThread, invalidateDraftSend, threadApi]);
 
   const selectLegalHistory = useCallback((threadId: string) => {
+    invalidateDraftSend();
+    const abandoned = hiddenDraftThread?.id;
+    if (abandoned && abandoned !== threadId) {
+      void threadApi.discardDraftThread(abandoned).then(() => {
+        setHiddenDraftThread(current => current?.id === abandoned ? null : current);
+      }).catch(error => setRuntimeError(error instanceof Error ? error.message : "无法清理未发送的对话。"));
+      hiddenDraftThreadIdRef.current = null;
+    }
     activeThreadIdRef.current = threadId;
     setActiveThreadId(threadId);
     window.localStorage.setItem(LAST_THREAD_STORAGE_KEY, threadId);
-  }, []);
+  }, [hiddenDraftThread, invalidateDraftSend, threadApi]);
 
   const deleteLegalHistory = useCallback((threadId: string) => {
     threadApi
@@ -1030,21 +974,50 @@ export function App({
           setActiveThreadId(null);
           window.localStorage.removeItem(LAST_THREAD_STORAGE_KEY);
         }
+        void refreshThreads();
       })
       .catch(() => {
         setRuntimeError("删除检索记录失败，请重试。");
       });
-  }, [threadApi]);
+  }, [threadApi, refreshThreads]);
 
   const [litigationThreads, setLitigationThreads] = useState<ThreadSummary[]>([]);
   const [litigationWorkspaces, setLitigationWorkspaces] = useState<WorkspaceRecord[]>([]);
   const [litigationWorkspaceId, setLitigationWorkspaceId] = useState<string | null>(null);
+  const removedProjectsCleanupStarted=useRef(false);
+  useEffect(()=>{
+    if (!health || removedProjectsCleanupStarted.current) return;
+    removedProjectsCleanupStarted.current=true;
+    let current=true;
+    void clearPreviouslyRemovedProjects(listWorkspaces,revokeWorkspace).then(ok=>{
+      if (!current) return;
+      if (!ok) setRuntimeError('部分已移除项目的授权未能清理，请停止相关任务后重新打开应用。');
+      void listWorkspaces().then(setLitigationWorkspaces).catch(()=>setRuntimeError('无法刷新授权文件夹，请重新打开应用。'));
+      void refreshThreads();
+    }).catch(()=>{if(current)setRuntimeError('无法清理已移除项目的授权，请重新打开应用重试。');});
+    return ()=>{current=false;};
+  },[!!health,refreshThreads]);
+  const [projectFiles, setProjectFiles] = useState<{workspaceId:string; paths:string[]}|null>(null);
+  const selectedProjectFiles = projectFiles?.workspaceId === litigationWorkspaceId ? projectFiles.paths : [];
   const litigationWorkspaceRef = useRef(litigationWorkspaceId);
   litigationWorkspaceRef.current = litigationWorkspaceId;
   const [litigationFilesCollapsed, setLitigationFilesCollapsed] = useState(false);
   const litigationDrafts = useRef<Record<string, string>>({});
   const [litigationStarting, setLitigationStarting] = useState(false);
   const litigationStartRef = useRef(false);
+  const projectStartGeneration = useRef(0);
+  const projectRunner = useAgentChat(projectWorkThreadId, {
+    onTurnSettled: () => {const item=litigationThreads.find(thread=>thread.id===projectWorkThreadId);if(item?.workspaceId)window.dispatchEvent(new CustomEvent('verilex:workspace-files-changed',{detail:{workspaceId:item.workspaceId}}));void refreshThreads();},
+    onUserTurnAccepted: (_turnId, _submission, id) => setLitigationThreads(current=>current.map(item=>item.id===id?{...item,status:'running'}:item)),
+  });
+  const projectSent = useRef<number|null>(null);
+  useEffect(()=>{
+    if (!projectPendingMessage || projectPendingMessage.threadId!==projectWorkThreadId || !projectRunner.connectionReady || projectSent.current===projectPendingMessage.operationId) return;
+    if(projectRunner.sendMessage(projectPendingMessage.submission)) {
+      projectSent.current=projectPendingMessage.operationId;
+      setProjectPendingMessage(current=>current?.operationId===projectPendingMessage.operationId?null:current);
+    }
+  },[projectPendingMessage,projectWorkThreadId,projectRunner.connectionReady,projectRunner.sendMessage,projectRunner.pendingAckToken]);
   useEffect(() => {
     if (activeView !== 'litigation' && threadRestoreDoneRef.current) {
       window.localStorage.removeItem('verilex:litigation-last-workspace:v1');
@@ -1064,7 +1037,7 @@ export function App({
   const activateLitigationThread = useCallback((id: string | null, workspaceId: string | null) => {
     const previousKey = `${litigationWorkspaceRef.current}:${activeThreadIdRef.current ?? 'new'}`;
     litigationDrafts.current[previousKey] = agentDraft;
-    const selected = litigationThreads.find(t => t.id === id && t.workspaceId === workspaceId);
+    const selected = [...threads, ...litigationThreads].find(t => t.id === id && t.workspaceId === workspaceId);
     activeThreadIdRef.current = selected?.id ?? null;
     setActiveThreadId(selected?.id ?? null);
     setPendingAgentMessage(null);
@@ -1081,16 +1054,26 @@ export function App({
     if (workspaceId) {
       window.localStorage.setItem(`verilex:litigation-discussion:v1:${workspaceId}`, selected?.id ?? '');
     }
-  }, [agentDraft, litigationThreads]);
+  }, [agentDraft, threads, litigationThreads]);
   const selectLitigationWorkspace = useCallback((id: string) => {
     const remembered = window.localStorage.getItem(`verilex:litigation-discussion:v1:${id}`);
-    const existing = litigationThreads.find(t => t.workspaceId === id && t.id === remembered)
-      ?? (remembered === '' ? undefined : litigationThreads.find(t => t.workspaceId === id));
+    const candidates = [...threads, ...litigationThreads];
+    const existing = candidates.find(t => t.workspaceId === id && t.id === remembered)
+      ?? (remembered === '' ? undefined : candidates.find(t => t.workspaceId === id));
     activateLitigationThread(existing?.id ?? null, id || null);
     setLitigationWorkspaceId(id || null);
     if (id) window.localStorage.setItem('verilex:litigation-last-workspace:v1', id);
     else window.localStorage.removeItem('verilex:litigation-last-workspace:v1');
-  }, [litigationThreads, activateLitigationThread]);
+  }, [threads, litigationThreads, activateLitigationThread]);
+  const selectProjectWorkspace = useCallback((id: string) => {
+    const remembered = window.localStorage.getItem(`verilex:litigation-discussion:v1:${id}`);
+    const candidates = threads.filter(item=>item.workspaceId===id && item.scene==='general');
+    const selected = candidates.find(item=>item.id===remembered) ?? candidates[0];
+    activateLitigationThread(selected?.id ?? null, id || null);
+    setLitigationWorkspaceId(id || null);
+    if(id)window.localStorage.setItem('verilex:litigation-last-workspace:v1',id);
+    else window.localStorage.removeItem('verilex:litigation-last-workspace:v1');
+  },[threads,activateLitigationThread]);
   const chooseLitigationWorkspace = useCallback(async () => {
     try {
       const path = await pickWorkspaceDirectory(); if(!path)return;
@@ -1102,52 +1085,66 @@ export function App({
   }, [selectLitigationWorkspace]);
   const startLitigation = useCallback(async (input: string | WorkRequest | ComposerSubmission): Promise<string|null> => {
     const work = typeof input !== "string" && 'kind' in input ? input : null;
+    const projectWork = !!work?.project_chart_kind && !!work.projectWorkspaceId;
+    const startGeneration = projectStartGeneration.current;
+    const checkProjectCancelled = () => {if(projectWork && startGeneration !== projectStartGeneration.current) throw new Error('project-start-cancelled');};
     const submission = typeof input !== "string" && 'text' in input ? snapshotComposerSubmission(input) : null;
     const text = typeof input === "string" ? input : work ? work.message : submission?.text;
-    const workspaceId = litigationWorkspaceId;
-    if(!workspaceId || litigationStartRef.current || activeViewRef.current!=="litigation" || litigationWorkspaceRef.current!==workspaceId)return null;
+    const workspaceId = work?.projectWorkspaceId ?? litigationWorkspaceId;
+    if((work && !workspaceId) || litigationStartRef.current || (!projectWork && (activeViewRef.current!=="litigation" || litigationWorkspaceRef.current!==workspaceId)))return null;
     litigationStartRef.current=true;setLitigationStarting(true);setRuntimeError("");setLitigationError("");
     let unboundThread: string | null = null;
     const startingThreadId = activeThreadIdRef.current;
     litigationDrafts.current[`${workspaceId}:${startingThreadId ?? 'new'}`] = agentDraft;
     try {
       const context = composerState?.context ?? await resolveComposerContext(setLitigationError); if(!context)return null;
-      let summary = work ? undefined : litigationThreads.find(t=>t.id===startingThreadId && t.workspaceId===workspaceId);
+      checkProjectCancelled();
+      let summary = work ? undefined : [...threads, ...litigationThreads].find(t=>t.id===startingThreadId && t.workspaceId===workspaceId);
       if(!summary){
-        const record=await threadApi.createThread({title:work?.title ?? (text?.split('\n')[0] || "新会话").slice(0,40),model:context.model,provider_id:context.providerId,workspace_id:workspaceId,scene:"litigation-work"});
+        const record=await threadApi.createThread({title:work?.title ?? (text?.split('\n')[0] || "新会话").slice(0,40),model:context.model,provider_id:context.providerId,workspace_id:workspaceId,scene:work ? "litigation-work" : "general"});
         unboundThread=record.id;
-        if(work) {
-          const {title: _title, message: _message, editorContext: _editorContext, ...binding}=work;
+        checkProjectCancelled();
+        if(work && workspaceId) {
+          const {title: _title, message: _message, editorContext: _editorContext, projectWorkspaceId: _projectWorkspaceId, ...binding}=work;
           await litigationWorkClient.bind(workspaceId,record.id,binding);
+          checkProjectCancelled();
         }
-        summary=toSummary(record);setLitigationThreads(current=>[summary!,...current]);
+        summary=toSummary(record);
+        if (work) setLitigationThreads(current=>[summary!,...current]);
+        else setThreads(current=>[summary!,...current.filter(item=>item.id!==summary!.id)]);
         unboundThread=null;
       }
-      if(activeViewRef.current!=="litigation" || litigationWorkspaceRef.current!==workspaceId || activeThreadIdRef.current!==startingThreadId)return null;
+      if(!projectWork && (activeViewRef.current!=="litigation" || litigationWorkspaceRef.current!==workspaceId || activeThreadIdRef.current!==startingThreadId))return null;
       if(!work && draftWebEnabled){
         const record=await webAccessApi.put(summary.id,true);
         if(activeViewRef.current!=="litigation" || litigationWorkspaceRef.current!==workspaceId || activeThreadIdRef.current!==startingThreadId)return null;
         setWebAccessHandoff({threadId:summary.id,operationId:draftSendOperationIdRef.current+1,record});
         setDraftWebEnabled(false);setDraftWebError(null);
       }
-      activeThreadIdRef.current=summary.id;setActiveThreadId(summary.id);
-      setComposerState(materializeComposerTask(initialComposerState({providerId:summary.providerId ?? context.providerId,model:summary.model,workspaceId,reasoningEffort:summary.reasoningEffort})));
-      setPendingAgentMessage(text || submission?.attachmentUploadIds.length ? {threadId:summary.id,operationId:++draftSendOperationIdRef.current,submission:submission??{text:text??"",attachmentUploadIds:[],attachmentNames:[],...(work?{litigationMaterials:{workspaceId,paths:[...work.materials]}}:{}),...(work?.editorContext?{editorContext:work.editorContext}:{})}} : null);
-      window.localStorage.setItem(LAST_THREAD_STORAGE_KEY,summary.id);
-      window.localStorage.setItem(`verilex:litigation-discussion:v1:${workspaceId}`,summary.id);
-      if(text || submission?.attachmentUploadIds.length){litigationDrafts.current[`${workspaceId}:new`] = '';setAgentDraft(current => work || current.trim() === text?.trim() ? '' : current);}
+      if (projectWork) setProjectWorkThreadId(summary.id);
+      else {
+        activeThreadIdRef.current=summary.id;setActiveThreadId(summary.id);
+        setComposerState(materializeComposerTask(initialComposerState({providerId:summary.providerId ?? context.providerId,model:summary.model,workspaceId,reasoningEffort:summary.reasoningEffort})));
+      }
+      const pending = text || submission?.attachmentUploadIds.length ? {threadId:summary.id,operationId:++draftSendOperationIdRef.current,submission:submission??{text:text??"",attachmentUploadIds:[],attachmentNames:[],...(work && workspaceId?{litigationMaterials:{workspaceId,paths:[...work.materials]}}:{}),...(work?.editorContext?{editorContext:work.editorContext}:{})}} : null;
+      if (projectWork) setProjectPendingMessage(pending); else setPendingAgentMessage(pending);
+      if (!projectWork) {
+        window.localStorage.setItem(LAST_THREAD_STORAGE_KEY,summary.id);
+        if (workspaceId) window.localStorage.setItem(`verilex:litigation-discussion:v1:${workspaceId}`,summary.id);
+        if(text || submission?.attachmentUploadIds.length){litigationDrafts.current[`${workspaceId}:new`] = '';setAgentDraft(current => work || current.trim() === text?.trim() ? '' : current);}
+      }
       return summary.id;
-    }catch(error){if(unboundThread) {try {await threadApi.trashThread(unboundThread);} catch { /* Keep failed setup visible in history; never send it. */ }} setLitigationError(error instanceof Error ? error.message : "无法开始诉讼工作。");}
+    }catch(error){if(unboundThread) {try {await threadApi.trashThread(unboundThread);} catch { /* Keep failed setup visible in history; never send it. */ }} if(!(error instanceof Error && error.message==='project-start-cancelled'))setLitigationError(error instanceof Error ? error.message : "无法开始诉讼工作。");}
     finally{litigationStartRef.current=false;setLitigationStarting(false);}
     return null;
-  }, [litigationWorkspaceId,litigationThreads,litigationWorkspaces,composerState,resolveComposerContext,threadApi,agentDraft,draftWebEnabled,webAccessApi]);
+  }, [litigationWorkspaceId,threads,litigationThreads,litigationWorkspaces,composerState,resolveComposerContext,threadApi,agentDraft,draftWebEnabled,webAccessApi]);
   const litigationDraftCreation=useRef<Promise<string|null>|null>(null);
   const ensureLitigationDiscussion=useCallback(async()=>{
-    const current=litigationThreads.find(row=>row.id===activeThreadIdRef.current&&row.workspaceId===litigationWorkspaceRef.current);
+    const current=[...threads, ...litigationThreads].find(row=>row.id===activeThreadIdRef.current&&row.workspaceId===litigationWorkspaceRef.current);
     if(current)return current.id;
     if(!litigationDraftCreation.current)litigationDraftCreation.current=startLitigation('').finally(()=>{litigationDraftCreation.current=null;});
     return litigationDraftCreation.current;
-  },[litigationThreads,startLitigation]);
+  },[threads,litigationThreads,startLitigation]);
 
   const startContractReview = useCallback(async (file: File, options: import("../runtime/contractReviewClient").StartReviewOptions) => {
     setRuntimeError("");
@@ -1168,7 +1165,7 @@ export function App({
         unstartedReviewId = null;
         return;
       }
-      const partyText = options.party === "party_a" ? "甲方" : options.party === "party_b" ? "乙方" : "中立";
+      const partyText = options.customParty?.trim() || (options.party === "party_a" ? "甲方" : options.party === "party_b" ? "乙方" : "中立");
       const strictnessText = options.strictness === "loose" ? "宽松（只报重大风险）" : options.strictness === "strict" ? "严格（事无巨细）" : "常规";
       const text = [
         `请审查这份合同。审查技能：${options.skill}；代表方：${partyText}；审查口径：${strictnessText}；批注署名：${options.signature}。`,
@@ -1181,7 +1178,7 @@ export function App({
       activeThreadIdRef.current = handle.thread_id;
       setActiveThreadId(handle.thread_id);
       setComposerState(materializeComposerTask(initialComposerState({ providerId: context.providerId, model: context.model, workspaceId: null, reasoningEffort: "auto" })));
-      setPendingAgentMessage({
+      if (!options.discussionOnly) setPendingAgentMessage({
         threadId: handle.thread_id,
         operationId: ++draftSendOperationIdRef.current,
         submission: { text, attachmentUploadIds: [handle.upload_id], attachmentNames: [file.name] },
@@ -1216,6 +1213,14 @@ export function App({
       }
     }
     const generation = hiddenDraftCreationGenerationRef.current;
+    const startView = activeViewRef.current;
+    const isSearch = startView === "legal-search" || startView === "case-search";
+    const search = isSearch ? searchSettingsRef.current : null;
+    if (isSearch && (!search?.valid || (search.kind === "plugin" && !legalMcpServers.some(server => server.id === search.serverId)))) {
+      setRuntimeError("请先选择检索渠道和具体资料。");
+      return null;
+    }
+    if (isSearch) setSearchPreparing(true);
     const creation = (async (): Promise<HiddenDraftCreationOutcome | null> => {
       const context = composerState?.context ?? await resolveComposerContext();
       if (!context) return null;
@@ -1228,8 +1233,19 @@ export function App({
           provider_id: context.providerId,
           workspace_id: context.workspaceId,
           is_draft: true,
+          ...(isSearch && search ? {scene: startView === "case-search" ? "case-retrieval" as const : "legal-retrieval" as const,
+            ...(search.kind === "plugin" ? {legal_channel: "plugin" as const} : search.kind === "online" ? {legal_channel: "web" as const} : {}),
+            legal_skills: [...search.skills]} : {}),
         });
-        if (hiddenDraftCreationGenerationRef.current !== generation) {
+        if (isSearch && search?.kind === "plugin" && search.serverId) {
+          try {
+            for (const id of searchServerIds(legalMcpServers, search.serverId)) await mcpApi.selectServer(record.id, id);
+          } catch (error) {
+            await threadApi.discardDraftThread(record.id).catch(() => undefined);
+            throw error;
+          }
+        }
+        if (hiddenDraftCreationGenerationRef.current !== generation || activeViewRef.current !== startView) {
           try {
             await threadApi.discardDraftThread(record.id);
           } catch {
@@ -1247,7 +1263,7 @@ export function App({
         setComposerState((current) =>
           bindHiddenDraft(current ?? initialComposerState(context), thread.id),
         );
-        setActiveView("agent");
+        if (!isSearch) setActiveView("agent");
         return { threadId: thread.id, atomicResult: null };
       } catch (error) {
         if (hiddenDraftCreationGenerationRef.current === generation) {
@@ -1264,11 +1280,12 @@ export function App({
     try {
       return (await creation)?.threadId ?? null;
     } finally {
+      if (isSearch) setSearchPreparing(false);
       if (hiddenDraftCreationRef.current === flight) {
         hiddenDraftCreationRef.current = null;
       }
     }
-  }, [composerState, resolveComposerContext, threadApi, threads.length]);
+  }, [composerState, resolveComposerContext, threadApi, threads.length, legalMcpServers, mcpApi]);
 
   const selectDraftMcp = useCallback(async (
     target: McpSelectionTarget,
@@ -1290,6 +1307,10 @@ export function App({
 
     if(activeViewRef.current==='litigation'){
       const id=await ensureLitigationDiscussion();return id?selectOnExisting(id):null;
+    }
+    if (activeViewRef.current === "legal-search" || activeViewRef.current === "case-search") {
+      const id = await createHiddenDraft();
+      return id ? selectOnExisting(id) : null;
     }
     const alreadyBound = hiddenDraftThreadIdRef.current;
     if (alreadyBound) return selectOnExisting(alreadyBound);
@@ -1375,7 +1396,7 @@ export function App({
         hiddenDraftCreationRef.current = null;
       }
     }
-  }, [mcpApi, threadApi, ensureLitigationDiscussion]);
+  }, [mcpApi, threadApi, ensureLitigationDiscussion, createHiddenDraft]);
 
   // The default view is the agent chat with no thread yet; sending from there
   // must create the session first and deliver the message once it exists.
@@ -1528,11 +1549,18 @@ export function App({
   } else {
     content = (
       <WorkspaceRouter
+        projectMode={projectMode}
+        projectWorkThread={litigationThreads.find(item=>item.id===projectWorkThreadId) ?? null}
+        projectWorkBusy={litigationStarting || projectRunner.isRunning || !!projectPendingMessage}
+        projectWorkError={projectRunner.error}
+        projectSelectedFiles={selectedProjectFiles}
+        onCancelProjectPending={projectPendingMessage ? ()=>{setProjectPendingMessage(null);setProjectWorkThreadId(null);} : undefined}
+        onStopProjectWork={()=>{projectStartGeneration.current++; if(projectRunner.isRunning)projectRunner.stop(); else if(projectPendingMessage){setProjectPendingMessage(null);setProjectWorkThreadId(null);}}}
         calendarDate={calendarDate}
         onCalendarEventsChanged={() => setCalendarRefresh(value => value + 1)}
         onOpenScheduledRun={async (id) => {const record=await threadApi.getThread(id);setScheduledThread(toSummary(record));}}
         onCloseScheduledRun={() => setScheduledThread(null)}
-        litigationThreads={litigationThreads} litigationFilesCollapsed={litigationFilesCollapsed}
+        litigationThreads={[...threads, ...litigationThreads]} litigationFilesCollapsed={litigationFilesCollapsed}
         onExitLitigationCase={() => {selectLitigationWorkspace('');setActiveView('agent');}}
         onSelectLitigationThread={(id) => activateLitigationThread(id, litigationWorkspaceId)}
         onNewLitigationDiscussion={() => activateLitigationThread(null, litigationWorkspaceId)}
@@ -1592,6 +1620,13 @@ export function App({
         modelMetadataRevision={modelMetadataRevision}
         updates={updates}
         selectedCategory={settingsCategory}
+        conversationSettings={{
+          status:threadListsStatus, retry:refreshThreads, archived:archivedThreads, trash:trashedThreads,
+          unarchive:async id=>{await threadApi.unarchiveThread(id);await refreshThreads();},
+          trashArchived:async id=>{await threadApi.trashThread(id);if(id===activeThreadId){setActiveThreadId(null);window.localStorage.removeItem(LAST_THREAD_STORAGE_KEY);}await refreshThreads();},
+          restore:async id=>{await threadApi.restoreThread(id);await refreshThreads();},
+          remove:async id=>{await threadApi.deleteThread(id);if(id===activeThreadId){setActiveThreadId(null);window.localStorage.removeItem(LAST_THREAD_STORAGE_KEY);}await refreshThreads();},
+        }}
         onSelectCategory={setSettingsCategory}
         query={settingsQuery}
         onQueryChange={setSettingsQuery}
@@ -1627,10 +1662,9 @@ export function App({
           id: thread.id,
           keyword: thread.title,
         }))}
-        legalStarting={legalStarting}
-        onStartLegalSearch={(question, serverId, skills, knowledgeLibraryIds) => {
-          void startLegalSearch(question, serverId, skills, knowledgeLibraryIds);
-        }}
+        legalStarting={draftSendPreparing || searchPreparing}
+        onSearchSettingsChange={setSearchSettings}
+        onNewLegalSearch={() => { void newLegalSearch(); }}
         onSelectLegalHistory={selectLegalHistory}
         onDeleteLegalHistory={deleteLegalHistory}
         onOpenMcpSettingsForLegal={() => navigateSafely(() => {
@@ -1646,7 +1680,7 @@ export function App({
       className="app-frame"
       data-reduce-motion={reduceMotion}
       data-view={activeView}
-      data-litigation-desk={activeView === "litigation"}
+      data-litigation-desk={activeView === "litigation" && !projectMode}
       data-contract-focus={activeView === "contract-review" && !contractNavOpen}
       style={{
         "--vl-sidebar-width": sidebarLayout.collapsed
@@ -1663,7 +1697,7 @@ export function App({
         'help': () => navigateSafely(() => {setSettingsCategory('help');setSettingsQuery('');setActiveView('settings');}),
         'files': activeView === 'agent' ? () => openCommandPanel('files') : undefined,
         'terminal': activeView === 'agent' && !['archived','trash'].includes(activeThread?.status ?? '') ? () => openCommandPanel('terminal') : undefined,
-        'sidebar': activeView === 'settings' ? undefined : activeView === 'contract-review' ? () => setContractNavOpen(v=>!v) : activeView === 'litigation' ? () => setLitigationFilesCollapsed(v=>!v) : handleToggleSidebarCollapsed,
+        'sidebar': activeView === 'settings' ? undefined : activeView === 'contract-review' ? () => setContractNavOpen(v=>!v) : activeView === 'litigation' && !projectMode ? () => setLitigationFilesCollapsed(v=>!v) : handleToggleSidebarCollapsed,
         'plugins': () => navigateSafely(() => setActiveView('plugins')),
         'knowledge': () => navigateSafely(() => setActiveView('knowledge')),
         'calendar': () => navigateSafely(() => {setCalendarDate(undefined);setActiveView('case-calendar');}),
@@ -1672,8 +1706,8 @@ export function App({
       <AppToolbar
         onOpenCommands={() => setCommandsOpen(true)}
         showSidebarToggle={activeView !== "settings"}
-        sidebarCollapsed={activeView === "contract-review" ? !contractNavOpen : activeView === "litigation" ? litigationFilesCollapsed : sidebarLayout.collapsed}
-        onToggleSidebar={activeView === "contract-review" ? () => setContractNavOpen(v => !v) : activeView === "litigation" ? () => setLitigationFilesCollapsed(v => !v) : handleToggleSidebarCollapsed}
+        sidebarCollapsed={activeView === "contract-review" ? !contractNavOpen : activeView === "litigation" && !projectMode ? litigationFilesCollapsed : sidebarLayout.collapsed}
+        onToggleSidebar={activeView === "contract-review" ? () => setContractNavOpen(v => !v) : activeView === "litigation" && !projectMode ? () => setLitigationFilesCollapsed(v => !v) : handleToggleSidebarCollapsed}
         canGoBack={navHistory.index > 0}
         onBack={() => navigateSafely(goBack)}
         canGoForward={navHistory.index < navHistory.stack.length - 1}
@@ -1685,7 +1719,7 @@ export function App({
         }
       />
       <div className="app-body">
-      {activeView === "litigation" || (activeView === "contract-review" && !contractNavOpen) ? null : activeView === "settings" ? (
+      {(activeView === "litigation" && !projectMode) || (activeView === "contract-review" && !contractNavOpen) ? null : activeView === "settings" ? (
         <aside className="sidebar settings-rail" aria-label="设置导航">
           <SettingsNavigation
             selected={settingsCategory}
@@ -1697,33 +1731,76 @@ export function App({
         </aside>
       ) : (
       <Sidebar
+        projectWorkspaces={litigationWorkspaces}
+        projectWorkspaceId={litigationWorkspaceId}
+        projectSelectedFiles={selectedProjectFiles}
+        projectFilesLocked={litigationStarting || projectRunner.isRunning || !!projectPendingMessage}
+        onToggleProjectFile={path=>{if(!litigationWorkspaceId)return;setProjectFiles(current=>{
+          const paths=current?.workspaceId===litigationWorkspaceId ? current.paths : [];
+          return {workspaceId:litigationWorkspaceId,paths:paths.includes(path)?paths.filter(item=>item!==path):[...paths,path]};
+        });}}
+        onProjectScope={(project) => navigateSafely(() => {
+          setProjectMode(project);
+          if (!project) {setActiveView('agent');return;}
+          const workspaceId = activeThread?.workspaceId ?? litigationWorkspaceId;
+          if(workspaceId) selectProjectWorkspace(workspaceId);
+          setActiveView('litigation');
+        })}
+        onSelectProjectWorkspace={id=>navigateSafely(()=>selectProjectWorkspace(id))}
+        onRenameProject={workspace=>setLitigationWorkspaces(current=>current.map(item=>item.id===workspace.id?workspace:item))}
+        onArchiveProjectThreads={async id=>{
+          const projectThreads=threads.filter(item=>item.workspaceId===id);
+          try {for(const thread of projectThreads) {await threadApi.archiveThread(thread.id);if(thread.id===activeThreadId) activateLitigationThread(null,id);}}
+          finally {await refreshThreads();}
+        }}
+        onRemoveProject={async id=>{
+          if(litigationWorkspaceId===id && activeViewRef.current==='litigation'){
+            const guard=getStandaloneDraftGuard();
+            if(guard) await guard();
+          }
+          try {await revokeWorkspace(id);} catch(error){
+            if(error instanceof RuntimeApiError && error.code==='workspace_busy') throw new Error('项目仍有任务或终端在运行，请先停止任务、关闭终端后重试。');
+            throw new Error('无法移除项目，请重试。');
+          }
+          setLitigationWorkspaces(current=>current.filter(item=>item.id!==id));
+          setComposerState(current=>current?.context.workspaceId===id?{...current,context:{...current.context,workspaceId:null}}:current);
+          if(litigationWorkspaceId===id){activateLitigationThread(null,null);setLitigationWorkspaceId(null);window.localStorage.removeItem('verilex:litigation-last-workspace:v1');}
+          void refreshThreads();
+        }}
+        onNewProjectThread={id=>navigateSafely(()=>{setProjectMode(true);setActiveView('litigation');setLitigationWorkspaceId(id);activateLitigationThread(null,id);window.localStorage.setItem('verilex:litigation-last-workspace:v1',id);window.dispatchEvent(new Event('verilex:project-home'));})}
+        onSelectProjectThread={(id,workspaceId)=>navigateSafely(()=>{setProjectMode(true);setActiveView('litigation');setLitigationWorkspaceId(workspaceId);activateLitigationThread(id,workspaceId);window.localStorage.setItem('verilex:litigation-last-workspace:v1',workspaceId);window.dispatchEvent(new Event('verilex:project-home'));})}
+        onOpenProjectFile={path=>{if(litigationWorkspaceId)window.dispatchEvent(new CustomEvent('verilex:project-open-file',{detail:{workspaceId:litigationWorkspaceId,path}}));}}
         searchRequest={searchRequest}
-        threads={threads}
-        archivedThreads={archivedThreads}
-        trashedThreads={trashedThreads}
+        threads={[...new Map([...threads, ...legalThreads].map(thread => [thread.id, thread])).values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))}
         activeThreadId={activeThreadId}
         updates={updates}
-        onNewThread={() => navigateSafely(startNewTask)}
+        onNewThread={() => navigateSafely(() => {
+          if(projectMode && activeView==='litigation') {activateLitigationThread(null,litigationWorkspaceId);window.dispatchEvent(new Event('verilex:project-home'));}
+          else void startNewTask();
+        })}
         onSelectThread={(threadId) => navigateSafely(() => {
-          setActiveView("agent");
-          selectThread(threadId);
+          const searchThread = legalThreads.find(thread => thread.id === threadId);
+          if (searchThread) {
+            setActiveView(searchThread.scene === "case-retrieval" ? "case-search" : "legal-search");
+            selectLegalHistory(threadId);
+          } else {
+            setActiveView("agent");
+            selectThread(threadId);
+          }
         })}
         onOpenSettings={() => navigateSafely(() => setActiveView("settings"))}
         onOpenLegalSearch={() => navigateSafely(() => setActiveView("legal-search"))}
         onOpenRedaction={() => navigateSafely(() => setActiveView("redact"))}
         onOpenKnowledge={() => navigateSafely(() => setActiveView("knowledge"))}
         onOpenCaseSearch={() => navigateSafely(() => setActiveView("case-search"))}
-        onOpenLitigation={() => navigateSafely(() => setActiveView("litigation"))}
-        onOpenContractReview={() => setActiveView("contract-review")}
+        onOpenLitigation={() => navigateSafely(() => {setProjectMode(false);setActiveView("litigation");})}
+        onOpenContractReview={() => navigateSafely(() => setActiveView("contract-review"))}
         onOpenScheduled={() => navigateSafely(() => {setScheduledThread(null);setActiveView("scheduled");})}
         onOpenCaseCalendar={() => navigateSafely(() => {setCalendarDate(undefined);setActiveView("case-calendar");})}
         onOpenPlugins={() => navigateSafely(() => setActiveView("plugins"))}
         onRenameThread={renameThreadById}
         onArchiveThread={(id) => navigateSafely(() => archiveThreadById(id))}
-        onUnarchiveThread={unarchiveThreadById}
         onTrashThread={(id) => navigateSafely(() => trashThreadById(id))}
-        onRestoreThread={restoreThreadById}
-        onDeleteThread={(id) => navigateSafely(() => deleteThreadById(id))}
         onCreateProject={() => navigateSafely(createProject)}
         collapsed={sidebarLayout.collapsed}
         onSidebarWidthChange={handleSidebarWidthChange}

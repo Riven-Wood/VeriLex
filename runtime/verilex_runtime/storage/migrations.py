@@ -1576,3 +1576,37 @@ def run_migrations(database: Database) -> None:
     # lock/file churn while model deltas are arriving rapidly.
     with database.connect() as connection:
         connection.execute("PRAGMA journal_mode = WAL")
+
+MIGRATIONS = (*MIGRATIONS, (37, "contract review custom party", """
+ALTER TABLE contract_reviews ADD COLUMN custom_party TEXT NOT NULL DEFAULT '';
+"""))
+
+MIGRATIONS = (*MIGRATIONS, (38, "contract Word collaboration", """
+ALTER TABLE contract_reviews ADD COLUMN discussion_only INTEGER NOT NULL DEFAULT 0;
+CREATE TABLE contract_word_ai_edits (
+ id TEXT PRIMARY KEY,
+ review_id TEXT NOT NULL REFERENCES contract_reviews(id) ON DELETE CASCADE,
+ turn_id TEXT NOT NULL REFERENCES turns(id) ON DELETE CASCADE,
+ document_id TEXT NOT NULL REFERENCES contract_word_documents(id) ON DELETE CASCADE,
+ revision INTEGER NOT NULL,
+ selection TEXT NOT NULL,
+ before_text TEXT NOT NULL,
+ after_text TEXT NOT NULL,
+ reason TEXT NOT NULL,
+ status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','applied','conflict')),
+ created_at TEXT NOT NULL
+);
+CREATE UNIQUE INDEX idx_contract_word_ai_edits_turn ON contract_word_ai_edits(turn_id);
+"""))
+
+MIGRATIONS = (*MIGRATIONS, (39, "skill categories", """
+CREATE TABLE skill_categories (
+ id TEXT PRIMARY KEY,
+ name TEXT NOT NULL,
+ name_key TEXT NOT NULL UNIQUE
+);
+CREATE TABLE skill_category_assignments (
+ skill_name TEXT PRIMARY KEY,
+ category_id TEXT NOT NULL
+);
+"""))

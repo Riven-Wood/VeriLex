@@ -5,6 +5,7 @@ import {
   useState,
 } from "react";
 import { Minus, Plus, ScanLine } from "lucide-react";
+import { LoadingState } from "../LoadingState";
 import type {
   PDFDocumentLoadingTask,
   PDFDocumentProxy,
@@ -356,11 +357,7 @@ export function PdfViewer({ source, page, viewKey }: PdfViewerProps) {
     );
   }
   if (pages === null) {
-    return (
-      <div className="preview-pdf-pending" role="status">
-        正在打开 PDF…
-      </div>
-    );
+    return <LoadingState>正在打开 PDF…</LoadingState>;
   }
 
   return (

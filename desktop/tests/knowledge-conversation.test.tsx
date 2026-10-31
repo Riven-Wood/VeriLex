@@ -6,8 +6,25 @@ import { AgentComposer } from '../src/components/AgentComposer';
 import { KnowledgePicker } from '../src/components/KnowledgePicker';
 import { KnowledgeQuoteCard } from '../src/components/timeline/KnowledgeQuoteCard';
 import { knowledgeApi } from '../src/runtime/knowledgeClient';
+import {MarkdownBody} from '../src/components/timeline/MarkdownBody';
 vi.mock('../src/runtime/knowledgeClient', () => ({knowledgeApi:{list:vi.fn(),quote:vi.fn()}}));
 afterEach(() => {cleanup(); vi.restoreAllMocks();});
+test('inline knowledge citations only target a verified quote and focus its card',()=>{
+  const card=document.createElement('section');card.id='knowledge-quote-thread-quote';card.tabIndex=-1;
+  card.scrollIntoView=vi.fn();document.body.appendChild(card);
+  render(<MarkdownBody text="结论[[knowledge:quote]]，未知[[knowledge:fake]]。" knowledgeSources={[{sourceId:'quote',cardId:card.id,title:'资料.md',number:1}]}/>);
+  fireEvent.click(screen.getByRole('button',{name:'知识库来源 1：资料.md'}));
+  expect(document.activeElement).toBe(card);
+  expect(screen.getByText(/知识库引用未验证/)).toBeTruthy();
+  card.remove();
+});
+test('a later answer can cite an earlier verified quote from the same conversation',()=>{
+  const card=document.createElement('section');card.id='knowledge-quote-thread-quote';card.tabIndex=-1;card.scrollIntoView=vi.fn();document.body.appendChild(card);
+  const items=[{kind:'tool',id:'old-tool',turnId:'old',name:'knowledge_quote',status:'succeeded',resultSummary:{kind:'knowledge_quote',quoteId:'quote',threadId:'thread',sourceName:'资料.md',lineStart:1,lineEnd:1}},{kind:'assistant',id:'new-answer',turnId:'new',isStreaming:false,segments:[{type:'text',text:'依据[[knowledge:quote]]',isStreaming:false}]}] as any;
+  render(<TurnGroup threadId="thread" items={[items[1]]} caseContextItems={items} active={false} renderItem={()=>null}/>);
+  fireEvent.click(screen.getByRole('button',{name:'知识库来源 1：资料.md'}));
+  expect(document.activeElement).toBe(card);card.remove();
+});
 test('selection is explicit and discloses sending snippets to the current model', async () => {
   vi.mocked(knowledgeApi.list).mockResolvedValue([{id:'one',name:'资料库',status:'ready'}] as never);
   const change = vi.fn(); render(<KnowledgePicker selected={[]} onChange={change} disabled={false} />);
@@ -79,7 +96,6 @@ test.each(['chat', 'legal', 'litigation'] as const)('%s discussion sends only ex
   render(<AgentWorkspaceView variant={variant} ordinaryDiscussion hasModel thread={null} workspaceName="测试" draft="查看所选资料"
     onDraftChange={vi.fn()} pendingAgentMessage={null} onPendingAgentMessageSent={vi.fn()} onSendWithoutThread={send}
     onOpenSettings={vi.fn()} onThreadsRefresh={vi.fn()} onUserTurnAccepted={vi.fn()} />);
-  if (variant === 'legal') fireEvent.click(screen.getByRole('button', {name:'继续追问'}));
   fireEvent.click(screen.getByRole('button',{name:'更多选项'}));
   fireEvent.click(screen.getByRole('menuitem',{name:'知识库'}));
   fireEvent.click(await screen.findByRole('checkbox',{name:'资料库'}));

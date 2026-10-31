@@ -1,13 +1,13 @@
 import { type ReactNode, forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { encodeWord, wordDocumentApi, wordSession, type WordDocument, type WordMarkupPlan, type WordSession } from '../../runtime/wordDocumentClient';
+import { encodeWord, wordDocumentApi, wordSession, type WordAiEdit, type WordDocument, type WordMarkupPlan, type WordSession } from '../../runtime/wordDocumentClient';
 import { saveContractReview, wordCopyFilename } from '../../platform/contractReviewExport';
 import { createWordContextMenu } from '../../platform/wordContextMenu';
 import { installWordHistoryMenu } from '../../platform/wordHistoryMenu';
 import './WordDocumentEditor.css';
 import { Save } from 'lucide-react';
-export interface WordEditorHandle { exportCopy:()=>Promise<void>; isDirty:()=>boolean; locate:(range:unknown)=>void; history: (command:'undo'|'redo')=>void; flush: () => Promise<{document:WordDocument;bytes:Uint8Array}> }
-interface Props { quiet?:boolean; historyToolbar?:boolean; headerActions?:ReactNode; document: WordDocument; author?:string; review?:{id:string;status:string;opinion_count:number}; onReady?: (ready:boolean)=>void; onChanged?: ()=>void; session?:WordSession; label?:string; tracking?:boolean; editable?:boolean; onSelection?:(value:unknown)=>void; hideHeader?:boolean; onStatusChange?:(status:string)=>void; highlight?:unknown }
-export const WordDocumentEditor=forwardRef<WordEditorHandle,Props>(function WordDocumentEditor({quiet=false,historyToolbar=true,headerActions,document: source,author='VeriLex',review,onReady,onChanged,session:providedSession,label='合同 Word 编辑器',tracking=true,editable=true,onSelection,hideHeader=false,onStatusChange,highlight},ref){
+export interface WordEditorHandle { exportCopy:()=>Promise<void>; isDirty:()=>boolean; locate:(range:unknown)=>void; history: (command:'undo'|'redo')=>void; flush: () => Promise<{document:WordDocument;bytes:Uint8Array}>; applyAiEdit:(edit:WordAiEdit)=>Promise<void> }
+interface Props { quiet?:boolean; historyToolbar?:boolean; headerActions?:ReactNode; document: WordDocument; author?:string; review?:{id:string;status:string;opinion_count:number}; onReady?: (ready:boolean)=>void; onChanged?: ()=>void; session?:WordSession; label?:string; tracking?:boolean; editable?:boolean; onSelection?:(value:unknown)=>void; selectionActionLabel?:string; hideHeader?:boolean; onStatusChange?:(status:string)=>void; highlight?:unknown }
+export const WordDocumentEditor=forwardRef<WordEditorHandle,Props>(function WordDocumentEditor({quiet=false,historyToolbar=true,headerActions,document: source,author='VeriLex',review,onReady,onChanged,session:providedSession,label='合同 Word 编辑器',tracking=true,editable=true,onSelection,selectionActionLabel,hideHeader=false,onStatusChange,highlight},ref){
   const session=useMemo(()=>providedSession??wordSession(source),[source.id,providedSession]);
   const frame=useRef<HTMLIFrameElement>(null);
   const channel=useMemo(()=>crypto.randomUUID(),[source.id]);
@@ -31,7 +31,7 @@ export const WordDocumentEditor=forwardRef<WordEditorHandle,Props>(function Word
     document.addEventListener('pointerdown',closeControls,true);
     return ()=>document.removeEventListener('pointerdown',closeControls,true);
   },[channel]);
-  const request=(type='snapshot',plan?:WordMarkupPlan)=>new Promise<void>((resolve,reject)=>{
+  const request=(type='snapshot',plan?:WordMarkupPlan|WordAiEdit)=>new Promise<void>((resolve,reject)=>{
     if(!ready||failure.current){reject(new Error(failure.current||'请等待 Word 编辑器打开。'));return;}
     const requestId=crypto.randomUUID();
     const timer=window.setTimeout(()=>{requests.current.delete(requestId);reject(new Error('编辑器没有响应，请重试。'));},20000);
@@ -39,7 +39,12 @@ export const WordDocumentEditor=forwardRef<WordEditorHandle,Props>(function Word
     frame.current?.contentWindow?.postMessage({channel,type,requestId,plan},location.origin);
   });
   const snapshot=()=>request();
-  useImperativeHandle(ref,()=>({exportCopy:()=>exportCopy(),isDirty:()=>pendingInput.current||session.dirty,locate:range=>{frame.current?.contentWindow?.postMessage({channel,type:'draft-highlight',range,locate:true},location.origin);},history:command=>{
+  useImperativeHandle(ref,()=>({exportCopy:()=>exportCopy(),isDirty:()=>pendingInput.current||session.dirty,applyAiEdit:async edit=>{
+    if(applyingRef.current||pendingInput.current||session.dirty||session.document.id!==edit.document_id||session.document.revision!==edit.revision)throw new Error('文档已改变，AI 修改未写入，请重新选择后再试。');
+    applyingRef.current=true;if(frame.current)frame.current.inert=true;
+    try{await request('apply-ai-edit',edit);await session.flush();}
+    finally{applyingRef.current=false;if(frame.current)frame.current.inert=!editable;}
+  },locate:range=>{frame.current?.contentWindow?.postMessage({channel,type:'draft-highlight',range,locate:true},location.origin);},history:command=>{
     if(!ready||failure.current||frame.current?.inert)return;
     frame.current?.focus();frame.current?.contentWindow?.postMessage({channel,type:'history-action',command},location.origin);
   },flush:()=>{
@@ -66,7 +71,7 @@ export const WordDocumentEditor=forwardRef<WordEditorHandle,Props>(function Word
     const receive=(event:MessageEvent)=>{
       if(event.source!==frame.current?.contentWindow||event.origin!==location.origin)return;
       if(event.data?.type==='word-editor-loaded'){
-        frame.current.contentWindow?.postMessage({type:'open',channel,bytes:session.bytes,author,nativeContextMenu,tracking,label,selectionEvents:Boolean(callbacks.current.onSelection),historyToolbar},location.origin);return;
+        frame.current.contentWindow?.postMessage({type:'open',channel,bytes:session.bytes,author,nativeContextMenu,tracking,label,selectionEvents:Boolean(callbacks.current.onSelection),selectionActionLabel,historyToolbar},location.origin);return;
       }
       if(event.data?.channel!==channel)return;
       const data=event.data;
@@ -84,7 +89,7 @@ export const WordDocumentEditor=forwardRef<WordEditorHandle,Props>(function Word
         requests.current.forEach(req=>{clearTimeout(req.timer);req.reject(new Error(failure.current));});requests.current.clear();
       }
       else if(data.type==='snapshot'&&!failure.current){
-        pendingInput.current=false;render(n=>n+1);session.update(new Uint8Array(data.bytes),data.markup);
+        pendingInput.current=false;render(n=>n+1);session.update(new Uint8Array(data.bytes),data.markup,data.aiEditId);
         if(data.requestId){const req=requests.current.get(data.requestId);if(req){clearTimeout(req.timer);req.resolve();requests.current.delete(data.requestId);}}
       }else if(data.type==='snapshot-error'||data.type==='request-error'){
         const req=requests.current.get(data.requestId);if(req){clearTimeout(req.timer);req.reject(new Error(data.message||'请完成当前输入后再保存。'));requests.current.delete(data.requestId);}

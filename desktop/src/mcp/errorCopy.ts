@@ -18,6 +18,7 @@ const MCP_ERROR_COPY: Readonly<Record<string, string>> = {
   mcp_schema_unsupported: "这个服务器提供的工具格式暂不受支持。",
   mcp_arguments_invalid: "工具参数不符合要求，本次没有执行。",
   mcp_tool_changed: "这个服务器改变了工具，请先查看后再继续。",
+  mcp_tool_review_required: "所选插件的工具已更新，需要确认后才能继续。请打开能力中心 → 外部工具：元典在密钥弹窗中点击“同步工具”；其他插件在服务管理中测试连接并确认工具更新，然后重新发送问题。",
   mcp_tool_disabled: "这个工具当前没有启用。",
   mcp_not_selected: "当前对话尚未选择这个服务器。",
   mcp_binary_output_omitted: "工具返回了当前版本无法显示的二进制内容。",

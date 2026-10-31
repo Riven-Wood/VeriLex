@@ -1,11 +1,22 @@
 from pathlib import Path
 import io
 import subprocess
+import json
+import hashlib
 import pytest
 from docx import Document
 from verilex_runtime.attachments import legacy_doc
 from verilex_runtime.attachments.errors import AttachmentDomainError
 from verilex_runtime.attachments.inspection import inspect_file
+
+
+@pytest.fixture(autouse=True)
+def reader_resources(tmp_path, monkeypatch):
+    reader=tmp_path/'reader';(reader/'bin').mkdir(parents=True);(reader/'reader').mkdir()
+    (reader/'bin/java').write_text('unit-test executable');(reader/'bin/java').chmod(0o700)
+    (reader/'reader/legacy-layout.jar').write_bytes(b'unit-test jar')
+    monkeypatch.setattr(legacy_doc.legacy_layout,'_READER',reader)
+    monkeypatch.setattr(legacy_doc.legacy_layout,'_DEVELOPMENT_READER',reader)
 
 
 def _docx():
@@ -38,6 +49,13 @@ def test_converter_uses_private_job_and_validates_output(monkeypatch):
         assert '(deny network*)' in policy and '(deny file-write*)' in policy
         assert '(subpath "/Users")' in policy
         assert 'MacroSecurityLevel' in (root/'profile/user/registrymodifications.xcu').read_text()
+        if '-cp' in command:
+            assert kwargs['timeout']==20
+            metadata={'version':1,'compression':1,'kernPunctuation':True,'paragraphs':[
+                {'hash':hashlib.sha256(t.encode()).hexdigest(),'table':table}
+                for t,table in [('虚构合同：验收后付款。',False),('付款阶段',True)]
+            ]}
+            return subprocess.CompletedProcess(command,0,stdout=json.dumps(metadata).encode())
         assert kwargs['timeout']==45 and '--infilter=MS Word 97' in command
         (root/'source.docx').write_bytes(_docx())
         return subprocess.CompletedProcess(command,0)

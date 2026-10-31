@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { ChevronDown } from "lucide-react";
 
+import { groupedSearchServers } from "../mcp/providerGroups";
 import { KnowledgePicker, type KnowledgeSelection } from "./KnowledgePicker";
 import type { McpServerRecord } from "../runtime/contracts";
 
@@ -53,9 +54,8 @@ export function LegalChannelPicker({
     return () => window.removeEventListener("keydown", onKey);
   }, [menu, onMenuChange]);
 
-  const selectedServer = mcpServers.find(
-    (server) => value.kind === "plugin" && server.id === value.serverId,
-  );
+  const groups = groupedSearchServers(mcpServers);
+  const selectedGroup = groups.find(group => value.kind === "plugin" && value.serverId !== null && group.ids.includes(value.serverId));
 
   const channelLabel = (channel: LegalChannel["kind"]): string =>
     channel === "plugin" ? "插件" : channel === "knowledge" ? "知识库" : "联网";
@@ -84,7 +84,7 @@ export function LegalChannelPicker({
         aria-expanded={menu === "plugin"}
         onClick={() => selectChannel("plugin")}
       >
-        插件{selectedServer ? ` · ${selectedServer.displayName}` : ""}
+        插件{selectedGroup ? ` · ${selectedGroup.label}` : ""}
         <ChevronDown aria-hidden="true" size={14} />
       </button>
       <button
@@ -132,21 +132,21 @@ export function LegalChannelPicker({
               </button>
             </>
           ) : (
-            mcpServers.map((server) => (
+            groups.map((group) => (
               <button
-                key={server.id}
+                key={group.representative.id}
                 type="button"
                 role="menuitemradio"
                 className="legal-channel-menu-item"
                 aria-checked={
-                  value.kind === "plugin" && value.serverId === server.id
+                  value.kind === "plugin" && value.serverId !== null && group.ids.includes(value.serverId)
                 }
                 onClick={() => {
-                  onChange({ kind: "plugin", serverId: server.id });
+                  onChange({ kind: "plugin", serverId: group.representative.id });
                   onMenuChange(null);
                 }}
               >
-                {server.displayName}
+                {group.label}
               </button>
             ))
           )}

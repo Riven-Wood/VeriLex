@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo, useRef, type ReactNode } from 'react';
 import type { ContractEditorTurnContext } from '../../runtime/contractEditorClient';
 
-interface Binding { capture: () => ContractEditorTurnContext; sent: () => void; refresh?: () => void }
+interface Binding { capture: () => ContractEditorTurnContext | null; sent: () => void; refresh?: () => void }
 interface EditorContext {
   capture: (threadId: string) => ContractEditorTurnContext | null;
   sent: (threadId: string) => void;
@@ -19,6 +19,7 @@ export function ContractEditorProvider({ children }: { children: ReactNode }) {
       const binding = bindings.current.get(threadId);
       if (!binding) return null;
       const snapshot = binding.capture();
+      if (!snapshot) return null;
       captured.current.set(threadId, binding);
       return snapshot;
     },

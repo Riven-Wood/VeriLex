@@ -3,7 +3,8 @@ import { createPortal } from "react-dom";
 import { Check, ChevronDown } from "lucide-react";
 import "./ContractSkillMenu.css";
 
-export function SkillMenu({ value, entries, disabled = false, onChange, label, multiple = false, maxSelected = 10 }: {
+export function SkillMenu({ placement = "below", value, entries, disabled = false, onChange, label, multiple = false, maxSelected = 10 }: {
+  placement?: "above" | "below";
   value: string[];
   entries: { name: string; description: string }[];
   disabled?: boolean;
@@ -22,6 +23,7 @@ export function SkillMenu({ value, entries, disabled = false, onChange, label, m
   const current = entries.find(entry => entry.name === active) ?? entries.find(entry => entry.name === value[0]) ?? entries[0];
   const activeIndex = entries.findIndex(entry => entry.name === current?.name);
   const selectedDescription = entries.find(entry => entry.name === value[0])?.description;
+  const selectedNames = value.join("、");
 
   useEffect(() => { if (disabled) setOpen(false); }, [disabled]);
   useLayoutEffect(() => {
@@ -30,15 +32,17 @@ export function SkillMenu({ value, entries, disabled = false, onChange, label, m
       const rect = trigger.current?.getBoundingClientRect();
       if (!rect) return;
       const width = Math.min(640, window.innerWidth - 32);
-      const top = rect.bottom + 6;
+      const above = placement === "above";
+      const maxHeight = Math.max(120, Math.min(440, above ? rect.top - 22 : window.innerHeight - rect.bottom - 22));
+      const top = above ? Math.max(16, rect.top - 6) : rect.bottom + 6;
       setPosition({ left: Math.max(16, Math.min(rect.left, window.innerWidth - width - 16)), top, width,
-        maxHeight: Math.max(120, Math.min(440, window.innerHeight - top - 16)) });
+        maxHeight });
     };
     place();
     window.addEventListener("resize", place);
     window.addEventListener("scroll", place, true);
     return () => { window.removeEventListener("resize", place); window.removeEventListener("scroll", place, true); };
-  }, [expanded]);
+  }, [expanded, placement]);
   useEffect(() => {
     if (!expanded) return;
     const outside = (event: PointerEvent) => {
@@ -85,11 +89,11 @@ export function SkillMenu({ value, entries, disabled = false, onChange, label, m
     <button ref={trigger} type="button" role="combobox" aria-labelledby={`${id}-label`}
       aria-expanded={expanded} aria-haspopup="listbox" aria-controls={expanded ? `${id}-list` : undefined}
       aria-activedescendant={expanded && current ? `${id}-option-${activeIndex}` : undefined}
-      className="contract-skill-trigger" disabled={disabled} title={multiple ? undefined : selectedDescription}
+      className="contract-skill-trigger" disabled={disabled} title={multiple ? selectedNames || undefined : selectedDescription}
       onClick={() => { trigger.current?.focus(); setActive(value[0] ?? entries[0]?.name ?? ""); setOpen(!expanded); }}>
-      <span>{multiple ? `${label}${value.length ? `（${value.length}）` : ""}` : value[0]}</span><ChevronDown size={14} aria-hidden="true" />
+      <span>{multiple ? selectedNames || label : value[0]}</span><ChevronDown size={14} aria-hidden="true" />
     </button>
-    {expanded && createPortal(<div ref={panel} className={`contract-skill-panel${multiple ? " search-skill-panel" : ""}`} style={position}>
+    {expanded && createPortal(<div ref={panel} className={`contract-skill-panel${multiple ? " search-skill-panel" : ""}`} style={{...position, height: placement === "above" ? position.maxHeight : undefined, transform: placement === "above" ? "translateY(-100%)" : undefined}}>
       <div id={`${id}-list`} role="listbox" aria-label={label} aria-multiselectable={multiple || undefined} className="contract-skill-options">
         {!entries.length && <p className="contract-skill-empty">暂无可用的检索技能</p>}
         {entries.map((entry, index) => <button key={entry.name} id={`${id}-option-${index}`} type="button"

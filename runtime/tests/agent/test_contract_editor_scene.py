@@ -24,6 +24,9 @@ class EditorDouble:
     def has_snapshot(self, context):
         return (context.thread_id, context.turn_id) in self.snapshots
 
+    def _snapshot(self, context):
+        return self.snapshots.get((context.thread_id, context.turn_id))
+
     def excerpt(self, context):
         value = self.snapshots.get((context.thread_id, context.turn_id))
         return '已核对编辑选区：' + value['selected_text'] if value else None

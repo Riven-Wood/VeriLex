@@ -238,6 +238,8 @@ class Products:
             if source is not None:
                 # The source Word package owns its formatting; JSON is only its AI projection.
                 record.update(native_word=True,draft_spacing_version=1)
+                from .native_word import projection_is_complete
+                record['projection_complete']=projection_is_complete(source)
                 record.pop('draft_format_version',None)
             encoded=self._encode(record,source)
             stored=json.loads(parts(encoded)[META])
@@ -447,7 +449,7 @@ class Products:
         from .native_word import project
         with _LOCK:
             current=self.read(context,product_id)
-            if current['kind']!='documents' or current['external_update'] or current['file_hash']!=base_hash:
+            if (current['kind']!='documents' and not current.get('native_word')) or current['external_update'] or current['file_hash']!=base_hash:
                 raise _failure('litigation_file_conflict','文书已有变化，请重新打开。')
             if not current.get('native_word'):
                 if current.get('draft_current') and current['draft']['document']!=current['document']:
@@ -457,7 +459,7 @@ class Products:
                 record.update(native_word=True,document=project(data))
                 self._publish(context,path,self._encode(record,data),data)
                 current=self.read(context,product_id)
-            if not current.get('draft_spacing_version'):
+            if current['kind']=='documents' and not current.get('draft_spacing_version'):
                 from .native_word import compact_generated_spacing
                 path=self._file(context,product_id);data,record=self._read(path)
                 record={k:v for k,v in record.items() if k not in ('file_hash','external_update')}
@@ -469,7 +471,11 @@ class Products:
                 self._publish(context,index,json.dumps({'path':str(path.relative_to(self.service._root(context))),'record':stored},ensure_ascii=False).encode(),index.read_bytes() if index.exists() else None,history=False,internal=True)
                 current=self.read(context,product_id)
             data=self._file(context,product_id).read_bytes()
-            return {'product':current,'content':base64.b64encode(data).decode()}
+            if 'projection_complete' not in current:
+                from .native_word import projection_is_complete
+                current={**current,'projection_complete':projection_is_complete(data)}
+            from .native_word import tracking_enabled
+            return {'product':current,'content':base64.b64encode(data).decode(),'tracking_enabled':tracking_enabled(data)}
 
     def save_word(self,context,product_id,base_hash,content):
         import base64
@@ -482,11 +488,13 @@ class Products:
         with _LOCK:
             self.service._root(context,write=True)
             path=self._file(context,product_id);before,current=self._read(path)
-            if current['kind']!='documents' or current['external_update'] or current['file_hash']!=base_hash:
+            if (current['kind']!='documents' and not current.get('native_word')) or current['external_update'] or current['file_hash']!=base_hash:
                 raise _failure('litigation_file_conflict','文书已有变化，当前输入仍保留在编辑区，请另存副本。')
             # The editor owns bytes, not product identity or metadata supplied in them.
             record={k:v for k,v in current.items() if k not in ('file_hash','external_update','editor_receipt')}
             record.update(native_word=True,document=document,revision=current['revision']+1,updated_at=datetime.now(timezone.utc).isoformat())
+            from .native_word import projection_is_complete
+            record['projection_complete']=projection_is_complete(data)
             encoded=self._encode(record,data)
             self._publish(context,path,encoded,before)
             index=safe_path(self.service._root(context),f"{FOLDER}/编辑记录/{self._id(product_id)}-index.json")
@@ -534,6 +542,32 @@ class Products:
                 if r['id']==product_id:rows.append(r)
             return {'versions':sorted(rows,key=lambda r:r['revision'],reverse=True)}
 
+    def open_word_history(self,context,product_id,revision,base_hash):
+        import base64
+        from .native_word import tracking_enabled
+        with _LOCK:
+            path=self._file(context,product_id)
+            self.read(context,product_id)
+            for old in path.parent.glob('.verilex-edit-history-*.docx'):
+                if old.is_symlink():continue
+                data,record=self._read(old)
+                if record['id']==product_id and record['revision']==revision and record['file_hash']==base_hash and not record['external_update']:
+                    return {'product':record,'content':base64.b64encode(data).decode(),'tracking_enabled':tracking_enabled(data)}
+            raise _failure('litigation_file_conflict','历史版本已变化或不可用，请重新打开历史。')
+
+
+    def copy_product(self,context,product_id,base_hash,document,title):
+        """Create an independent copy without flattening the source Word package."""
+        with _LOCK:
+            data,current=self._read(self._file(context,product_id))
+            if current['file_hash']!=base_hash or current['external_update']:
+                raise _failure('litigation_file_conflict','文书已有更新，请重新读取。')
+            if current.get('native_word'):
+                from .native_word import update_document
+                if document != current['document']:
+                    data=update_document(data,current['document'],document,pleading=bool(current.get('draft_format_version')))
+                return self.create(context,title,current['kind'],document,current.get('document_type'),source=data)
+            return self.create(context,title,current['kind'],document,current.get('document_type'))
 
     def templates(self,context):
         root=self.service._root(context);folder=safe_path(root,'我的文书模板')
@@ -587,7 +621,7 @@ class Products:
             root=self.service._root(context,write=True);source=safe_path(root,path)
             if source.suffix.lower()!='.docx':raise _failure('litigation_editor_readonly','请选择Word文档。')
             data=checked_bytes(source)
-            if kind=='documents' and not text_only:
+            if not text_only:
                 from .native_word import project
                 return self.create(context,title,kind,project(data),document_type,source=data)
             return self.create(context,title,kind,import_docx(data,text_only=text_only),document_type)

@@ -28,6 +28,10 @@ describe('Word paragraph and table panels',()=>{
   expect(h.options.runCommand).toHaveBeenCalledOnce();expect(document.getElementById('paragraph-panel')!.hidden).toBe(true);
   expect(getSelection()!.toString()).toBe('一段正文第二');
  });
+ it('removes only the selected paragraph bottom border',()=>{
+  const h=setup();h.click('paragraph-open');h.click('paragraph-remove-bottom-border');h.click('paragraph-apply');
+  expect(JSON.parse(h.api.SetParagraphFormat.mock.calls[0][2])).toEqual({bottomBorder:{style:'nil',size:0,space:0}});
+ });
  it('resolves saved anchors after a formatting repaint and restores the caret',()=>{
   const h=setup();h.click('paragraph-open');h.input('paragraph-before','4');
   h.editor.reconcile.mockImplementation(()=>{const node=h.first.cloneNode(true);h.first.replaceWith(node);});h.click('paragraph-apply');

@@ -1,7 +1,11 @@
+import { invoke, isTauri } from "@tauri-apps/api/core";
 import { CopyButton } from "./MessageActions";
 import { visibleAssistantText } from "../../timeline/assistantText";
 import { renderCaseCitationText, focusCaseSource, type CaseCitationSource } from "../../timeline/caseCitations";
-import { memo, useMemo, useRef, type ReactNode } from "react";
+import {renderKnowledgeCitationText, type KnowledgeCitationSource} from "../../timeline/knowledgeCitations";
+import {renderToolCitationText, type ToolCitationSource} from "../../timeline/toolCitations";
+import {runtimeRequest} from "../../runtime/api";
+import { memo, useMemo, useRef, useState, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -17,6 +21,9 @@ interface MarkdownBodyProps {
   text: string;
   sources?: CitationSource[];
   caseSources?: CaseCitationSource[];
+  knowledgeSources?: KnowledgeCitationSource[];
+  toolSources?: ToolCitationSource[];
+  threadId?: string;
   streaming?: boolean;
 }
 
@@ -38,6 +45,8 @@ function preparedCitationMarkdown(
   sources: CitationSource[],
   streaming: boolean,
   caseSources: CaseCitationSource[],
+  knowledgeSources: KnowledgeCitationSource[],
+  toolSources: ToolCitationSource[],
 ): { markdown: string; tokenParts: Map<string, Extract<CitationTextPart, { kind: "citation" }>> } {
   const tokenParts = new Map<
     string,
@@ -45,7 +54,19 @@ function preparedCitationMarkdown(
   >();
   const nonce = citationTokenNonceFrom(text);
   const tokenPrefix = `${CITATION_TOKEN_PREFIX}${nonce}_`;
-  const withCases = renderCaseCitationText(text, caseSources, streaming).map((part, index) => {
+  const withTools=renderToolCitationText(text,toolSources,streaming).map((part,index)=>{
+    if(part.kind==='text')return part.text;
+    const token=`${tokenPrefix}TOOL_${index}_END`;
+    tokenParts.set(token,{kind:'citation',number:part.source.number,title:part.source.title,url:`#verilex-source-${part.source.sourceId}`});
+    return token;
+  }).join('');
+  const withKnowledge=renderKnowledgeCitationText(withTools,knowledgeSources,streaming).map((part,index)=>{
+    if(part.kind==='text')return part.text;
+    const token=`${tokenPrefix}KNOWLEDGE_${index}_END`;
+    tokenParts.set(token,{kind:'citation',number:part.source.number,title:part.source.title,url:`#${part.source.cardId}`});
+    return token;
+  }).join('');
+  const withCases = renderCaseCitationText(withKnowledge, caseSources, streaming).map((part, index) => {
     if (part.kind === "text") return part.text;
     const token = `${tokenPrefix}CASE_${index}_END`;
     tokenParts.set(token, { kind: "citation", number: part.source.number, title: part.source.title, url: `#${part.source.cardId}` });
@@ -177,15 +198,31 @@ export const MarkdownBody = memo(function MarkdownBody({
   text,
   sources = [],
   caseSources = [],
+  knowledgeSources = [],
+  toolSources = [],
+  threadId,
   streaming = false,
 }: MarkdownBodyProps) {
+  const [sourceView,setSourceView]=useState<{title:string;text?:string;truncated?:boolean}|null>(null);
+  const requestVersion=useRef(0);
+  async function openToolSource(source:ToolCitationSource) {
+    if (!threadId) return;
+    const version=++requestVersion.current;
+    setSourceView({title:source.title,text:'正在读取来源…'});
+    try {
+      const result=await runtimeRequest<{text?:string;truncated?:boolean}>(`/v1/threads/${encodeURIComponent(threadId)}/sources/${encodeURIComponent(source.sourceId)}`);
+      if(version===requestVersion.current)setSourceView({title:source.title,text:result.text,truncated:result.truncated});
+    } catch {
+      if(version===requestVersion.current)setSourceView({title:source.title,text:'该来源暂不可用，无法核验。'});
+    }
+  }
   const safeSources = useMemo(
     () => citationSourcesFrom(sources) ?? [],
     [sources],
   );
   const prepared = useMemo(
-    () => preparedCitationMarkdown(visibleAssistantText(text, streaming), safeSources, streaming, caseSources),
-    [safeSources, streaming, text, caseSources],
+    () => preparedCitationMarkdown(visibleAssistantText(text, streaming), safeSources, streaming, caseSources, knowledgeSources, toolSources),
+    [safeSources, streaming, text, caseSources, knowledgeSources, toolSources],
   );
   const plugins = useMemo(
     () => [remarkGfm, citationPlugin(prepared.tokenParts)],
@@ -200,6 +237,11 @@ export const MarkdownBody = memo(function MarkdownBody({
           a: ({ href, children, node: _node, ...props }) => {
             const source = caseSources.find((entry) => href === `#${entry.cardId}`);
             if (source) return <button type="button" className="citation-link" aria-label={`案例来源 ${source.number}：${source.title}`} onClick={() => focusCaseSource(source)}>{children}</button>;
+            const knowledge = knowledgeSources.find((entry) => href === `#${entry.cardId}`);
+            if (knowledge) return <button type="button" className="citation-link" aria-label={`知识库来源 ${knowledge.number}：${knowledge.title}`} onClick={() => {const target=document.getElementById(knowledge.cardId);target?.scrollIntoView?.({block:'center'});target?.focus({preventScroll:true});}}>{children}</button>;
+            const tool = toolSources.find((entry) => href === `#verilex-source-${entry.sourceId}`);
+            if (tool?.plugin && tool.url) return <a className="citation-link" href={tool.url} target="_blank" rel="noreferrer noopener" aria-label={`来源 ${tool.number}：${tool.title}`} onClick={event => { if (!isTauri()) return; event.preventDefault(); void invoke("browser_action", {action:"external", url:tool.url}).catch(() => setSourceView({title:tool.title,text:"系统浏览器没有打开，请稍后重试。"})); }}>{children}</a>;
+            if (tool && threadId) return <button type="button" className="citation-link" aria-label={`工具来源 ${tool.number}：${tool.title}`} onClick={() => void openToolSource(tool)}>{children}</button>;
             return (
             <a
               {...props}
@@ -214,9 +256,16 @@ export const MarkdownBody = memo(function MarkdownBody({
       >
         {prepared.markdown}
       </ReactMarkdown>
+      {sourceView && <section className="tool-source-view" aria-label="来源内容" aria-live="polite"><strong>{sourceView.title} · 来源内容</strong><button type="button" onClick={()=>{requestVersion.current++;setSourceView(null);}}>关闭</button><pre style={{whiteSpace:'pre-wrap',maxHeight:400,overflow:'auto'}}>{sourceView.text}</pre>{sourceView.truncated && <p>内容较长，此处显示前 50000 字。</p>}</section>}
     </div>
   );
-});
+}, (previous, next) => previous.text === next.text
+  && previous.streaming === next.streaming
+  && previous.threadId === next.threadId
+  && JSON.stringify(previous.sources ?? []) === JSON.stringify(next.sources ?? [])
+  && JSON.stringify(previous.caseSources ?? []) === JSON.stringify(next.caseSources ?? [])
+  && JSON.stringify(previous.knowledgeSources ?? []) === JSON.stringify(next.knowledgeSources ?? [])
+  && JSON.stringify(previous.toolSources ?? []) === JSON.stringify(next.toolSources ?? []));
 
 function CopyableCode({ children }: { children?: ReactNode }) {
   const ref = useRef<HTMLPreElement>(null);

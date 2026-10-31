@@ -9,7 +9,7 @@ vi.mock("../src/components/ContractAnnotationPreview", () => ({ContractAnnotatio
 
 const documentFixture={id:'wd',filename:'样本合同.docx',content:'ZWRpdGVk',revision:1,updated_at:'t'};
 const editorControl=vi.hoisted(()=>({flush:vi.fn()}));
-vi.mock("../src/components/wordEditor/WordDocumentEditor", () => ({WordDocumentEditor: React.forwardRef(({document,onReady}:any,ref:any)=>{ React.useEffect(()=>onReady?.(true),[]); React.useImperativeHandle(ref,()=>({flush:async()=>{await editorControl.flush();return {document,bytes:new TextEncoder().encode('edited')};}})); return <div>完整 Word 文档</div>; })}));
+vi.mock("../src/components/wordEditor/WordDocumentEditor", () => ({WordDocumentEditor: React.forwardRef(({document,onReady,onSelection}:any,ref:any)=>{ React.useEffect(()=>onReady?.(true),[]); React.useImperativeHandle(ref,()=>({flush:async()=>{await editorControl.flush();return {document,bytes:new TextEncoder().encode('edited')};},isDirty:()=>false})); return <div>完整 Word 文档{onSelection&&<button onClick={()=>onSelection({texts:['测试合同文字'],start:0,end:0,from:0,to:4})}>添加测试选区</button>}</div>; })}));
 
 class Socket {
   static OPEN = 1;
@@ -121,6 +121,37 @@ test("创建合同审查后将原件上传并实际发送带附件的首轮消�
   expect(String(create?.[0])).toContain("document_id=wd");
 });
 
+test('选中文字开启协作，不自动发送整份审查，引用保留在对话中',async()=>{
+  openApp();
+  fireEvent.change(await screen.findByLabelText('选择合同文件'),{target:{files:[new File(['synthetic'],'样本合同.docx')]}});
+  fireEvent.click(await screen.findByRole('button',{name:'添加测试选区'}));
+  await waitFor(()=>expect(fetchMock.mock.calls.some(([url,init])=>String(url).includes('discussion_only=true')&&init?.method==='POST')).toBe(true));
+  await waitFor(()=>expect(screen.getByText(/合同原文：/)).toBeTruthy());
+  if(Socket.last)await act(async()=>Socket.last?.onopen?.());
+  expect(Socket.last?.sent.some(value=>JSON.parse(value).type==='turn.start')).not.toBe(true);
+  fireEvent.change(screen.getByRole('textbox',{name:'向智能体提问'}),{target:{value:'请把期限改为三十日'}});
+  fireEvent.click(screen.getByRole('button',{name:'发送'}));
+  await waitFor(()=>expect(Socket.last?.sent.some(value=>JSON.parse(value).type==='turn.start')).toBe(true));
+  const sent=Socket.last!.sent.map(value=>JSON.parse(value)).find(value=>value.type==='turn.start');
+  expect(sent.content).toContain('请把期限改为三十日');
+  expect(sent.contractEditorContext).toMatchObject({mode:'word',review_id:'cr',document_id:'wd',revision:1,selected_text:'测试合同'});
+});
+
+test('主动打开合同对话，关闭后可以重新打开', async () => {
+  openApp();
+  fireEvent.change(await screen.findByLabelText('选择合同文件'), {target:{files:[new File(['synthetic'],'样本合同.docx')]}});
+  fireEvent.click(await screen.findByRole('button', {name:'打开对话'}));
+  await waitFor(() => expect(fetchMock.mock.calls.some(([url,init]) => String(url).includes('discussion_only=true') && init?.method === 'POST')).toBe(true));
+  await screen.findByRole('textbox', {name:'向智能体提问'});
+  expect(screen.queryByRole('button', {name:'导出对话'})).toBeNull();
+  expect(Socket.last?.sent.some(value => JSON.parse(value).type === 'turn.start')).not.toBe(true);
+  await waitFor(() => expect(screen.getByRole('button', {name:'关闭对话'}).hasAttribute('disabled')).toBe(false));
+  fireEvent.click(screen.getByRole('button', {name:'关闭对话'}));
+  expect(screen.queryByRole('textbox', {name:'向智能体提问'})).toBeNull();
+  fireEvent.click(screen.getByRole('button', {name:'打开对话'}));
+  expect(screen.getByRole('textbox', {name:'向智能体提问'})).toBeTruthy();
+});
+
 test("历史合同只显示Word编辑台，不恢复旧意见栏", async () => {
   exists = true;
   localStorage.setItem('verilex:contract-assistant-open:v1', 'true');
@@ -129,7 +160,7 @@ test("历史合同只显示Word编辑台，不恢复旧意见栏", async () => {
   await screen.findByRole('button',{name:'按当前文档重新审查'});
   expect(screen.queryByRole("button", {name:"本次审查原文与批注"})).toBeNull();
   expect(screen.queryByRole("button", {name:"展开意见栏"})).toBeNull();
-  expect(screen.queryByRole("textbox", {name:"向智能体提问"})).toBeNull();
+  expect(screen.getByRole("textbox", {name:"向智能体提问"})).toBeTruthy();
 });
 
 test("上传期间离开合同页会停止未启动审查，避免阻塞下一份合同", async () => {

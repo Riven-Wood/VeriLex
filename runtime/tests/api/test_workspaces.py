@@ -92,6 +92,12 @@ def test_workspace_crud_contract(api_fixture):
     assert updated.json()["allow_write"] is True
     assert updated.json()["allow_read"] is False
 
+    renamed = client.post(f"/v1/workspaces/{workspace_id}/rename", headers=HEADERS, json={"display_name": " 新名称 "})
+    assert renamed.status_code == 200
+    assert renamed.json()["display_name"] == "新名称"
+    assert client.get(f"/v1/workspaces/{workspace_id}", headers=HEADERS).json()["display_name"] == "新名称"
+    assert client.post(f"/v1/workspaces/{workspace_id}/rename", headers=HEADERS, json={"display_name": "   "}).status_code == 422
+
     revoked = client.delete(f"/v1/workspaces/{workspace_id}", headers=HEADERS)
     assert revoked.status_code == 204
     assert client.get("/v1/workspaces", headers=HEADERS).json() == []
