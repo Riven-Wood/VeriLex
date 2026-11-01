@@ -91,6 +91,7 @@ const result = spawnSync(
     "--specpath",
     pyinstallerRoot,
     "--add-data", `${resolve(repositoryRoot, "third_party/file_redaction")}:third_party/file_redaction`,
+    "--add-data", `${resolve(repositoryRoot, "runtime/verilex_runtime/bundled_skills")}:verilex_runtime/bundled_skills`,
     ...legacyReaderArgs,
     // Offline redaction: include the installed pinned model and tokenizer assets.
     "--collect-all", "zh_core_web_sm",

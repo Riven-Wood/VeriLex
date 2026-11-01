@@ -729,3 +729,16 @@ No document content is sent to these projects or downloaded at import time.
 
 - Apache POI: https://poi.apache.org/components/document/
 - Eclipse Temurin: https://github.com/adoptium/temurin21-binaries/releases/tag/jdk-21.0.13%2B9
+
+## 随包提供的第三方 Skills（v1.1.1）
+
+以下技能保留其各自许可证和作者信息，不因 VeriLex 的许可证而改变：
+
+- **CN Law Hub**：ZongziForu 及贡献者，Apache License 2.0，来源 https://github.com/ZongziForu/cn-law-hub ，版本 `8a62d5cbec94489dcb7a661dd0df411742a2a1e2`；技能目录内保留 LICENSE 和 NOTICE。本包仅选择 SKILL.md、使用资料、脚本和依赖声明，未包含项目测试及本机配置。
+- **Contract Copilot**：杨卫薪律师，Creative Commons Attribution-NonCommercial 4.0 International，来源 https://github.com/cat-xierluo/legal-skills/tree/c8f02a5589c2727f8fcca59d704e21ca7cf52c44/skills/contract-copilot ；保留作者声明与技能目录内 LICENSE.txt。采用上游 1.6.3，选择说明、工作资料、脚本、模板及示例配置，未包含测试和本机配置；禁止商业使用等许可条件以许可证原文为准。
+- **Patent Disclosure Skill**：handsomestWei，MIT License，来源 https://github.com/handsomestWei/patent-disclosure-skill/tree/defc31d923b7e5f16af5378282de3235f8483779 ，对应上游 1.8.9；保留技能目录内 LICENSE。本包选择入口、提示模板、工具、示例及依赖声明，未包含项目测试和展示图片。
+
+以上来源中的脚本、外部服务与可选依赖各有运行要求；随包提供不意味着已经验证所有外部服务或第三方数据的使用权。
+- **Claude for Legal ZH 工作流资料**：CSlawyer1985/claude-for-legal-ZH 贡献者，Apache License 2.0，来源 https://github.com/CSlawyer1985/claude-for-legal-ZH ，版本 `59f37f1c8851b8277e24f7a45f4e773bee97bab9`。VeriLex 为 17 个法律领域和工作流编写自己的 SKILL.md 入口，所选上游资料保存在各技能的 upstream 目录；每个目录保留 LICENSE 与来源说明。所选文件并非原项目全部内容。
+- **Legal Assistant Skills 中的合同审查及企查查相关技能**：duhu2000/legal-assistant-skills 贡献者，Apache License 2.0，来源 https://github.com/duhu2000/legal-assistant-skills ，版本 `ac4723b4fec2b668920a85419dda7449c55edb4a`。所选五项技能保留上游文件及 LICENSE；VeriLex 修改各 SKILL.md 的 name 字段并添加分类，修改记录见各目录 SOURCE.md。企查查服务及文档中的 qcc-cli 未随包提供，需自行配置和核验。
+- **SoftwareCopyright-Skill / software-copyright-materials**：Fokkyp 及贡献者，GNU Affero General Public License 3.0，来源 https://github.com/Fokkyp/SoftwareCopyright-Skill/tree/1159f6d280783616e1247f768690eac97c1a3f6e ，版本 `1159f6d280783616e1247f768690eac97c1a3f6e`。该原始技能及脚本作为独立文件提供，保留其 AGPL-3.0 许可证及来源说明；上游对应源码可从上述固定版本获取，亦包含在随包技能目录。OfficeCLI 等外部依赖未随此技能提供。

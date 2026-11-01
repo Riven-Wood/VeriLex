@@ -1,0 +1,39 @@
+CN Law Hub
+Copyright © 2026 ZongziForu
+
+This product includes software developed by ZongziForu
+(https://github.com/ZongziForu).
+
+This product includes contributions from the following people:
+
+  * kasc0206 — authored the crawlers/adapters for seven official sources
+    (国务院政策文件库 / 司法部行政法规库 / 党内法规库 / 国防部法规文库 /
+    税务法规库 / 生态环境部法规规章 / 最高人民法院发布栏目), contributed in
+    https://github.com/ZongziForu/cn-law-hub/pull/1.
+  * Li2zon3 — the law-crawler-unified project
+    (https://github.com/Li2zon3/law-crawler-unified) provided an important
+    reference for the implementation of 国家规章库 and 外交条约库.
+
+Ownership and 权属说明
+----------------------
+
+The CN Law Hub repository is maintained by ZongziForu. Unless otherwise
+stated, the repository as a whole and the original code, prompts,
+documentation and other materials authored by ZongziForu are owned by
+ZongziForu and licensed under the Apache License, Version 2.0 (see the
+LICENSE file).
+
+Code or other material authored by third-party contributors remains the
+property of its respective contributor and is not transferred to
+ZongziForu merely because it has been merged into this repository. Each
+contributor component is governed by the rights and permissions granted
+by its respective contributor.
+
+Nothing in this repository's license purports to grant, restrict,
+relicense, or otherwise exercise rights in a contributor component that
+ZongziForu does not own or have authority to license. Where a file
+contains both original material authored by ZongziForu and contributor
+components, the license applies only to the portions authored by
+ZongziForu. If no explicit license or permission has been provided by a
+contributor, this notice should not be interpreted as creating such
+permission on that contributor's behalf.

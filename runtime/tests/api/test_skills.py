@@ -57,7 +57,7 @@ def _rows(client):
 
 def test_list_skills_returns_full_fields_and_parse_failures(tmp_path):
     client, service = _client(tmp_path)
-    service.create("contract-review", "审查合同", "# 审查流程\n1. 通读合同原文")
+    service.create("test-contract-review", "审查合同", "# 审查流程\n1. 通读合同原文")
     (tmp_path / "skills" / "broken").mkdir()
     (tmp_path / "skills" / "broken" / "SKILL.md").write_text(
         "---\nname: broken\n---\n\n只有名称没有描述", encoding="utf-8"
@@ -65,7 +65,7 @@ def test_list_skills_returns_full_fields_and_parse_failures(tmp_path):
 
     rows = _rows(client)
 
-    entry = rows["contract-review"]
+    entry = rows["test-contract-review"]
     assert entry["description"] == "审查合同"
     assert "# 审查流程" in entry["instructions"]
     assert entry["enabled"] is True
@@ -89,25 +89,25 @@ def test_list_skills_requires_launch_token(tmp_path):
 
 def test_custom_categories_persist_and_deleting_restores_automatic_assignment(tmp_path):
     client, service = _client(tmp_path)
-    service.create("contract-review", "审查合同", "正文")
+    service.create("test-contract-review", "审查合同", "正文")
     created = client.post("/v1/skills/categories", headers=HEADERS, json={"name": "我的合同"})
     assert created.status_code == 201
     category = created.json()
     assert client.post("/v1/skills/categories", headers=HEADERS, json={"name": "我的合同"}).status_code == 409
     assert client.post("/v1/skills/categories", headers=HEADERS, json={"name": "合同审查与起草"}).status_code == 409
-    assert client.put("/v1/skills/contract-review/category", headers=HEADERS, json={"category": category["id"]}).status_code == 204
-    assert _rows(client)["contract-review"]["categoryOverride"] == category["id"]
+    assert client.put("/v1/skills/test-contract-review/category", headers=HEADERS, json={"category": category["id"]}).status_code == 204
+    assert _rows(client)["test-contract-review"]["categoryOverride"] == category["id"]
     client, _ = _client(tmp_path)
-    assert _rows(client)["contract-review"]["categoryOverride"] == category["id"]
+    assert _rows(client)["test-contract-review"]["categoryOverride"] == category["id"]
     assert client.patch(f"/v1/skills/categories/{category['id']}", headers=HEADERS, json={"name": "办案"}).status_code == 204
     assert client.get("/v1/skills/categories", headers=HEADERS).json() == [{"id": category["id"], "name": "办案"}]
     assert client.delete(f"/v1/skills/categories/{category['id']}", headers=HEADERS).status_code == 204
-    assert _rows(client)["contract-review"]["categoryOverride"] is None
-    assert client.put("/v1/skills/contract-review/category", headers=HEADERS, json={"category": "missing"}).status_code == 404
-    assert client.put("/v1/skills/contract-review/category", headers=HEADERS, json={"category": "employment"}).status_code == 204
-    assert _rows(client)["contract-review"]["categoryOverride"] == "employment"
-    assert client.put("/v1/skills/contract-review/category", headers=HEADERS, json={"category": None}).status_code == 204
-    assert _rows(client)["contract-review"]["categoryOverride"] is None
+    assert _rows(client)["test-contract-review"]["categoryOverride"] is None
+    assert client.put("/v1/skills/test-contract-review/category", headers=HEADERS, json={"category": "missing"}).status_code == 404
+    assert client.put("/v1/skills/test-contract-review/category", headers=HEADERS, json={"category": "employment"}).status_code == 204
+    assert _rows(client)["test-contract-review"]["categoryOverride"] == "employment"
+    assert client.put("/v1/skills/test-contract-review/category", headers=HEADERS, json={"category": None}).status_code == 204
+    assert _rows(client)["test-contract-review"]["categoryOverride"] is None
 
 
 def test_patch_toggles_enabled(tmp_path):

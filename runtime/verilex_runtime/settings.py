@@ -53,6 +53,9 @@ class RuntimeSettings:
         from verilex_runtime.contract_review.skill_seed import seed_contract_review_skill
 
         seed_contract_review_skill(resolved / "skills")
+        from verilex_runtime.skills.bundled import seed_distributed_skills
+
+        seed_distributed_skills(resolved / "skills")
 
 
 def _seed_default_skill(skills_root: Path) -> None:

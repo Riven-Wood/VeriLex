@@ -33,14 +33,14 @@ def test_health_is_local_and_reports_enabled_providers(tmp_path):
         "/v1/health", headers={"X-VeriLex-Token": "token"}
     )
     assert response.content == (
-        b'{"ok":true,"service":"verilex-runtime","version":"1.1.0",'
+        b'{"ok":true,"service":"verilex-runtime","version":"1.1.1",'
         b'"storage":"local","cloud_backend":false,"configured":{"models":0,'
         b'"mcp_servers":0,"skills":0,"folders":0}}'
     )
     assert response.json() == {
         "ok": True,
         "service": "verilex-runtime",
-        "version": "1.1.0",
+        "version": "1.1.1",
         "storage": "local",
         "cloud_backend": False,
         "configured": {"models": 0, "mcp_servers": 0, "skills": 0, "folders": 0},

@@ -13,6 +13,7 @@ Skills remain untrusted evidence and never expand tool permissions.
 from __future__ import annotations
 
 from verilex_runtime.skills import SkillService, SkillServiceError, read_skill_body
+from verilex_runtime.skills.bundled import read_distributed_resource
 from verilex_runtime.storage.models import RiskLevel
 from verilex_runtime.tools.registry import (
     ApprovalBehavior,
@@ -35,6 +36,12 @@ def _make_read_skill(service: SkillService):
         skill = service.find_valid_skill(name)
         if skill is None:
             raise ToolError("skill_not_found", f"Skill '{name}' was not found.")
+        path = args.get("path")
+        if path is not None:
+            try:
+                return ToolResult(ok=True, output=read_distributed_resource(skill, path))
+            except (ValueError, OSError) as error:
+                raise ToolError("skill_resource_unavailable", "技能配套文件不存在、已修改或不可读取。") from error
         return ToolResult(ok=True, output=read_skill_body(skill))
 
     return read_skill
@@ -91,7 +98,9 @@ def register_skill_tools(registry: ToolRegistry, service: SkillService) -> None:
             description=(
                 "Read the full SKILL.md source of a skill from the Skills "
                 "catalog. Pass the exact skill name. Use this before following "
-                "a skill's instructions."
+                "a skill's instructions. For a bundled skill's referenced text "
+                "file, pass its relative path as path; only unchanged files "
+                "shipped with the application are accessible."
             ),
             parameters={
                 "type": "object",
@@ -99,7 +108,11 @@ def register_skill_tools(registry: ToolRegistry, service: SkillService) -> None:
                     "name": {
                         "type": "string",
                         "description": "The exact skill name from the Skills catalog.",
-                    }
+                    },
+                    "path": {
+                        "type": "string",
+                        "description": "Optional relative path to a bundled skill's referenced text file.",
+                    },
                 },
                 "required": ["name"],
                 "additionalProperties": False,

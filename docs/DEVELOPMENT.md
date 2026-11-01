@@ -17,10 +17,10 @@ uv sync --project runtime --locked --extra dev --python 3.13.14
 
 ## 准备 Word 编辑引擎
 
-从 [v1.1.0 发布页](https://github.com/Riven-Wood/VeriLex/releases/tag/v1.1.0)下载 `VeriLex-1.1.0-word-renderer.tar.gz`，在仓库根目录解压：
+从 [v1.1.1 发布页](https://github.com/Riven-Wood/VeriLex/releases/tag/v1.1.1)下载 `VeriLex-1.1.1-word-renderer.tar.gz`，在仓库根目录解压：
 
 ```bash
-tar -xzf VeriLex-1.1.0-word-renderer.tar.gz
+tar -xzf VeriLex-1.1.1-word-renderer.tar.gz
 ```
 
 归档中的 JS/WASM 文件落在 `desktop/src-tauri/generated/documents-macos-arm64/renderer/`；目录沿用构建脚本的名称，其中仅有浏览器资源。前端构建会依据 `desktop/src/documents/renderer-lock.json` 校验完整目录及关键文件，校验失败会停止，不从 CDN 临时替换。
@@ -52,7 +52,7 @@ PDF 转换依赖系统已安装的 LibreOffice；浏览器编辑资源不包含 
 ## 验证
 
 ```bash
-npm run check:release-version -- v1.1.0
+npm run check:release-version -- v1.1.1
 npm test
 runtime/.venv/bin/python -m pytest runtime/tests -q
 cargo test --locked --manifest-path desktop/src-tauri/Cargo.toml --target aarch64-apple-darwin

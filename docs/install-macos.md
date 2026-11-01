@@ -2,7 +2,7 @@
 
 本次安装包适用于 Apple Silicon（M 系列芯片）Mac，最低系统要求为 macOS 12。不支持 Intel Mac 或 Windows。
 
-1. 打开 [v1.1.0 发布页](https://github.com/Riven-Wood/VeriLex/releases/tag/v1.1.0)，下载 `VeriLex-1.1.0-macos-arm64.zip`。
+1. 打开 [v1.1.1 发布页](https://github.com/Riven-Wood/VeriLex/releases/tag/v1.1.1)，下载 `VeriLex-1.1.1-macos-arm64.zip`。
 2. 双击解压，将 `VeriLex.app` 拖到访达左侧的“应用程序”。
 3. 双击打开 VeriLex。已有安装版时，先保存文书并正常退出旧应用，再替换；保留应用数据目录。
 4. 进入“设置 → 模型”，添加模型连接并测试。密钥只填写在应用内对应输入框。

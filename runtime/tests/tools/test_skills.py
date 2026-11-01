@@ -289,3 +289,16 @@ async def test_manual_skill_read_is_available_in_every_workbench(tmp_path, scene
     result = await registry.get("skill_read").execute(context, {"name": "chosen"})
     assert "本次采用的步骤" in result.output
     assert service.effective_skills() == []
+
+
+@pytest.mark.asyncio
+async def test_skill_read_can_read_only_allowed_bundled_resources(tmp_path):
+    from verilex_runtime.settings import RuntimeSettings
+    RuntimeSettings(host='127.0.0.1', port=0, state_dir=tmp_path, api_token='test')
+    registry = ToolRegistry()
+    register_skill_tools(registry, _service(tmp_path))
+    result = await _invoke(registry.get('skill_read'), {'name': 'patent-disclosure-skill', 'path': 'prompts/intake.md'})
+    assert result.ok and '专利' in result.output
+    with pytest.raises(ToolError) as error:
+        await _invoke(registry.get('skill_read'), {'name': 'patent-disclosure-skill', 'path': '../../secret'})
+    assert error.value.code == 'skill_resource_unavailable'

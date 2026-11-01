@@ -4,9 +4,9 @@
 
 VeriLex 将对话、文件、合同审查、诉讼材料和文书编辑放在同一个工作区中。可以连接兼容 OpenAI 接口的模型服务或本机 Ollama，通过所选模型和工具完成工作；不需要 VeriLex 账号。
 
-**最新版 v1.1.0 · 源码公开，仅限非商业用途 · 本版安装包支持 Apple Silicon Mac**
+**最新版 v1.1.1 · 源码公开，仅限非商业用途 · 本版安装包支持 Apple Silicon Mac**
 
-[下载最新版](https://github.com/Riven-Wood/VeriLex/releases/tag/v1.1.0) · [安装说明](docs/install-macos.md) · [开发说明](docs/DEVELOPMENT.md) · [报告问题](https://github.com/Riven-Wood/VeriLex/issues)
+[下载最新版](https://github.com/Riven-Wood/VeriLex/releases/tag/v1.1.1) · [安装说明](docs/install-macos.md) · [开发说明](docs/DEVELOPMENT.md) · [报告问题](https://github.com/Riven-Wood/VeriLex/issues)
 
 ## 主要功能
 
@@ -16,13 +16,13 @@ VeriLex 将对话、文件、合同审查、诉讼材料和文书编辑放在同
 - **法律与案例检索**：使用联网检索、已连接的法律数据服务或知识库，并保留可核对的来源。
 - **资料与日程**：Markdown 知识库、Word 文件脱敏、案件日程和本机定时任务。
 - **通用助手**：多轮对话、附件、文件预览、浏览器与受权限控制的文件和终端操作。
-- **扩展能力**：管理技能和 MCP 外部工具，接入已有 Excel、PPT、PDF 页面处理插件。
+- **扩展能力**：管理技能和 MCP 外部工具，接入已有 Excel、PPT、PDF 页面处理插件。本版随包提供法律法规检索、合同助手、专利交底、17 项中国法律工作流入口、5 项企查查相关技能及软著申请资料技能；来源和许可见第三方声明。
 
 模型服务与第三方数据服务需要自行配置，相关费用由对应服务商收取。AI 生成内容、法律依据、脱敏结果及最终文书须由使用者核对。
 
 ## 安装与使用
 
-1. 在[发布页](https://github.com/Riven-Wood/VeriLex/releases/tag/v1.1.0)下载 `VeriLex-1.1.0-macos-arm64.zip`。
+1. 在[发布页](https://github.com/Riven-Wood/VeriLex/releases/tag/v1.1.1)下载 `VeriLex-1.1.1-macos-arm64.zip`。
 2. 解压后将 `VeriLex.app` 拖入“应用程序”，再双击打开。
 3. 在“设置 → 模型”添加模型连接，填写自己的密钥并测试连接。
 4. 选择工作目录或相应法律工作入口，添加材料后开始使用。
